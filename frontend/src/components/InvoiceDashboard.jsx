@@ -652,6 +652,31 @@ const formatINR = (value) => {
   return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
 };
 
+const resolveInvoiceTotalAmount = (invoice = {}) => {
+  const candidates = [
+    invoice.total,
+    invoice.amount,
+    invoice.totalAmount,
+    invoice.total_amount,
+    invoice.grandTotal,
+    invoice.grand_total,
+    invoice.invoiceAmount,
+    invoice.invoice_amount
+  ];
+  for (const candidate of candidates) {
+    const numeric = Number(candidate);
+    if (Number.isFinite(numeric) && numeric > 0) return numeric;
+  }
+  return 0;
+};
+
+const formatTemplateAmount = (value) => {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount)) return '0';
+  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted;
+};
+
 const formatDisplayDate = (value) => {
   if (!value) return '';
   const date = new Date(value);
@@ -2588,6 +2613,7 @@ export default function InvoiceDashboard() {
   const openInvoiceWhatsAppComposer = (invoice) => {
     const { customer, customerName, recipientPhone, displayPhone } = resolveInvoiceWhatsAppContact(invoice);
     const invoiceNumber = String(invoice.invoiceNumber || invoice.invoice_number || invoice._id || '').trim() || 'Invoice';
+    const invoiceTotalAmount = resolveInvoiceTotalAmount(invoice);
     if (!recipientPhone) showToast(`No WhatsApp number found for ${customerName}. Enter it in the WhatsApp composer.`);
     setWhatsAppComposer({
       open: true,
@@ -2606,9 +2632,12 @@ export default function InvoiceDashboard() {
           invoice_no: invoiceNumber,
           invoice_number: invoiceNumber,
           invoice_date: formatDisplayDate(invoice.date),
-          invoice_amount: formatINR(invoice.total || invoice.amount || 0),
-          total_amount: formatINR(invoice.total || invoice.amount || 0),
-          balance_due: formatINR(invoice.balanceDue || 0),
+          invoice_amount: formatTemplateAmount(invoiceTotalAmount),
+          total_amount: formatTemplateAmount(invoiceTotalAmount),
+          invoice_amount_with_currency: formatINR(invoiceTotalAmount),
+          total_amount_with_currency: formatINR(invoiceTotalAmount),
+          balance_due: formatTemplateAmount(invoice.balanceDue || 0),
+          balance_due_with_currency: formatINR(invoice.balanceDue || 0),
           due_date: formatDisplayDate(invoice.dueDate || ''),
           company_name: companySettings.companyName || 'Service Team',
           company_website: companySettings.companyWebsite || '',

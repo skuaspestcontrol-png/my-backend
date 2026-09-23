@@ -10047,12 +10047,32 @@ const resolveWhatsappConfig = (settings = {}) => {
   };
 };
 
+const resolveInvoiceTotalAmount = (invoice = {}) => toNumber(
+  invoice.total
+  ?? invoice.amount
+  ?? invoice.totalAmount
+  ?? invoice.total_amount
+  ?? invoice.grandTotal
+  ?? invoice.grand_total
+  ?? invoice.invoiceAmount
+  ?? invoice.invoice_amount,
+  0
+);
+
+const formatTemplateAmount = (value) => {
+  const amount = Number(value || 0);
+  if (!Number.isFinite(amount)) return '0';
+  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted;
+};
+
 const buildDefaultShareMessage = (invoice, settings) => {
+  const totalAmount = resolveInvoiceTotalAmount(invoice);
   const lines = [
     `${settings.companyName || 'Service Team'} Invoice`,
     `Invoice No: ${invoice.invoiceNumber || '-'}`,
     `Invoice Date: ${formatDate(invoice.date)}`,
-    `Total Amount: ${formatINR(invoice.total || invoice.amount || 0)}`,
+    `Total Amount: ${formatINR(totalAmount)}`,
     `Balance Due: ${formatINR(invoice.balanceDue || 0)}`
   ];
   if (settings.companyWebsite) lines.push(`Website: ${settings.companyWebsite}`);
@@ -11177,12 +11197,16 @@ app.post('/api/invoices/:id/send-email', async (req, res) => {
     const pdfBuffer = await generateInvoicePdfBuffer(context);
     const fileName = buildInvoicePdfFileName(context.invoice);
     const template = getInvoiceEmailTemplate(req.body?.templateType || 'invoice_send');
+    const invoiceTotalAmount = resolveInvoiceTotalAmount(context.invoice);
     const contextData = {
       customer_name: String(context.customer?.displayName || context.customer?.name || context.invoice?.customerName || 'Customer').trim(),
       customer_email: recipient,
       customer_phone: String(context.customer?.whatsappNumber || context.customer?.mobileNumber || context.customer?.workPhone || '').trim(),
       invoice_no: String(context.invoice.invoiceNumber || context.invoice.invoice_no || context.invoice._id || '').trim(),
-      invoice_amount: formatINR(context.invoice.total || context.invoice.amount || 0),
+      invoice_amount: formatTemplateAmount(invoiceTotalAmount),
+      total_amount: formatTemplateAmount(invoiceTotalAmount),
+      invoice_amount_with_currency: formatINR(invoiceTotalAmount),
+      total_amount_with_currency: formatINR(invoiceTotalAmount),
       due_date: formatDate(context.invoice.dueDate || ''),
       company_name: String(context.settings.companyName || 'Service Team').trim(),
       service_type: String(context.invoice.subject || context.invoice.serviceType || '').trim(),
