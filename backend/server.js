@@ -6583,12 +6583,12 @@ app.get('/api/attendance', async (req, res) => {
           a.source,
           a.punch_in_latitude,
           a.punch_in_longitude,
-          a.punch_in_location_accuracy,
+          COALESCE(a.punch_in_location_accuracy, a.punch_in_accuracy) AS punch_in_location_accuracy,
           a.punch_in_address,
           a.punch_in_map_url,
           a.punch_out_latitude,
           a.punch_out_longitude,
-          a.punch_out_location_accuracy,
+          COALESCE(a.punch_out_location_accuracy, a.punch_out_accuracy) AS punch_out_location_accuracy,
           a.punch_out_address,
           a.punch_out_map_url,
           a.edited_by,
@@ -6781,6 +6781,7 @@ app.post('/api/attendance', async (req, res) => {
   }
 
   let employee = null;
+  let nextRecord = null;
   try {
     employee = await fetchEmployeeByAnyId(employeeId);
   } catch (error) {
@@ -6815,7 +6816,7 @@ app.post('/api/attendance', async (req, res) => {
       return sanitizeAttendanceRecord(row.payload);
     });
 
-    const nextRecord = sanitizeAttendanceRecord({
+    nextRecord = sanitizeAttendanceRecord({
       _id: req.body?._id || stableExternalId,
       employeeId,
       employeeCode,
@@ -10705,11 +10706,13 @@ const ensureAttendanceTable = async (conn) => {
     { name: 'punch_in_latitude', definition: 'DECIMAL(10,8) NULL' },
     { name: 'punch_in_longitude', definition: 'DECIMAL(11,8) NULL' },
     { name: 'punch_in_accuracy', definition: 'DECIMAL(10,2) NULL' },
+    { name: 'punch_in_location_accuracy', definition: 'DECIMAL(10,2) NULL' },
     { name: 'punch_in_address', definition: 'TEXT NULL' },
     { name: 'punch_in_map_url', definition: 'TEXT NULL' },
     { name: 'punch_out_latitude', definition: 'DECIMAL(10,8) NULL' },
     { name: 'punch_out_longitude', definition: 'DECIMAL(11,8) NULL' },
     { name: 'punch_out_accuracy', definition: 'DECIMAL(10,2) NULL' },
+    { name: 'punch_out_location_accuracy', definition: 'DECIMAL(10,2) NULL' },
     { name: 'punch_out_address', definition: 'TEXT NULL' },
     { name: 'punch_out_map_url', definition: 'TEXT NULL' },
     { name: 'edited_by', definition: 'VARCHAR(100) NULL' },
@@ -11095,11 +11098,11 @@ const syncAttendanceToMysql = async (record) => {
       `INSERT INTO attendance (
         external_id, employee_external_id, employee_code, employee_name, attendance_date, status,
         leave_type, check_in, check_out, working_hours, source,
-        punch_in_latitude, punch_in_longitude, punch_in_accuracy, punch_in_address, punch_in_map_url,
-        punch_out_latitude, punch_out_longitude, punch_out_accuracy, punch_out_address, punch_out_map_url,
+        punch_in_latitude, punch_in_longitude, punch_in_accuracy, punch_in_location_accuracy, punch_in_address, punch_in_map_url,
+        punch_out_latitude, punch_out_longitude, punch_out_accuracy, punch_out_location_accuracy, punch_out_address, punch_out_map_url,
         edited_by, edited_at, edit_reason,
         payload, source_created_at, source_updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         employee_external_id=VALUES(employee_external_id),
         employee_code=VALUES(employee_code),
@@ -11114,11 +11117,13 @@ const syncAttendanceToMysql = async (record) => {
         punch_in_latitude=VALUES(punch_in_latitude),
         punch_in_longitude=VALUES(punch_in_longitude),
         punch_in_accuracy=VALUES(punch_in_accuracy),
+        punch_in_location_accuracy=VALUES(punch_in_location_accuracy),
         punch_in_address=VALUES(punch_in_address),
         punch_in_map_url=VALUES(punch_in_map_url),
         punch_out_latitude=VALUES(punch_out_latitude),
         punch_out_longitude=VALUES(punch_out_longitude),
         punch_out_accuracy=VALUES(punch_out_accuracy),
+        punch_out_location_accuracy=VALUES(punch_out_location_accuracy),
         punch_out_address=VALUES(punch_out_address),
         punch_out_map_url=VALUES(punch_out_map_url),
         edited_by=VALUES(edited_by),
@@ -11142,10 +11147,12 @@ const syncAttendanceToMysql = async (record) => {
         record.punchInLatitude ?? null,
         record.punchInLongitude ?? null,
         record.punchInAccuracy ?? null,
+        record.punchInAccuracy ?? null,
         record.punchInAddress || null,
         record.punchInMapUrl || null,
         record.punchOutLatitude ?? null,
         record.punchOutLongitude ?? null,
+        record.punchOutAccuracy ?? null,
         record.punchOutAccuracy ?? null,
         record.punchOutAddress || null,
         record.punchOutMapUrl || null,
