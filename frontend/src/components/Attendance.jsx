@@ -60,7 +60,8 @@ const formatAttendanceSourceLabel = (value) => {
   const normalized = text.toLowerCase();
   if (normalized === 'manual_admin' || normalized === 'manual admin') return 'admin';
   if (normalized === 'technician_app') return 'Technician App';
-  if (normalized === 'sales_app' || normalized === 'self') return 'self';
+  if (normalized === 'sales_app') return 'Sales App';
+  if (normalized === 'self') return 'self';
   return text;
 };
 
