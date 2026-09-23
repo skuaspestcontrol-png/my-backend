@@ -9711,17 +9711,25 @@ const loadCurrentSettingsForNumbering = async () => {
   if (canUseMysql()) {
     try {
       const mysqlSettings = await readSettingsFromMysql();
+      const firstNonEmpty = (...values) => {
+        for (const value of values) {
+          const text = String(value || '').trim();
+          if (text) return text;
+        }
+        return '';
+      };
+      const firstDefined = (...values) => values.find((value) => value !== undefined && value !== null);
       return sanitizeSettings({
         ...(fileSettings || {}),
         ...(mysqlSettings || {}),
-        whatsappApiBaseUrl: String(fileSettings.whatsappApiBaseUrl || mysqlSettings?.whatsappApiBaseUrl || mysqlSettings?.apiBaseUrl || '').trim(),
-        whatsappPhoneNumber: String(fileSettings.whatsappPhoneNumber || mysqlSettings?.whatsappPhoneNumber || mysqlSettings?.phoneNumber || '').trim(),
-        whatsappInstanceId: String(fileSettings.whatsappInstanceId || fileSettings.whatsappPhoneNumberId || mysqlSettings?.whatsappInstanceId || mysqlSettings?.whatsappPhoneNumberId || mysqlSettings?.instanceId || '').trim(),
-        whatsappPhoneNumberId: String(fileSettings.whatsappPhoneNumberId || fileSettings.whatsappInstanceId || mysqlSettings?.whatsappPhoneNumberId || mysqlSettings?.whatsappInstanceId || mysqlSettings?.instanceId || '').trim(),
-        whatsappAccessToken: String(fileSettings.whatsappAccessToken || mysqlSettings?.whatsappAccessToken || mysqlSettings?.accessToken || '').trim(),
-        whatsappProviderType: String(fileSettings.whatsappProviderType || mysqlSettings?.whatsappProviderType || mysqlSettings?.providerType || '').trim().toLowerCase(),
-        whatsappApiActive: fileSettings.whatsappApiActive ?? mysqlSettings?.whatsappApiActive ?? mysqlSettings?.whatsappActive ?? mysqlSettings?.active,
-        whatsappTestNumber: String(fileSettings.whatsappTestNumber || mysqlSettings?.whatsappTestNumber || '').trim()
+        whatsappApiBaseUrl: firstNonEmpty(mysqlSettings?.whatsappApiBaseUrl, mysqlSettings?.apiBaseUrl, fileSettings.whatsappApiBaseUrl, fileSettings.apiBaseUrl),
+        whatsappPhoneNumber: firstNonEmpty(mysqlSettings?.whatsappPhoneNumber, mysqlSettings?.phoneNumber, fileSettings.whatsappPhoneNumber, fileSettings.phoneNumber),
+        whatsappInstanceId: firstNonEmpty(mysqlSettings?.whatsappInstanceId, mysqlSettings?.whatsappPhoneNumberId, mysqlSettings?.instanceId, fileSettings.whatsappInstanceId, fileSettings.whatsappPhoneNumberId, fileSettings.instanceId),
+        whatsappPhoneNumberId: firstNonEmpty(mysqlSettings?.whatsappPhoneNumberId, mysqlSettings?.whatsappInstanceId, mysqlSettings?.instanceId, fileSettings.whatsappPhoneNumberId, fileSettings.whatsappInstanceId, fileSettings.instanceId),
+        whatsappAccessToken: firstNonEmpty(mysqlSettings?.whatsappAccessToken, mysqlSettings?.accessToken, fileSettings.whatsappAccessToken, fileSettings.accessToken),
+        whatsappProviderType: firstNonEmpty(mysqlSettings?.whatsappProviderType, mysqlSettings?.providerType, fileSettings.whatsappProviderType, fileSettings.providerType).toLowerCase(),
+        whatsappApiActive: firstDefined(mysqlSettings?.whatsappApiActive, mysqlSettings?.whatsappActive, mysqlSettings?.active, fileSettings.whatsappApiActive, fileSettings.whatsappActive, fileSettings.active),
+        whatsappTestNumber: firstNonEmpty(mysqlSettings?.whatsappTestNumber, fileSettings.whatsappTestNumber)
       });
     } catch (error) {
       console.error('Failed to load settings from MySQL for invoice numbering, using JSON fallback:', error.message);
