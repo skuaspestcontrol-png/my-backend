@@ -3346,7 +3346,9 @@ const normalizeAttendanceSource = (value) => {
   if (!raw) return '';
   const lower = raw.toLowerCase();
   if (lower === 'manual_admin' || lower === 'manual admin') return 'admin';
-  if (lower === 'technician_app' || lower === 'sales_app' || lower === 'self') return 'self';
+  if (lower === 'technician_app') return 'technician_app';
+  if (lower === 'sales_app') return 'sales_app';
+  if (lower === 'self') return 'self';
   return raw;
 };
 
@@ -3399,10 +3401,8 @@ const computeWorkingHours = ({ status, checkIn, checkOut }) => {
 const sanitizeAttendanceRecord = (raw = {}) => {
   const status = normalizeAttendanceStatus(raw.status);
   const rawSource = String(raw.source || raw.source_label || raw.source_type || raw.sourceType || '').trim();
-  const source = rawSource.toLowerCase() === 'technician_app'
-    ? 'technician_app'
-    : normalizeAttendanceSource(rawSource);
-  const isSelfServiceSource = source === 'self' || source === 'technician_app';
+  const source = normalizeAttendanceSource(rawSource);
+  const isSelfServiceSource = source === 'self' || source === 'technician_app' || source === 'sales_app';
   const defaultCheckIn = status === 'present' && !isSelfServiceSource ? '09:00' : '';
   const defaultCheckOut = status === 'present' && !isSelfServiceSource ? '17:00' : '';
   const checkIn = normalizeAttendanceTime(raw.checkIn || defaultCheckIn);
