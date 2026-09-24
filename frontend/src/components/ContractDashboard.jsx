@@ -330,6 +330,31 @@ const shell = {
   profitBreakdownLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
   profitBreakdownValue: { marginTop: '4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' },
   modalToggleBtn: { border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', minHeight: '30px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content' },
+  compactSection: { border: '1px solid rgba(148,163,184,0.18)', borderRadius: '12px', padding: '10px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,250,252,0.98))', display: 'grid', gap: '8px', backgroundClip: 'padding-box' },
+  compactSectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', minWidth: 0 },
+  compactTitle: { margin: 0, fontSize: '11px', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  customerName: { margin: 0, color: '#0f172a', fontSize: '16px', fontWeight: 800, lineHeight: 1.2, wordBreak: 'break-word' },
+  definitionGrid: { display: 'grid', gridTemplateColumns: 'minmax(92px, 0.42fr) minmax(0, 1fr)', gap: '5px 10px', alignItems: 'baseline' },
+  definitionLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
+  definitionValue: { fontSize: '12px', color: '#0f172a', fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' },
+  serviceList: { display: 'grid', gap: '8px' },
+  serviceCard: { border: '1px solid rgba(148,163,184,0.20)', borderRadius: '10px', padding: '9px 10px', background: '#fff', display: 'grid', gap: '6px' },
+  serviceTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', minWidth: 0 },
+  serviceName: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  statusBadge: { borderRadius: '999px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(22,163,74,0.12)', color: '#166534', flexShrink: 0 },
+  serviceMeta: { fontSize: '12px', color: '#334155', fontWeight: 700 },
+  serviceMiniGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '4px 10px' },
+  inlineMetric: { minWidth: 0, fontSize: '11px', color: '#475569', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  actionBox: { border: '1px solid rgba(159,23,77,0.18)', borderRadius: '10px', padding: '9px 10px', background: 'var(--color-primary-light)', display: 'grid', gap: '2px' },
+  actionType: { fontSize: '10px', color: 'var(--color-primary-dark)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  actionValue: { fontSize: '15px', color: '#0f172a', fontWeight: 800 },
+  actionLabel: { fontSize: '12px', color: '#475569', fontWeight: 700 },
+  moneyGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 10px' },
+  moneyRow: { display: 'grid', gap: '2px', minWidth: 0 },
+  moneyLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
+  moneyValue: { fontSize: '13px', color: '#0f172a', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis' },
+  activityPills: { display: 'flex', gap: '6px', flexWrap: 'wrap' },
+  activityPill: { border: '1px solid rgba(148,163,184,0.22)', borderRadius: '999px', padding: '4px 8px', background: '#fff', fontSize: '11px', color: '#334155', fontWeight: 800 },
   detailSection: { border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' },
   detailHead: { padding: '8px 10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid var(--color-border)', fontSize: '11px', fontWeight: 800, color: 'var(--text)' , textTransform: 'uppercase' },
   detailTable: { width: '100%', borderCollapse: 'separate', borderSpacing: 0 },
@@ -876,14 +901,19 @@ export default function ContractDashboard() {
     }
   };
 
-  const loadContractProfitSummary = async (invoiceId) => {
-    if (!invoiceId) return false;
+  const loadCustomerProfitSummary = async (row) => {
+    const customerId = String(row?.customerId || '').trim();
+    const invoiceId = String(row?.invoiceId || '').trim();
+    if (!customerId && !invoiceId) return false;
     const requestId = contractProfitRequestRef.current + 1;
     contractProfitRequestRef.current = requestId;
     setCustomerProfitLoading(true);
     setCustomerProfitError('');
     try {
-      const res = await axios.get(`${API_BASE}/api/contracts/${invoiceId}/profit-loss`);
+      const target = customerId
+        ? `${API_BASE}/api/customers/${encodeURIComponent(customerId)}/profit-loss`
+        : `${API_BASE}/api/contracts/${encodeURIComponent(invoiceId)}/profit-loss`;
+      const res = await axios.get(target);
       if (contractProfitRequestRef.current !== requestId) return false;
       setCustomerProfitSummary(res.data || null);
       return true;
@@ -1294,6 +1324,56 @@ export default function ContractDashboard() {
     };
   }, [customerSummary?.row, invoices, payments]);
 
+  const customerProfileRows = useMemo(() => {
+    if (!customerSummary?.row) return [];
+    const details = customerProfitSummary?.customerDetails || {};
+    const row = customerSummary.row || {};
+    const values = [
+      ['Mobile', details.mobile || row.mobile],
+      ['Alternate', details.alternateMobile || row.altNumber],
+      ['Email', details.email || row.emailId],
+      ['Customer Type', details.customerType],
+      ['Location', details.location || [row.property, row.city].filter(Boolean).join(', ')],
+      ['GSTIN', details.gstin || row.gstNumber],
+      ['Customer Since', details.customerSince]
+    ];
+    return values.filter(([, value]) => String(value || '').trim());
+  }, [customerProfitSummary?.customerDetails, customerSummary?.row]);
+
+  const summaryRelationships = customerProfitSummary?.customerSummary?.relationships || [];
+  const summaryFinancial = customerProfitSummary?.customerSummary?.financialSummary || null;
+  const summaryActivity = customerProfitSummary?.customerSummary?.activitySummary || null;
+  const summaryRecentInvoice = customerProfitSummary?.customerSummary?.recentInvoice || null;
+  const summaryNextAction = customerProfitSummary?.customerSummary?.nextAction || null;
+  const summaryCostBreakdown = customerProfitSummary?.customerSummary?.costBreakdown || customerProfitSummary?.costs?.breakdown || null;
+
+  const renderDefinitionRows = (rows) => (
+    <div style={shell.definitionGrid}>
+      {rows.map(([label, value]) => (
+        <React.Fragment key={label}>
+          <div style={shell.definitionLabel}>{label}</div>
+          <div style={shell.definitionValue} title={String(value || '')}>{value}</div>
+        </React.Fragment>
+      ))}
+    </div>
+  );
+
+  const renderMoneyValue = (value, unavailableText = '-') => (
+    value === null || value === undefined || value === '' ? unavailableText : formatINR(value)
+  );
+
+  const renderStatusBadge = (status) => {
+    const text = String(status || '').trim();
+    if (!text) return null;
+    const lower = text.toLowerCase();
+    const style = lower.includes('expired') || lower.includes('overdue')
+      ? { ...shell.statusBadge, background: 'rgba(220,38,38,0.12)', color: '#991b1b' }
+      : lower.includes('one')
+        ? { ...shell.statusBadge, background: 'rgba(8,145,178,0.12)', color: '#155e75' }
+        : shell.statusBadge;
+    return <span style={style}>{text}</span>;
+  };
+
   const openPdfPreview = (title, pdfUrl, fileName, invoiceId = '', extra = {}) => {
     if (!pdfUrl) return;
     setPdfPreview({
@@ -1552,13 +1632,11 @@ export default function ContractDashboard() {
   };
 
   const openCustomerSummary = (row) => {
-    setCustomerSummary({ open: true, row, showHistory: false });
+    setCustomerSummary({ open: true, row, showHistory: false, showCosts: false });
     setCustomerProfitSummary(null);
     setCustomerProfitError('');
     setCustomerProfitLoading(false);
-    if (row?.invoiceId) {
-      loadContractProfitSummary(row.invoiceId);
-    }
+    loadCustomerProfitSummary(row);
   };
 
   const handleCustomerNameClick = (row) => {
@@ -1578,7 +1656,7 @@ export default function ContractDashboard() {
   };
 
   const closeCustomerSummary = () => {
-    setCustomerSummary({ open: false, row: null, showHistory: false });
+    setCustomerSummary({ open: false, row: null, showHistory: false, showCosts: false });
     setCustomerProfitSummary(null);
     setCustomerProfitError('');
     setCustomerProfitLoading(false);
@@ -2149,74 +2227,159 @@ export default function ContractDashboard() {
             </div>
 
             <div style={shell.modalBody}>
-              <div style={shell.summaryGrid}>
-                <div style={shell.summaryCard}>
-                  <div style={shell.summaryLabel}><FileText size={12} /> Invoices</div>
-                  <div style={shell.summaryValue}>{customerSummaryData?.relatedInvoices?.length || 0}</div>
+              <div style={shell.compactSection}>
+                <div style={shell.compactSectionHead}>
+                  <h4 style={shell.compactTitle}>Customer Details</h4>
                 </div>
-                <div style={shell.summaryCard}>
-                  <div style={shell.summaryLabel}><Wallet size={12} /> Transactions</div>
-                  <div style={shell.summaryValue}>{customerSummaryData?.transactionCount || 0}</div>
+                <p style={shell.customerName}>{customerProfitSummary?.customerDetails?.name || customerSummary.row.customer}</p>
+                {renderDefinitionRows(customerProfileRows)}
+              </div>
+
+              <div style={shell.compactSection}>
+                <div style={shell.compactSectionHead}>
+                  <h4 style={shell.compactTitle}>Service / Contract</h4>
+                  {customerProfitLoading ? <span style={shell.summaryLabel}>Loading</span> : null}
                 </div>
-                <div style={shell.summaryCard}>
-                  <div style={shell.summaryLabel}><RupeeSymbol size={12} /> Paid</div>
-                  <div style={shell.summaryValue}>{formatINR(customerSummaryData?.totalPaid || 0)}</div>
+                {customerProfitError ? (
+                  <p style={{ ...shell.historyEmpty, color: '#dc2626', fontWeight: 700 }}>{customerProfitError}</p>
+                ) : null}
+                {summaryRelationships.length > 0 ? (
+                  <div style={shell.serviceList}>
+                    {summaryRelationships.map((relationship) => {
+                      const period = relationship.relationshipType === 'ONE_TIME'
+                        ? formatDate(relationship.serviceDate)
+                        : [formatDate(relationship.startDate), formatDate(relationship.endDate)].filter(Boolean).join(' - ');
+                      const serviceCounts = Number(relationship.totalServices || 0) > 0
+                        ? `${Number(relationship.completedServices || 0)} / ${Number(relationship.totalServices || 0)} Completed`
+                        : '';
+                      return (
+                        <div key={relationship.id || `${relationship.invoiceId}-${relationship.serviceName}`} style={shell.serviceCard}>
+                          <div style={shell.serviceTop}>
+                            <p style={shell.serviceName} title={relationship.serviceName}>{relationship.serviceName || 'Service'}</p>
+                            {renderStatusBadge(relationship.status || (relationship.relationshipType === 'ONE_TIME' ? 'One-Time' : 'Active'))}
+                          </div>
+                          {period ? <div style={shell.serviceMeta}>{period}</div> : null}
+                          <div style={shell.serviceMiniGrid}>
+                            {relationship.contractNumber ? <div style={shell.inlineMetric}>Contract: {relationship.contractNumber}</div> : null}
+                            {relationship.duration ? <div style={shell.inlineMetric}>{relationship.duration}</div> : null}
+                            {relationship.amount ? <div style={shell.inlineMetric}>{formatINR(relationship.amount)}</div> : null}
+                            {relationship.frequency ? <div style={shell.inlineMetric}>{relationship.frequency}</div> : null}
+                            {serviceCounts ? <div style={shell.inlineMetric}>Services: {serviceCounts}</div> : null}
+                            {relationship.nextServiceDate ? <div style={shell.inlineMetric}>Next: {formatDate(relationship.nextServiceDate)}</div> : null}
+                            {relationship.renewalDueDate ? <div style={shell.inlineMetric}>Renewal: {formatDate(relationship.renewalDueDate)}</div> : null}
+                            {relationship.renewalStatus ? <div style={shell.inlineMetric}>Renewal Status: {relationship.renewalStatus}</div> : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : customerProfitLoading ? (
+                  <p style={shell.historyEmpty}>Loading service relationships...</p>
+                ) : (
+                  <p style={shell.historyEmpty}>No linked service relationship found.</p>
+                )}
+              </div>
+
+              {summaryNextAction ? (
+                <div style={shell.actionBox}>
+                  <div style={shell.actionType}>{summaryNextAction.type}</div>
+                  <div style={shell.actionValue}>{summaryNextAction.amount ? formatINR(summaryNextAction.amount) : formatDate(summaryNextAction.date)}</div>
+                  {summaryNextAction.label ? <div style={shell.actionLabel}>{summaryNextAction.label}</div> : null}
                 </div>
-                <div style={shell.summaryCard}>
-                  <div style={shell.summaryLabel}><RupeeSymbol size={12} /> Due</div>
-                  <div style={shell.summaryValue}>{formatINR(customerSummaryData?.balanceDue || 0)}</div>
+              ) : null}
+
+              <div style={shell.compactSection}>
+                <div style={shell.compactSectionHead}>
+                  <h4 style={shell.compactTitle}>Financial Summary</h4>
                 </div>
-                <div style={shell.summaryCard}>
-                  <div style={shell.summaryLabel}><AlertCircle size={12} /> Complaints</div>
-                  <div style={shell.summaryValue}>{customerProfitSummary?.totals?.complaintVisits ?? customerSummaryData?.complaintsCount ?? 0}</div>
+                <div style={shell.moneyGrid}>
+                  {[
+                    ['Contract/Service Value', summaryFinancial?.contractValue ?? customerSummaryData?.totalInvoiced],
+                    ['Invoiced', summaryFinancial?.invoiced ?? customerSummaryData?.totalInvoiced],
+                    ['Paid', summaryFinancial?.paid ?? customerSummaryData?.totalPaid],
+                    ['Outstanding', summaryFinancial?.outstanding ?? customerSummaryData?.balanceDue],
+                    ['Revenue ex. GST', summaryFinancial?.revenueExGst ?? customerProfitSummary?.revenue?.base],
+                    ['Cost', summaryFinancial?.costDataAvailable === false ? null : (summaryFinancial?.cost ?? customerProfitSummary?.costs?.total)],
+                    ['Profit', summaryFinancial?.costDataAvailable === false ? null : (summaryFinancial?.profit ?? customerProfitSummary?.profit?.amount)],
+                    ['Margin', summaryFinancial?.costDataAvailable === false ? null : (summaryFinancial?.margin ?? customerProfitSummary?.profit?.marginPercent)]
+                  ].map(([label, value]) => (
+                    <div key={label} style={shell.moneyRow}>
+                      <div style={shell.moneyLabel}>{label}</div>
+                      <div style={shell.moneyValue}>
+                        {label === 'Margin'
+                          ? (value === null || value === undefined ? 'Cost data unavailable' : `${Number(value || 0).toFixed(2)}%`)
+                          : label === 'Cost' || label === 'Profit'
+                            ? renderMoneyValue(value, 'Cost data unavailable')
+                            : renderMoneyValue(value)}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {customerProfitLoading ? (
-                <p style={shell.historyEmpty}>Loading profit and cost summary...</p>
-              ) : customerProfitError ? (
-                <p style={{ ...shell.historyEmpty, color: '#dc2626', fontWeight: 700 }}>{customerProfitError}</p>
-              ) : customerProfitSummary ? (
-                <div style={shell.profitSection}>
-                  <div style={shell.profitSectionHead}>
-                    <h4 style={shell.profitSectionTitle}>Profit & Cost</h4>
-                    <span style={{ ...shell.summaryLabel, textTransform: 'none' }}>
-                      {customerProfitSummary.profit?.status || 'Profit / Loss'}
-                    </span>
-                  </div>
-                  <div style={shell.profitGrid}>
-                    <div style={{ ...shell.profitCard, ...(customerProfitSummary.profit?.amount >= 0 ? shell.profitCardProfit : shell.profitCardLoss) }}>
-                      <div style={shell.profitLabel}>Profit / Loss</div>
-                      <div style={shell.profitValue}>{formatINR(customerProfitSummary.profit?.amount || 0)}</div>
-                    </div>
-                    <div style={shell.profitCard}>
-                      <div style={shell.profitLabel}>Revenue Excl. GST</div>
-                      <div style={shell.profitValue}>{formatINR(customerProfitSummary.revenue?.base || 0)}</div>
-                    </div>
-                    <div style={shell.profitCard}>
-                      <div style={shell.profitLabel}>Total Cost</div>
-                      <div style={shell.profitValue}>{formatINR(customerProfitSummary.costs?.total || 0)}</div>
-                    </div>
-                    <div style={{ ...shell.profitCard, ...(Number(customerProfitSummary.profit?.marginPercent || 0) < Number(customerProfitSummary.profit?.lowMarginWarningPercent || 0) ? shell.profitCardAmber : {}) }}>
-                      <div style={shell.profitLabel}>Margin %</div>
-                      <div style={shell.profitValue}>{Number(customerProfitSummary.profit?.marginPercent || 0).toFixed(2)}%</div>
-                    </div>
-                  </div>
-                  <div style={shell.profitBreakdownGrid}>
-                    {[
-                      ['Chemical', customerProfitSummary.costs?.breakdown?.chemical || 0],
-                      ['Manpower', customerProfitSummary.costs?.breakdown?.manpower || 0],
-                      ['Conveyance', customerProfitSummary.costs?.breakdown?.conveyance || 0],
-                      ['Materials', customerProfitSummary.costs?.breakdown?.material || 0],
-                      ['Complaint', customerProfitSummary.costs?.breakdown?.complaint || 0],
-                      ['Other', customerProfitSummary.costs?.breakdown?.other || 0]
-                    ].map(([labelText, amount]) => (
-                      <div key={labelText} style={shell.profitBreakdownCard}>
-                        <div style={shell.profitBreakdownLabel}>{labelText}</div>
-                        <div style={shell.profitBreakdownValue}>{formatINR(amount || 0)}</div>
+              {(summaryActivity || summaryRecentInvoice) ? (
+                <div style={shell.compactSection}>
+                  {summaryRecentInvoice ? (
+                    <>
+                      <div style={shell.compactSectionHead}>
+                        <h4 style={shell.compactTitle}>Recent Invoice</h4>
                       </div>
-                    ))}
+                      {renderDefinitionRows([
+                        ['Invoice', summaryRecentInvoice.invoiceNumber || '-'],
+                        ['Date', formatDate(summaryRecentInvoice.date)],
+                        ['Total', formatINR(summaryRecentInvoice.total || 0)],
+                        ['Due', formatINR(summaryRecentInvoice.due || 0)]
+                      ])}
+                    </>
+                  ) : null}
+                  {summaryActivity ? (
+                    <div style={shell.activityPills}>
+                      {[
+                        ['Invoices', summaryActivity.invoices],
+                        ['Payments', summaryActivity.payments],
+                        ['Services', summaryActivity.services],
+                        ['Completed', summaryActivity.completed],
+                        ['Complaints', summaryActivity.complaints]
+                      ].filter(([, value]) => value !== undefined && value !== null).map(([label, value]) => (
+                        <span key={label} style={shell.activityPill}>{label}: {value}</span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {summaryCostBreakdown ? (
+                <div style={shell.compactSection}>
+                  <div style={shell.compactSectionHead}>
+                    <h4 style={shell.compactTitle}>Cost Breakdown</h4>
+                    <button
+                      type="button"
+                      style={shell.modalToggleBtn}
+                      onClick={() => setCustomerSummary((prev) => ({ ...prev, showCosts: !prev.showCosts }))}
+                    >
+                      {customerSummary.showCosts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {customerSummary.showCosts ? 'Hide' : 'View'}
+                    </button>
                   </div>
+                  {summaryCostBreakdown.available === false ? (
+                    <div style={shell.definitionValue}>Cost data unavailable</div>
+                  ) : customerSummary.showCosts ? (
+                    <div style={shell.profitBreakdownGrid}>
+                      {[
+                        ['Chemical', summaryCostBreakdown.chemical || 0],
+                        ['Manpower', summaryCostBreakdown.manpower || 0],
+                        ['Conveyance', summaryCostBreakdown.conveyance || 0],
+                        ['Materials', summaryCostBreakdown.material || 0],
+                        ['Complaint', summaryCostBreakdown.complaint || 0],
+                        ['Other', summaryCostBreakdown.other || 0]
+                      ].map(([labelText, amount]) => (
+                        <div key={labelText} style={shell.profitBreakdownCard}>
+                          <div style={shell.profitBreakdownLabel}>{labelText}</div>
+                          <div style={shell.profitBreakdownValue}>{formatINR(amount || 0)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -2309,9 +2472,6 @@ export default function ContractDashboard() {
                 </>
               ) : null}
 
-              <div style={shell.suggestionBox}>
-                Suggestion: call this customer if due amount is pending for more than 7 days, and schedule next service follow-up before contract end date.
-              </div>
             </div>
           </div>
         </div>,

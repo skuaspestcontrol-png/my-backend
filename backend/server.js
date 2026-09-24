@@ -4524,6 +4524,295 @@ const groupProfitCostItems = (items = []) => items.reduce((acc, item) => {
   totalCost: 0
 });
 
+const uniqueByKey = (rows = [], keyFn = (row) => row) => {
+  const seen = new Set();
+  return (Array.isArray(rows) ? rows : []).filter((row) => {
+    const key = String(keyFn(row) || '').trim();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const customerSummaryDate = (value) => {
+  const parsed = parseDateOnly(value);
+  return parsed ? formatDateInput(parsed) : '';
+};
+
+const getInvoiceTotalAmount = (invoice = {}) => toNumber(invoice.total ?? invoice.amount ?? invoice.totalAmount, 0);
+
+const getInvoiceBalanceAmount = (invoice = {}) => {
+  const total = getInvoiceTotalAmount(invoice);
+  const normalizedStatus = String(invoice?.status || invoice?.invoiceStatus || '').trim().toUpperCase();
+  if (Boolean(invoice?.paymentReceivedEnabled)) return Math.max(0, toNumber(invoice?.balanceDue, total));
+  return normalizedStatus === 'PAID' ? 0 : Math.max(0, total);
+};
+
+const getLineAmount = (line = {}, fallback = 0) => {
+  const explicit = [
+    line.totalAmount,
+    line.totalWithGst,
+    line.amountWithGst,
+    line.amount,
+    line.lineTotal,
+    line.rateWithGst
+  ].map((value) => toNumber(value, 0)).find((value) => value > 0);
+  if (explicit > 0) return Number(explicit.toFixed(2));
+  const qty = Math.max(1, toNumber(line.quantity ?? line.qty, 1));
+  const rate = toNumber(line.rate ?? line.unitRate ?? line.price, 0);
+  if (rate > 0) return Number((qty * rate).toFixed(2));
+  return Number(toNumber(fallback, 0).toFixed(2));
+};
+
+const getLineTaxAmount = (line = {}) => {
+  const explicit = [
+    line.taxAmount,
+    line.gstAmount,
+    line.totalTax,
+    line.cgstAmount,
+    line.sgstAmount,
+    line.igstAmount
+  ].map((value) => toNumber(value, 0)).reduce((sum, value) => sum + value, 0);
+  if (explicit > 0) return Number(explicit.toFixed(2));
+  const rate = toNumber(line.taxRate ?? line.gstPercentage ?? line.gst, 0);
+  const base = toNumber(line.amountWithoutGst ?? line.baseAmount ?? line.rate, 0);
+  return rate > 0 && base > 0 ? Number(((base * rate) / 100).toFixed(2)) : 0;
+};
+
+const getServiceNameFromLine = (line = {}, invoice = {}) => String(
+  line.serviceName
+  || line.service_name
+  || line.itemName
+  || line.name
+  || line.serviceTitle
+  || line.description
+  || invoice.serviceType
+  || invoice.subject
+  || invoice.invoiceNumber
+  || 'Service'
+).trim();
+
+const getJobInvoiceReferenceKeys = (job = {}) => [
+  job.contractId,
+  job.invoiceId,
+  job.invoice_external_id,
+  job.contractNumber,
+  job.invoiceNumber
+].map(normalizeProfitKey).filter(Boolean);
+
+const jobMatchesInvoice = (job = {}, invoice = {}) => {
+  const keys = new Set([
+    invoice._id,
+    invoice.external_id,
+    invoice.externalId,
+    invoice.invoiceNumber
+  ].map(normalizeProfitKey).filter(Boolean));
+  return getJobInvoiceReferenceKeys(job).some((key) => keys.has(key));
+};
+
+const jobMatchesServiceName = (job = {}, serviceName = '') => {
+  const target = normalizeProfitKey(serviceName);
+  if (!target) return true;
+  const jobService = normalizeProfitKey(job.serviceName || job.service_type || job.serviceType || job.serviceInstructions || '');
+  if (!jobService) return true;
+  return jobService === target || jobService.includes(target) || target.includes(jobService);
+};
+
+const statusFromServiceWindow = (relationshipType, startDate, endDate, invoiceStatus = '') => {
+  const explicit = String(invoiceStatus || '').trim();
+  if (relationshipType === 'ONE_TIME') {
+    if (/paid|complete|closed/i.test(explicit)) return 'Completed';
+    return 'One-Time';
+  }
+  if (relationshipType !== 'CONTRACT') return 'Service';
+  if (/renew/i.test(explicit)) return 'Renewed';
+  const today = parseDateOnly(new Date());
+  const start = parseDateOnly(startDate);
+  const end = parseDateOnly(endDate);
+  if (end && today && end < today) return 'Expired';
+  if (start && today && start > today) return 'Upcoming';
+  return 'Active';
+};
+
+const pickNextAction = (relationships = [], financialSummary = {}) => {
+  const today = parseDateOnly(new Date());
+  const nextService = relationships
+    .filter((row) => row.nextServiceDate && (!today || parseDateOnly(row.nextServiceDate) >= today))
+    .sort((a, b) => String(a.nextServiceDate).localeCompare(String(b.nextServiceDate)))[0];
+  if (nextService) {
+    return { type: 'Next Service', date: nextService.nextServiceDate, label: nextService.serviceName || '' };
+  }
+  const renewal = relationships
+    .filter((row) => row.renewalDueDate)
+    .sort((a, b) => String(a.renewalDueDate).localeCompare(String(b.renewalDueDate)))[0];
+  if (renewal) {
+    return { type: renewal.renewalStatus ? `Renewal ${renewal.renewalStatus}` : 'Renewal Due', date: renewal.renewalDueDate, label: renewal.serviceName || '' };
+  }
+  if (toNumber(financialSummary.outstanding, 0) > 0) {
+    return { type: 'Outstanding', amount: financialSummary.outstanding, label: '' };
+  }
+  return null;
+};
+
+const buildCustomerRelationshipSummary = ({
+  customer = null,
+  invoices = [],
+  jobs = [],
+  payments = [],
+  renewals = [],
+  settings = defaultSettings,
+  relatedCostItems = []
+} = {}) => {
+  const matchedRenewalForInvoice = (invoice = {}, line = {}) => {
+    const invoiceKeys = new Set([invoice._id, invoice.external_id, invoice.externalId, invoice.invoiceNumber].map(normalizeProfitKey).filter(Boolean));
+    const customerId = normalizeProfitKey(invoice.customerId || customer?._id || customer?.external_id || '');
+    const customerName = normalizeProfitKey(invoice.customerName || customer?.displayName || customer?.customerName || '');
+    const serviceName = normalizeProfitKey(getServiceNameFromLine(line, invoice));
+    return (Array.isArray(renewals) ? renewals : []).find((row) => {
+      if (row?.renewalExcluded) return false;
+      const contractMatch = invoiceKeys.has(normalizeProfitKey(row?.contractId || row?.convertedContractId || ''));
+      const rowCustomerId = normalizeProfitKey(row?.customerId);
+      const customerMatch = customerId
+        ? rowCustomerId === customerId
+        : (customerName && normalizeProfitKey(row?.customerName) === customerName);
+      const serviceMatch = !serviceName || !row?.serviceType || normalizeProfitKey(row.serviceType) === serviceName;
+      return (contractMatch || customerMatch) && serviceMatch;
+    }) || null;
+  };
+
+  const relationships = [];
+  (Array.isArray(invoices) ? invoices : []).forEach((invoice) => {
+    const lines = Array.isArray(invoice.items) && invoice.items.length > 0 ? invoice.items : [{}];
+    const classification = classifyRenewalSource(invoice);
+    const sourceSchedules = normalizeServiceSchedules(invoice.serviceSchedules, invoice.serviceScheduleDefaultTime);
+    const fallbackSchedules = sourceSchedules.length > 0 ? sourceSchedules : buildServiceScheduleEntries(invoice);
+    const lineFallbackAmount = lines.length === 1 ? getInvoiceTotalAmount(invoice) : 0;
+
+    lines.forEach((line, lineIndex) => {
+      const serviceName = getServiceNameFromLine(line, invoice);
+      const relationshipType = normalizeRenewalRelationshipType(
+        line.serviceRelationshipType || line.service_relationship_type || invoice.serviceRelationshipType || invoice.service_relationship_type || classification.relationshipType,
+        classification.relationshipType || 'NEEDS_REVIEW'
+      );
+      const isContractRelationship = relationshipType === 'CONTRACT';
+      const isOneTimeRelationship = relationshipType === 'ONE_TIME';
+      const lineStart = customerSummaryDate(line.contractStartDate || line.serviceStartDate || classification.contractStartDate || invoice.servicePeriodStart || invoice.date);
+      const lineEnd = customerSummaryDate(
+        line.contractEndDate
+        || line.serviceEndDate
+        || line.renewalDate
+        || classification.contractEndDate
+        || invoice.servicePeriodEnd
+        || (line.contractStartDate ? buildContractEndDate(line.contractStartDate, line.contractPeriod || '') : '')
+      );
+      const relevantJobs = (Array.isArray(jobs) ? jobs : []).filter((job) => jobMatchesInvoice(job, invoice) && jobMatchesServiceName(job, serviceName));
+      const completedJobs = relevantJobs.filter((job) => String(job?.status || '').trim().toLowerCase() === 'completed');
+      const lineSchedules = fallbackSchedules.filter((schedule) => {
+        const itemName = normalizeProfitKey(schedule?.itemName || schedule?.itemDescription || '');
+        const itemId = normalizeProfitKey(schedule?.itemId || '');
+        const lineItemName = normalizeProfitKey(line.itemName || line.serviceName || line.description || '');
+        const lineItemId = normalizeProfitKey(line.itemId || line.serviceTemplateId || '');
+        if (!itemName && !itemId) return lines.length === 1;
+        return (lineItemId && itemId === lineItemId) || (lineItemName && itemName && (itemName === lineItemName || itemName.includes(lineItemName) || lineItemName.includes(itemName)));
+      });
+      const today = parseDateOnly(new Date());
+      const nextSchedule = lineSchedules
+        .filter((schedule) => {
+          const status = String(schedule?.status || '').trim().toLowerCase();
+          const date = parseDateOnly(schedule?.serviceDate);
+          return date && (!today || date >= today) && !status.includes('complete') && !status.includes('cancel');
+        })
+        .sort((a, b) => String(a.serviceDate).localeCompare(String(b.serviceDate)))[0] || null;
+      const renewal = matchedRenewalForInvoice(invoice, line);
+      const relationshipId = [
+        invoice._id || invoice.invoiceNumber || 'invoice',
+        line.itemId || line.serviceTemplateId || lineIndex,
+        serviceName
+      ].map((value) => String(value || '').trim()).join(':');
+
+      relationships.push({
+        id: relationshipId,
+        relationshipType,
+        serviceName,
+        pestCategory: String(line.pestName || line.pest || line.category || '').trim(),
+        contractId: isContractRelationship ? String(invoice._id || '').trim() : '',
+        contractNumber: isContractRelationship ? String(invoice.invoiceNumber || '').trim() : '',
+        status: statusFromServiceWindow(relationshipType, lineStart, lineEnd, invoice.status || invoice.invoiceStatus),
+        serviceDate: isOneTimeRelationship ? (lineStart || customerSummaryDate(invoice.date)) : '',
+        startDate: isContractRelationship ? lineStart : '',
+        endDate: isContractRelationship ? lineEnd : '',
+        duration: isContractRelationship && classification.durationValue
+          ? `${classification.durationValue} ${String(classification.durationUnit || '').toLowerCase()}${Number(classification.durationValue) === 1 ? '' : 's'}`
+          : '',
+        frequency: isContractRelationship ? String(line.serviceFrequency || line.frequency || '').trim() : '',
+        amount: getLineAmount(line, lineFallbackAmount),
+        tax: getLineTaxAmount(line),
+        totalAmount: getLineAmount(line, lineFallbackAmount),
+        totalServices: isContractRelationship ? Math.max(0, toNumber(line.totalServices, 0), lineSchedules.length) : 0,
+        completedServices: Math.max(0, completedJobs.length, lineSchedules.filter((schedule) => String(schedule?.status || '').toLowerCase().includes('complete')).length),
+        nextServiceDate: nextSchedule ? customerSummaryDate(nextSchedule.serviceDate) : '',
+        renewalDueDate: isContractRelationship && renewal ? customerSummaryDate(renewal.renewalDueDate || renewal.previousContractEnd) : '',
+        renewalStatus: isContractRelationship && renewal ? renewal.status || renewal.renewalStatus || '' : '',
+        invoiceId: String(invoice._id || '').trim(),
+        invoiceNumber: String(invoice.invoiceNumber || '').trim(),
+        jobCount: relevantJobs.length
+      });
+    });
+  });
+
+  const relatedPayments = Array.isArray(payments) ? payments : [];
+  const totalInvoiced = invoices.reduce((sum, invoice) => sum + getInvoiceTotalAmount(invoice), 0);
+  const paidFromReceipts = relatedPayments.reduce((sum, payment) => sum + toNumber(payment.amount, 0), 0);
+  const outstanding = invoices.reduce((sum, invoice) => sum + getInvoiceBalanceAmount(invoice), 0);
+  const paidFromInvoices = Math.max(0, totalInvoiced - outstanding);
+  const paidAmount = Math.max(paidFromReceipts, paidFromInvoices);
+  const revenueExGst = invoices.reduce((sum, invoice) => sum + getInvoiceBaseRevenue(invoice, settings), 0);
+  const recordedCostDataAvailable = Array.isArray(relatedCostItems) && relatedCostItems.length > 0;
+  const costBreakdown = groupProfitCostItems(recordedCostDataAvailable ? relatedCostItems : []);
+  const cost = recordedCostDataAvailable ? costBreakdown.totalCost : null;
+  const profit = recordedCostDataAvailable ? Number((revenueExGst - costBreakdown.totalCost).toFixed(2)) : null;
+  const margin = recordedCostDataAvailable && revenueExGst > 0 ? Number(((profit / revenueExGst) * 100).toFixed(2)) : null;
+  const allJobs = uniqueByKey((Array.isArray(jobs) ? jobs : []).filter((job) => invoices.some((invoice) => jobMatchesInvoice(job, invoice))), (job) => job._id || job.jobNumber);
+  const completedJobs = allJobs.filter((job) => String(job?.status || '').trim().toLowerCase() === 'completed');
+  const recentInvoice = [...invoices]
+    .sort((a, b) => String(b.date || b.invoiceDate || b.createdAt || '').localeCompare(String(a.date || a.invoiceDate || a.createdAt || '')))[0] || null;
+  const financialSummary = {
+    contractValue: Number(totalInvoiced.toFixed(2)),
+    invoiced: Number(totalInvoiced.toFixed(2)),
+    paid: Number(paidAmount.toFixed(2)),
+    outstanding: Number(outstanding.toFixed(2)),
+    revenueExGst: Number(revenueExGst.toFixed(2)),
+    cost,
+    profit,
+    margin,
+    costDataAvailable: recordedCostDataAvailable
+  };
+
+  return {
+    relationships,
+    financialSummary,
+    costBreakdown: {
+      available: recordedCostDataAvailable,
+      ...costBreakdown
+    },
+    activitySummary: {
+      invoices: invoices.length,
+      payments: relatedPayments.length,
+      services: allJobs.length || relationships.reduce((sum, row) => sum + toNumber(row.totalServices, 0), 0),
+      completed: completedJobs.length || relationships.reduce((sum, row) => sum + toNumber(row.completedServices, 0), 0),
+      complaints: costBreakdown.complaint > 0 ? allJobs.filter((job) => String(job?.status || '').toLowerCase().includes('complaint')).length : 0
+    },
+    recentInvoice: recentInvoice ? {
+      invoiceId: String(recentInvoice._id || '').trim(),
+      invoiceNumber: String(recentInvoice.invoiceNumber || '').trim(),
+      date: customerSummaryDate(recentInvoice.date || recentInvoice.invoiceDate),
+      total: getInvoiceTotalAmount(recentInvoice),
+      due: getInvoiceBalanceAmount(recentInvoice)
+    } : null,
+    nextAction: pickNextAction(relationships, financialSummary)
+  };
+};
+
 const buildAutoJobCostItems = async ({ job = {}, settings = defaultSettings, employees = [], catalog = [] }) => {
   const visitId = String(job._id || '').trim();
   if (!visitId) return [];
@@ -4689,10 +4978,20 @@ const buildProfitSnapshot = async ({
     : null;
 
   const customerKeys = new Set();
+  const customerIdKeys = new Set();
+  const customerNameKeys = new Set();
   if (customer) {
     [
       customer._id,
-      customer.external_id,
+      customer.external_id
+    ]
+      .map(normalizeProfitKey)
+      .filter(Boolean)
+      .forEach((entry) => {
+        customerKeys.add(entry);
+        customerIdKeys.add(entry);
+      });
+    [
       customer.customerName,
       customer.displayName,
       customer.companyName,
@@ -4700,8 +4999,12 @@ const buildProfitSnapshot = async ({
     ]
       .map(normalizeProfitKey)
       .filter(Boolean)
-      .forEach((entry) => customerKeys.add(entry));
+      .forEach((entry) => {
+        customerKeys.add(entry);
+        customerNameKeys.add(entry);
+      });
   }
+  const canUseNameFallback = customerIdKeys.size === 0;
 
   const invoiceRows = source.invoices.filter((invoice) => {
     const invoiceId = String(invoice?._id || invoice?.external_id || '').trim();
@@ -4710,8 +5013,9 @@ const buildProfitSnapshot = async ({
     const invoiceCustomerName = normalizeProfitKey(invoice?.customerName);
     if (contractLookupId && (invoiceId === contractLookupId || invoiceNo === normalizeProfitKey(contractLookupId))) return true;
     if (!customerLookupId) return !contractLookupId;
-    if (invoiceCustomerId && invoiceCustomerId === normalizeProfitKey(customerLookupId)) return true;
-    return invoiceCustomerName && customerKeys.has(invoiceCustomerName);
+    if (invoiceCustomerId && (invoiceCustomerId === normalizeProfitKey(customerLookupId) || customerIdKeys.has(invoiceCustomerId))) return true;
+    if (!canUseNameFallback) return false;
+    return invoiceCustomerName && customerNameKeys.has(invoiceCustomerName);
   });
 
   const relatedPayments = source.payments.filter((payment) => {
@@ -4721,8 +5025,9 @@ const buildProfitSnapshot = async ({
     const paymentCustomerName = normalizeProfitKey(payment?.customerName);
     if (contractLookupId && (paymentInvoiceId === normalizeProfitKey(contractLookupId) || paymentInvoiceNo === normalizeProfitKey(contractLookupId))) return true;
     if (!customerLookupId) return false;
-    if (paymentCustomerId && paymentCustomerId === normalizeProfitKey(customerLookupId)) return true;
-    return paymentCustomerName && customerKeys.has(paymentCustomerName);
+    if (paymentCustomerId && (paymentCustomerId === normalizeProfitKey(customerLookupId) || customerIdKeys.has(paymentCustomerId))) return true;
+    if (!canUseNameFallback) return false;
+    return paymentCustomerName && customerNameKeys.has(paymentCustomerName);
   });
 
   const relevantJobs = source.jobs.filter((job) => {
@@ -4737,7 +5042,19 @@ const buildProfitSnapshot = async ({
     if (!completedOrCosted) return false;
     if (contractLookupId) return jobContractId === contractLookupId || jobContractNo === normalizeProfitKey(contractLookupId);
     if (!customerLookupId) return false;
-    return (jobCustomerId && jobCustomerId === normalizeProfitKey(customerLookupId)) || (jobCustomerName && customerKeys.has(jobCustomerName));
+    if (jobCustomerId && (jobCustomerId === normalizeProfitKey(customerLookupId) || customerIdKeys.has(jobCustomerId))) return true;
+    return canUseNameFallback && jobCustomerName && customerNameKeys.has(jobCustomerName);
+  });
+
+  const allRelatedJobs = source.jobs.filter((job) => {
+    const jobCustomerId = normalizeProfitKey(job?.customerId || job?.customer_external_id || '');
+    const jobCustomerName = normalizeProfitKey(job?.customerName);
+    const jobContractId = normalizeProfitKey(job?.contractId || job?.invoiceId || job?.invoice_external_id || '');
+    const jobContractNo = normalizeProfitKey(job?.contractNumber || job?.invoiceNumber);
+    if (contractLookupId) return jobContractId === normalizeProfitKey(contractLookupId) || jobContractNo === normalizeProfitKey(contractLookupId);
+    if (!customerLookupId) return false;
+    if (jobCustomerId && (jobCustomerId === normalizeProfitKey(customerLookupId) || customerIdKeys.has(jobCustomerId))) return true;
+    return canUseNameFallback && jobCustomerName && customerNameKeys.has(jobCustomerName);
   });
 
   const relatedCostItems = source.costItems.filter((item) => {
@@ -4907,9 +5224,36 @@ const buildProfitSnapshot = async ({
   const complaintVisits = visitRows.filter((row) => String(row.visitType || '').toLowerCase().includes('complaint')).length;
   const costBreakdown = groupProfitCostItems(relatedCostItems.length > 0 ? relatedCostItems : visitRows.flatMap((row) => row.costItems || []));
   const lowMarginWarningPercent = Number(settings.profitCostLowMarginWarningPercent ?? defaultSettings.profitCostLowMarginWarningPercent) || defaultSettings.profitCostLowMarginWarningPercent;
+  const renewalRows = await loadRenewalRowsReadOnly().catch((error) => {
+    console.error('Failed to load renewals for customer profit snapshot:', error.message);
+    return [];
+  });
+  const customerSummary = buildCustomerRelationshipSummary({
+    customer,
+    invoices: invoiceRows,
+    jobs: allRelatedJobs,
+    payments: relatedPayments,
+    renewals: renewalRows,
+    settings,
+    relatedCostItems
+  });
+  const customerDetails = customer ? {
+    id: String(customer._id || customer.external_id || '').trim(),
+    name: String(customer.displayName || customer.customerName || customer.companyName || customer.name || '').trim(),
+    mobile: String(customer.mobileNumber || customer.mobile || customer.workPhone || '').trim(),
+    alternateMobile: String(customer.altNumber || customer.alternateMobile || customer.whatsappNumber || '').trim(),
+    email: String(customer.emailId || customer.email || '').trim(),
+    address: String(customer.billingAddress || customer.address || customer.shippingAddress || '').trim(),
+    location: [customer.area || customer.billingArea, customer.city || customer.billingCity || customer.state || customer.billingState].filter(Boolean).join(', '),
+    customerType: String(customer.customerType || customer.type || invoiceRows[0]?.customerType || '').trim(),
+    gstin: String(customer.gstNumber || customer.gstin || customer.gstNo || '').trim(),
+    customerSince: customerSummaryDate(customer.sourceCreatedAt || customer.createdAt || customer.created_at || invoiceRows[invoiceRows.length - 1]?.date || '')
+  } : null;
 
   return {
     customer: customer || null,
+    customerDetails,
+    customerSummary,
     settings,
     revenue: {
       base: totalRevenue,
@@ -4917,14 +5261,16 @@ const buildProfitSnapshot = async ({
     },
     costs: {
       total: totalCost,
-      breakdown: costBreakdown
+      breakdown: costBreakdown,
+      dataAvailable: relatedCostItems.length > 0
     },
     profit: {
       amount: totalProfit,
       marginPercent: profitMarginPercent,
       status: totalProfit >= 0 ? 'Profit' : 'Loss',
       lowMarginWarning: profitMarginPercent > 0 && profitMarginPercent < lowMarginWarningPercent,
-      lowMarginWarningPercent
+      lowMarginWarningPercent,
+      dataAvailable: relatedCostItems.length > 0
     },
     totals: {
       totalRevenue,
@@ -13107,6 +13453,44 @@ const updateSettingsNextRenewalNumber = async (nextNumber, settings = {}) => {
     renewalPadding: Math.max(1, Number(settings?.renewalPadding || settings?.renewalNumberPadding || current?.renewalPadding || current?.renewalNumberPadding || 3) || 3),
     renewalNumberPadding: Math.max(1, Number(settings?.renewalNumberPadding || settings?.renewalPadding || current?.renewalNumberPadding || current?.renewalPadding || 3) || 3),
     renewalNextNumber: Math.max(1, Number(nextNumber || 1) || 1)
+  });
+};
+const loadRenewalRowsReadOnly = async () => {
+  if (!canUseMysql()) {
+    const { list } = buildRenewalDataset();
+    return list.map((row) => {
+      const classification = classifyRenewalSource(row.sourceInvoice || row);
+      return renewalPublicRow({
+        renewal_id: row._id,
+        customer_name: row.customerName,
+        mobile: row.mobileNumber,
+        email: row.email,
+        address: row.address,
+        area_name: row.areaName,
+        service_type: row.serviceType,
+        contract_id: row.invoiceId,
+        service_relationship_type: classification.relationshipType,
+        renewal_eligible: classification.renewalEligible ? 1 : 0,
+        contract_duration_value: classification.durationValue,
+        contract_duration_unit: classification.durationUnit,
+        contract_start_date: row.contractStartDate,
+        contract_end_date: row.contractEndDate,
+        renewal_status: computeRenewalStatus({ renewal_due_date: row.contractEndDate, status: row.status }),
+        audit_suggestion: classification.auditSuggestion,
+        audit_evidence: classification.auditEvidence,
+        previous_contract_start: row.contractStartDate,
+        previous_contract_end: row.contractEndDate,
+        renewal_due_date: row.contractEndDate,
+        previous_amount: row.totalAmount,
+        proposed_amount: row.quotation?.amount || row.totalAmount,
+        status: row.status === 'Renewed' ? 'Done' : row.status === 'Lost' ? 'Declined' : 'Pending',
+        payload: row
+      });
+    });
+  }
+  return withMysqlConnection(async (conn) => {
+    const [rows] = await conn.query('SELECT * FROM renewals WHERE COALESCE(renewal_excluded, 0) = 0 ORDER BY renewal_due_date ASC, customer_name ASC');
+    return (Array.isArray(rows) ? rows : []).map(renewalPublicRow);
   });
 };
 const ensureRenewalTables = async (conn) => {
