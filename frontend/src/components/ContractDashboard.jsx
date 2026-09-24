@@ -1328,14 +1328,17 @@ export default function ContractDashboard() {
     if (!customerSummary?.row) return [];
     const details = customerProfitSummary?.customerDetails || {};
     const row = customerSummary.row || {};
+    const billingAddress = details.billingAddress || details.address || row.billingAddress;
+    const shippingAddress = details.shippingAddress || row.shippingAddress;
     const values = [
       ['Mobile', details.mobile || row.mobile],
       ['Alternate', details.alternateMobile || row.altNumber],
       ['Email', details.email || row.emailId],
       ['Customer Type', details.customerType],
-      ['Location', details.location || [row.property, row.city].filter(Boolean).join(', ')],
+      ['Bill To', billingAddress],
+      ['Ship Address', shippingAddress],
       ['GSTIN', details.gstin || row.gstNumber],
-      ['Customer Since', details.customerSince]
+      ['Customer Since', details.customerSince ? formatDate(details.customerSince) : '']
     ];
     return values.filter(([, value]) => String(value || '').trim());
   }, [customerProfitSummary?.customerDetails, customerSummary?.row]);

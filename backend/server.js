@@ -5244,6 +5244,8 @@ const buildProfitSnapshot = async ({
     alternateMobile: String(customer.altNumber || customer.alternateMobile || customer.whatsappNumber || '').trim(),
     email: String(customer.emailId || customer.email || '').trim(),
     address: String(customer.billingAddress || customer.address || customer.shippingAddress || '').trim(),
+    billingAddress: String(customer.billingAddress || customer.billingAddressText || customer.address || invoiceRows[0]?.billingAddressText || invoiceRows[0]?.billingAddress || '').trim(),
+    shippingAddress: String(customer.shippingAddress || customer.shippingAddressText || invoiceRows[0]?.shippingAddressText || invoiceRows[0]?.shippingAddress || '').trim(),
     location: [customer.area || customer.billingArea, customer.city || customer.billingCity || customer.state || customer.billingState].filter(Boolean).join(', '),
     customerType: String(customer.customerType || customer.type || invoiceRows[0]?.customerType || '').trim(),
     gstin: String(customer.gstNumber || customer.gstin || customer.gstNo || '').trim(),
