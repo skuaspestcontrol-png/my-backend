@@ -956,6 +956,14 @@ export default function Attendance() {
     }
   };
 
+  const handleTimeBlur = (employeeId, field, value) => {
+    const current = records[employeeId] || { employeeId, date, status: 'present', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '', source: '' };
+    saveRecord(employeeId, {
+      ...current,
+      [field]: value
+    });
+  };
+
   const handleDateChange = (nextDate) => {
     setDate(nextDate);
     const nextMonth = monthFromDate(nextDate);
@@ -1178,9 +1186,9 @@ export default function Attendance() {
                         type="time"
                         value={record.checkIn || ''}
                         disabled={timeDisabled}
-                        style={shell.timeInput}
+                        style={{ ...shell.timeInput, opacity: timeDisabled ? 0 : 1 }}
                         onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
-                        onBlur={() => saveRecord(employeeId)}
+                        onBlur={(event) => handleTimeBlur(employeeId, 'checkIn', event.target.value)}
                       />
                     </div>
                   </td>
@@ -1191,9 +1199,9 @@ export default function Attendance() {
                         type="time"
                         value={record.checkOut || ''}
                         disabled={timeDisabled}
-                        style={shell.timeInput}
+                        style={{ ...shell.timeInput, opacity: timeDisabled ? 0 : 1 }}
                         onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
-                        onBlur={() => saveRecord(employeeId)}
+                        onBlur={(event) => handleTimeBlur(employeeId, 'checkOut', event.target.value)}
                       />
                     </div>
                   </td>
