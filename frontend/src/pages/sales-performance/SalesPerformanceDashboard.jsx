@@ -35,7 +35,7 @@ import {
 import { apiGet, currentMonth, currentYear, monthOptions, money, percent, safeRows, subscribeSalesPerformanceRefresh } from './salesPerformanceApi';
 import './salesPerformance.css';
 
-const targetColor = '#111827';
+const targetColor = 'var(--chart-target-bar)';
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
 const currencyTooltipLabel = {

@@ -1499,9 +1499,9 @@ export default function Dashboard() {
           <div style={salesChartBodyStyle}>
             <div style={salesChartLegendStyle}>
               <span style={salesChartLegendItemStyle}>
-                <span style={{ ...shell.dot, width: '10px', height: '10px', background: '#111827' }} />
+                <span style={{ ...shell.dot, width: '10px', height: '10px', background: 'var(--chart-target-bar)' }} />
                 <span>Target</span>
-                <strong style={{ color: '#111827' }}>{formatCurrency(salesPerformanceMonthlyTarget)}</strong>
+                <strong style={{ color: 'var(--chart-target-bar)' }}>{formatCurrency(salesPerformanceMonthlyTarget)}</strong>
               </span>
               <span style={salesChartLegendItemStyle}>
                 <span style={{ ...shell.dot, width: '10px', height: '10px', background: '#16A34A' }} />
@@ -1553,7 +1553,7 @@ export default function Dashboard() {
                           cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                           content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
                         />
-                        <Bar dataKey="target" name="Target" fill="#111827" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize} />
+                        <Bar dataKey="target" name="Target" fill="var(--chart-target-bar)" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize} />
                         <Bar dataKey="achieved" name="Achieved" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize}>
                           {salesPerformanceTrend.map((entry) => (
                             <Cell key={entry.month} fill={Number(entry.achieved || 0) >= Number(entry.target || 0) ? '#16A34A' : '#DC2626'} />

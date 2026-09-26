@@ -34,7 +34,7 @@ import {
 import { apiGet, currentMonth, currentYear, formatCompactIndianCurrency, monthOptions, money, number, percent, safeRows, subscribeSalesPerformanceRefresh } from './salesPerformanceApi';
 import './salesPerformance.css';
 
-const targetColor = '#111827';
+const targetColor = 'var(--chart-target-bar)';
 const successColor = '#16A34A';
 const dangerColor = '#DC2626';
 const neutralTextColor = '#111827';

@@ -41,9 +41,14 @@
   --modal-bg: #ffffff;
   --modal-section-bg: #f8fafc;
   --dropdown-bg: #ffffff;
+  --light-surface-bg: #ffffff;
+  --light-surface-text: #111827;
+  --light-surface-text-secondary: #475569;
+  --light-surface-text-muted: #64748b;
   --divider: rgba(148, 163, 184, 0.22);
   --chart-grid: rgba(148, 163, 184, 0.30);
   --chart-axis: #64748b;
+  --chart-target-bar: #111827;
   --shadow-card: 0 18px 40px rgba(15, 23, 42, 0.08);
   --focus-ring: rgba(124, 58, 237, 0.22);
   --color-primary-light: #f5f3ff;
@@ -126,9 +131,14 @@ html[data-theme="dark"] {
   --modal-bg: #151a33;
   --modal-section-bg: #1b2240;
   --dropdown-bg: #171d38;
+  --light-surface-bg: #ffffff;
+  --light-surface-text: #111827;
+  --light-surface-text-secondary: #475569;
+  --light-surface-text-muted: #64748b;
   --divider: rgba(148, 163, 184, 0.22);
   --chart-grid: rgba(148, 163, 184, 0.20);
   --chart-axis: #a8b3c7;
+  --chart-target-bar: #a78bfa;
   --shadow-card: 0 18px 44px rgba(0, 0, 0, 0.26);
   --focus-ring: rgba(167, 139, 250, 0.28);
   --color-primary-light: #1b2240;
@@ -1168,8 +1178,133 @@ html[data-theme="dark"] .main-content [style*="background: linear-gradient(180de
 html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"],
 html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, #ffffff"],
 html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, #fff"] {
-  background: var(--surface) !important;
-  color: var(--text-primary) !important;
+  background: var(--light-surface-bg) !important;
+  color: var(--light-surface-text) !important;
+}
+
+html[data-theme="dark"] .main-content [style*="background: #fff"] h1,
+html[data-theme="dark"] .main-content [style*="background: #fff"] h2,
+html[data-theme="dark"] .main-content [style*="background: #fff"] h3,
+html[data-theme="dark"] .main-content [style*="background: #fff"] h4,
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] h1,
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] h2,
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] h3,
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] h4,
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] h1,
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] h2,
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] h3,
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] h4,
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] h1,
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] h2,
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] h3,
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] h4,
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] h1,
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] h2,
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] h3,
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] h4,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] h1,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] h2,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] h3,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] h4,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] h1,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] h2,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] h3,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] h4,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] h1,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] h2,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] h3,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] h4 {
+  color: var(--light-surface-text) !important;
+}
+
+html[data-theme="dark"] .main-content [style*="background: #fff"] [style*="color: #111827"],
+html[data-theme="dark"] .main-content [style*="background: #fff"] [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="background: #fff"] [style*="color: #1f2937"],
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="color: #111827"],
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="color: #1f2937"],
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] [style*="color: #111827"],
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] [style*="color: #1f2937"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] [style*="color: #111827"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] [style*="color: #1f2937"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] [style*="color: #111827"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] [style*="color: #1f2937"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] [style*="color: #111827"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] [style*="color: #1f2937"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] [style*="color: #111827"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] [style*="color: #1f2937"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] [style*="color: #111827"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] [style*="color: #1f2937"] {
+  color: var(--light-surface-text) !important;
+}
+
+html[data-theme="dark"] .main-content [style*="background: #fff"] [style*="color: #334155"],
+html[data-theme="dark"] .main-content [style*="background: #fff"] [style*="color: #475569"],
+html[data-theme="dark"] .main-content [style*="background: #fff"] [style*="color: #64748b"],
+html[data-theme="dark"] .main-content [style*="background: #fff"] [style*="color: #6b7280"],
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="color: #334155"],
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="color: #475569"],
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="color: #64748b"],
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="color: #6b7280"],
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] [style*="color: #334155"],
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] [style*="color: #475569"],
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] [style*="color: #64748b"],
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] [style*="color: #6b7280"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] [style*="color: #334155"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] [style*="color: #475569"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] [style*="color: #64748b"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"] [style*="color: #6b7280"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] [style*="color: #334155"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] [style*="color: #475569"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] [style*="color: #64748b"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"] [style*="color: #6b7280"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] [style*="color: #334155"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] [style*="color: #475569"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] [style*="color: #64748b"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] [style*="color: #6b7280"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] [style*="color: #334155"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] [style*="color: #475569"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] [style*="color: #64748b"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] [style*="color: #6b7280"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] [style*="color: #334155"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] [style*="color: #475569"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] [style*="color: #64748b"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] [style*="color: #6b7280"] {
+  color: var(--light-surface-text-secondary) !important;
+}
+
+html[data-theme="dark"] .main-content [style*="background: #fff"] .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .main-content [style*="background: #fff"] .recharts-text,
+html[data-theme="dark"] .main-content [style*="background: #fff"] .recharts-label,
+html[data-theme="dark"] .main-content [style*="background: #fff"] .recharts-legend-item-text,
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] .recharts-text,
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] .recharts-label,
+html[data-theme="dark"] .main-content [style*="background: #ffffff"] .recharts-legend-item-text,
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] .recharts-text,
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] .recharts-label,
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"] .recharts-legend-item-text,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] .recharts-text,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] .recharts-label,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"] .recharts-legend-item-text,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] .recharts-text,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] .recharts-label,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"] .recharts-legend-item-text,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] .recharts-text,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] .recharts-label,
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"] .recharts-legend-item-text {
+  fill: var(--light-surface-text-muted) !important;
+  color: var(--light-surface-text-muted) !important;
 }
 
 html[data-theme="dark"] .crm-modal-overlay [style*="background: #fff"],
