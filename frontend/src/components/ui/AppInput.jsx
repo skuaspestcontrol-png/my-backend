@@ -20,7 +20,7 @@ export default function AppInput({ label, helper, error, style, className, ...pr
           ...style
         }}
       />
-      {error ? <span style={{ color: '#DC2626', fontSize: 12 }}>{error}</span> : helper ? <span style={{ color: '#6B7280', fontSize: 12 }}>{helper}</span> : null}
+      {error ? <span style={{ color: 'var(--color-danger)', fontSize: 12 }}>{error}</span> : helper ? <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{helper}</span> : null}
     </label>
   );
 }
