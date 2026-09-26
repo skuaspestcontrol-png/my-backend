@@ -1,8 +1,9 @@
 import AppCard from '../../components/ui/AppCard';
 import { formatCompactIndianCurrency, percent } from './salesPerformanceApi';
 
-const gridStroke = 'rgba(148, 163, 184, 0.18)';
-const axisStroke = 'rgba(148, 163, 184, 0.4)';
+const gridStroke = 'var(--chart-grid)';
+const axisStroke = 'var(--chart-grid)';
+const axisTextColor = 'var(--chart-axis)';
 
 function roundUpWithHeadroom(dataMax, { percentScale = false } = {}) {
   const max = Number(dataMax || 0);
@@ -56,7 +57,7 @@ export function getChartGridStyle(viewportWidth) {
 
 export function getChartAxisProps({ mobile = false, angledMobile = true } = {}) {
   return {
-    tick: { fontSize: mobile ? 10 : 11, fontWeight: 600, fill: '#64748B' },
+    tick: { fontSize: mobile ? 10 : 11, fontWeight: 600, fill: axisTextColor },
     tickLine: false,
     axisLine: { stroke: axisStroke },
     height: mobile ? 36 : 22,
@@ -78,7 +79,7 @@ export function getChartMargin({ mobile = false } = {}) {
 export function getCurrencyAxisProps({ mobile = false } = {}) {
   return {
     width: mobile ? 44 : 56,
-    tick: { fontSize: mobile ? 9 : 10, fill: '#64748B' },
+    tick: { fontSize: mobile ? 9 : 10, fill: axisTextColor },
     tickLine: false,
     axisLine: false,
     tickFormatter: formatCompactIndianCurrency,
@@ -89,7 +90,7 @@ export function getCurrencyAxisProps({ mobile = false } = {}) {
 export function getPercentAxisProps({ mobile = false } = {}) {
   return {
     width: mobile ? 34 : 42,
-    tick: { fontSize: mobile ? 9 : 10, fill: '#64748B' },
+    tick: { fontSize: mobile ? 9 : 10, fill: axisTextColor },
     tickLine: false,
     axisLine: false,
     tickFormatter: (value) => percent(value || 0),
@@ -116,8 +117,8 @@ export function SalesChartTooltip({ active, payload, label, valueFormatter = for
   return (
     <div
       style={{
-        border: '1px solid rgba(15, 23, 42, 0.08)',
-        background: '#fff',
+        border: '1px solid var(--border-soft)',
+        background: 'var(--surface-card-elevated)',
         borderRadius: 14,
         boxShadow: '0 14px 28px rgba(15, 23, 42, 0.08)',
         padding: '10px 12px',
@@ -126,16 +127,16 @@ export function SalesChartTooltip({ active, payload, label, valueFormatter = for
         minWidth: 148
       }}
     >
-      <div style={{ fontSize: 11, fontWeight: 800, color: '#334155', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '0.03em', textTransform: 'uppercase' }}>
         {label}
       </div>
       {payload.map((entry) => (
         <div key={entry.dataKey} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#475569', fontSize: 12, fontWeight: 700 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 999, background: entry.color || '#111827' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 12, fontWeight: 700 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 999, background: entry.color || 'var(--chart-target-bar)' }} />
             {entry.name}
           </span>
-          <span style={{ color: '#0F172A', fontSize: 12, fontWeight: 800 }}>
+          <span style={{ color: 'var(--text-primary)', fontSize: 12, fontWeight: 800 }}>
             {valueFormatter(entry.value, entry.name, entry)}
           </span>
         </div>

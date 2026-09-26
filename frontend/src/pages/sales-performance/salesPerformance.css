@@ -333,3 +333,43 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+html[data-theme="dark"] .sales-performance-page .crm-card,
+html[data-theme="dark"] .sales-performance-page .crm-chart-card,
+html[data-theme="dark"] .sales-performance-page .crm-table-card,
+html[data-theme="dark"] .sales-performance-page .crm-filter-card,
+html[data-theme="dark"] .sales-performance-page .crm-kpi-card {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+html[data-theme="dark"] .sales-performance-page .sales-chart-frame {
+  background: var(--chart-surface) !important;
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 8px;
+}
+
+html[data-theme="dark"] .sales-performance-page .sales-performance-table thead .sticky-sales-person,
+html[data-theme="dark"] .sales-dashboard-page .sales-matrix-table thead .table-sticky-first {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: 8px 0 12px rgba(0, 0, 0, 0.18) !important;
+}
+
+html[data-theme="dark"] .sales-performance-page .sales-performance-table tbody .sticky-sales-person,
+html[data-theme="dark"] .sales-dashboard-page .sales-matrix-table .table-sticky-first,
+html[data-theme="dark"] .sales-dashboard-page .sales-matrix-table tbody .table-sticky-first {
+  background: var(--table-row-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: 8px 0 12px rgba(0, 0, 0, 0.14) !important;
+}
+
+html[data-theme="dark"] .sales-performance-page .sales-performance-table tbody tr:nth-child(even) .sticky-sales-person,
+html[data-theme="dark"] .sales-dashboard-page .sales-matrix-table tbody tr:nth-child(even) .table-sticky-first {
+  background: var(--table-row-alt) !important;
+}
