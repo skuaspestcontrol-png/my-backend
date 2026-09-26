@@ -56,6 +56,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const navigate = useNavigate();
   const [cachedLoginSettings] = useState(() => readLoginSettingsCache());
 
@@ -160,23 +161,29 @@ export default function Login() {
   const loginInputStyle = isNarrow
     ? {
         width: '100%',
+        minHeight: '46px',
         padding: '12px 13px',
         borderRadius: '8px',
         boxSizing: 'border-box',
         background: 'rgba(255, 255, 255, 0.12)',
         border: '1px solid rgba(255, 255, 255, 0.18)',
         color: '#ffffff',
-        caretColor: '#ffffff'
+        WebkitTextFillColor: '#ffffff',
+        caretColor: '#ffffff',
+        outline: 'none'
       }
     : {
         width: '100%',
+        minHeight: '46px',
         padding: '12px 13px',
         borderRadius: '8px',
         boxSizing: 'border-box',
         background: fieldBg,
         border: `1px solid ${fieldBorder}`,
         color: '#ffffff',
-        caretColor: '#ffffff'
+        WebkitTextFillColor: '#ffffff',
+        caretColor: '#ffffff',
+        outline: 'none'
       };
   const calendarModalBodyStyle = {
     flex: 1,
@@ -200,12 +207,14 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (authLoading) return;
+    setLoginError('');
     setAuthLoading(true);
     const username = String(credentials.username || '').trim();
     const password = String(credentials.password || '').trim();
     if (!username || !password) {
       setAuthLoading(false);
-      alert('Username and password are required');
+      setLoginError('Username and password are required.');
       return;
     }
 
@@ -232,8 +241,12 @@ export default function Login() {
       setAuthLoading(false);
     } catch (error) {
       setAuthLoading(false);
-      const message = error?.response?.data?.error || error?.message || 'Invalid credentials';
-      alert(message);
+      const status = error?.response?.status;
+      const serverMessage = String(error?.response?.data?.error || '').trim();
+      const message = status === 401
+        ? 'Invalid credentials'
+        : (serverMessage || (error?.request ? 'Unable to connect. Please try again.' : 'Unable to login right now.'));
+      setLoginError(message);
     }
   };
 
@@ -285,17 +298,17 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #eef4ff 0%, #f7f9fd 52%, #ecf2fb 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '8px' : '24px' }}>
-      <div style={{ width: '100%', maxWidth: '900px', borderRadius: isNarrow ? '14px' : '16px', border: '1px solid rgba(255, 255, 255, 0.08)', background: panelBg, boxShadow: '0 14px 34px rgba(15, 23, 42, 0.22)', overflow: 'hidden' }}>
+    <div className="login-page" style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #eef4ff 0%, #f7f9fd 52%, #ecf2fb 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '10px' : '24px' }}>
+      <div className="login-card" style={{ width: '100%', maxWidth: viewportWidth < 900 ? '430px' : '820px', borderRadius: isNarrow ? '14px' : '16px', border: '1px solid rgba(255, 255, 255, 0.08)', background: panelBg, boxShadow: '0 14px 34px rgba(15, 23, 42, 0.22)', overflow: 'hidden' }}>
         <section style={{ display: 'grid', gridTemplateColumns: viewportWidth < 900 ? '1fr' : '1fr 1fr', minHeight: viewportWidth < 900 ? 'auto' : '420px' }}>
-          <div style={{ display: 'grid', placeItems: 'center', padding: isNarrow ? '8px 14px 0' : '18px 18px 8px' }}>
+          <div style={{ display: 'grid', placeItems: 'center', padding: isNarrow ? '12px 14px 0' : '18px 18px 8px' }}>
             {hasValidLogo ? (
               <img
                 src={settings.dashboardImageUrl}
                 alt="Company Logo"
                 onError={() => setLogoBroken(true)}
                 style={{
-                  width: isNarrow ? '220px' : '300px',
+                  width: isNarrow ? 'min(168px, 72vw)' : '260px',
                   maxWidth: '95%',
                   height: 'auto',
                   objectFit: 'contain',
@@ -330,32 +343,41 @@ export default function Login() {
             <div style={{ width: '100%', padding: 0 }}>
             <form onSubmit={handleLogin} style={{ display: 'grid', gap: '14px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', color: textSecondary, fontSize: '13px', fontWeight: 700 }}>Login Mobile Number / Username</label>
+              <label htmlFor="login-username" style={{ display: 'block', marginBottom: '8px', color: textSecondary, fontSize: '13px', fontWeight: 700 }}>Login Mobile Number / Username</label>
               <input
+                id="login-username"
                 type="text"
                 name="username"
                 onChange={handleChange}
                 value={credentials.username}
                 className="login-credential-input"
                 style={loginInputStyle}
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                inputMode="text"
                 required
               />
               <p style={{ margin: '6px 0 0', fontSize: '12px', color: textMuted, fontWeight: 600 }}>For employees, use your 10-digit mobile number.</p>
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '8px', color: textSecondary, fontSize: '13px', fontWeight: 700 }}>Password</label>
+              <label htmlFor="login-password" style={{ display: 'block', marginBottom: '8px', color: textSecondary, fontSize: '13px', fontWeight: 700 }}>Password</label>
               <div style={{ position: 'relative' }}>
               <input
+                id="login-password"
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 onChange={handleChange}
                 value={credentials.password}
                 className="login-credential-input"
                 style={{ ...loginInputStyle, padding: '12px 42px 12px 13px' }}
+                autoComplete="current-password"
                 required
               />
                 <button
+                  className="login-password-toggle"
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
@@ -365,6 +387,12 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            {loginError ? (
+              <div role="alert" style={{ color: '#fecaca', background: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(248, 113, 113, 0.28)', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', fontWeight: 700 }}>
+                {loginError}
+              </div>
+            ) : null}
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
               <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: textSecondary, fontSize: '13px', fontWeight: 600 }}>

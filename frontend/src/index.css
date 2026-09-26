@@ -1625,6 +1625,69 @@ textarea:focus {
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
 }
 
+.login-page .login-credential-input {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  opacity: 1 !important;
+}
+
+.login-page .login-credential-input::placeholder {
+  color: rgba(255, 255, 255, 0.62) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.62) !important;
+  opacity: 1 !important;
+}
+
+.login-page .login-credential-input:focus {
+  border-color: rgba(199, 210, 254, 0.7) !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.24) !important;
+}
+
+.login-page .login-credential-input:disabled,
+.login-page .login-credential-input[readonly] {
+  color: rgba(255, 255, 255, 0.72) !important;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.72) !important;
+  opacity: 1 !important;
+}
+
+.login-page .login-credential-input:-webkit-autofill,
+.login-page .login-credential-input:-webkit-autofill:hover,
+.login-page .login-credential-input:-webkit-autofill:focus,
+.login-page .login-credential-input:-webkit-autofill:active {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  border-color: rgba(199, 210, 254, 0.62) !important;
+  box-shadow: 0 0 0 1000px #211640 inset, 0 0 0 3px rgba(129, 140, 248, 0.16) !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.login-page .login-password-toggle {
+  min-width: 34px !important;
+  width: 34px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.login-page .login-password-toggle:focus-visible {
+  outline: 2px solid rgba(199, 210, 254, 0.9);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .login-card {
+    border-radius: 14px;
+  }
+
+  .login-page {
+    align-items: start;
+  }
+}
+
 .calendar .active-date,
 .date-active,
 .selected-date {
