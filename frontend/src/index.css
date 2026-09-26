@@ -14,7 +14,9 @@
   --surface: #ffffff;
   --surface-secondary: #f8fafc;
   --surface-elevated: #ffffff;
+  --surface-muted: #f1f5f9;
   --card-bg: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,252,0.98) 100%);
+  --card-border: rgba(148, 163, 184, 0.18);
   --card-header-bg: linear-gradient(135deg, var(--skuas-header-secondary) 0%, var(--skuas-header) 58%, var(--skuas-header-hover) 100%);
   --card-header-text: #ffffff;
   --card-header-border: rgba(255, 255, 255, 0.12);
@@ -32,11 +34,16 @@
   --table-header-bg: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   --table-header-text: #475569;
   --table-row-bg: rgba(255,255,255,0.98);
+  --table-row-alt: #f8fafc;
   --table-row-hover: rgba(248, 250, 252, 0.98);
   --hover-bg: rgba(248, 250, 252, 0.98);
   --selected-bg: rgba(124, 58, 237, 0.10);
   --modal-bg: #ffffff;
+  --modal-section-bg: #f8fafc;
   --dropdown-bg: #ffffff;
+  --divider: rgba(148, 163, 184, 0.22);
+  --chart-grid: rgba(148, 163, 184, 0.30);
+  --chart-axis: #64748b;
   --shadow-card: 0 18px 40px rgba(15, 23, 42, 0.08);
   --focus-ring: rgba(124, 58, 237, 0.22);
   --color-primary-light: #f5f3ff;
@@ -92,7 +99,9 @@ html[data-theme="dark"] {
   --surface: #151a33;
   --surface-secondary: #1b2240;
   --surface-elevated: #202849;
+  --surface-muted: #10162d;
   --card-bg: linear-gradient(180deg, rgba(21,26,51,0.98) 0%, rgba(17,22,44,0.98) 100%);
+  --card-border: rgba(148, 163, 184, 0.20);
   --card-header-bg: linear-gradient(135deg, #251a4d 0%, #1e163d 58%, #34206d 100%);
   --card-header-text: #ffffff;
   --card-header-border: rgba(255, 255, 255, 0.10);
@@ -110,11 +119,16 @@ html[data-theme="dark"] {
   --table-header-bg: linear-gradient(180deg, #202849 0%, #1b2240 100%);
   --table-header-text: #e5e7eb;
   --table-row-bg: rgba(21, 26, 51, 0.98);
+  --table-row-alt: rgba(27, 34, 64, 0.96);
   --table-row-hover: rgba(37, 26, 77, 0.62);
   --hover-bg: rgba(37, 26, 77, 0.62);
   --selected-bg: rgba(124, 58, 237, 0.24);
   --modal-bg: #151a33;
+  --modal-section-bg: #1b2240;
   --dropdown-bg: #171d38;
+  --divider: rgba(148, 163, 184, 0.22);
+  --chart-grid: rgba(148, 163, 184, 0.20);
+  --chart-axis: #a8b3c7;
   --shadow-card: 0 18px 44px rgba(0, 0, 0, 0.26);
   --focus-ring: rgba(167, 139, 250, 0.28);
   --color-primary-light: #1b2240;
@@ -459,7 +473,30 @@ body {
   position: sticky;
   left: 0;
   z-index: 1;
-  background: inherit;
+  background: var(--table-row-bg) !important;
+}
+
+html[data-theme="dark"] .table-sticky-first,
+html[data-theme="dark"] .sticky-column,
+html[data-theme="dark"] .sticky-col,
+html[data-theme="dark"] .sticky-sales-person,
+html[data-theme="dark"] table th:first-child[style*="position: sticky"],
+html[data-theme="dark"] table td:first-child[style*="position: sticky"],
+html[data-theme="dark"] table th[style*="left: 0"],
+html[data-theme="dark"] table td[style*="left: 0"] {
+  background: var(--table-row-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] thead .table-sticky-first,
+html[data-theme="dark"] thead .sticky-column,
+html[data-theme="dark"] thead .sticky-col,
+html[data-theme="dark"] thead .sticky-sales-person,
+html[data-theme="dark"] table thead th:first-child[style*="position: sticky"],
+html[data-theme="dark"] table thead th[style*="left: 0"] {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
 }
 
 .crm-page-header {
@@ -1107,17 +1144,74 @@ html[data-theme="dark"] .main-content [style*="background-color: #fff"],
 html[data-theme="dark"] .main-content [style*="background-color: rgb(255, 255, 255)"],
 html[data-theme="dark"] .main-content [style*="background: #ffffff"],
 html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255, 255, 255"],
+html[data-theme="dark"] .main-content [style*="background: rgba(255,255,255"],
+html[data-theme="dark"] .main-content [style*="background-color: rgba(255, 255, 255"],
+html[data-theme="dark"] .main-content [style*="background-color: rgba(255,255,255"],
+html[data-theme="dark"] .main-content [style*="background: rgb(248, 250, 252)"],
+html[data-theme="dark"] .main-content [style*="background: rgb(249, 250, 252)"],
+html[data-theme="dark"] .main-content [style*="background: rgb(252, 253, 255)"],
+html[data-theme="dark"] .main-content [style*="background: rgb(241, 245, 249)"],
+html[data-theme="dark"] .main-content [style*="background: rgb(238, 242, 247)"],
+html[data-theme="dark"] .main-content [style*="background-color: rgb(248, 250, 252)"],
+html[data-theme="dark"] .main-content [style*="background-color: rgb(249, 250, 252)"],
+html[data-theme="dark"] .main-content [style*="background-color: rgb(252, 253, 255)"],
+html[data-theme="dark"] .main-content [style*="background-color: rgb(241, 245, 249)"],
+html[data-theme="dark"] .main-content [style*="background-color: rgb(238, 242, 247)"],
+html[data-theme="dark"] .main-content [style*="background: #f8fafc"],
+html[data-theme="dark"] .main-content [style*="background: #f9fafc"],
+html[data-theme="dark"] .main-content [style*="background: #fcfdff"],
+html[data-theme="dark"] .main-content [style*="background: #f1f5f9"],
+html[data-theme="dark"] .main-content [style*="background: #eef2f7"],
 html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(255"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(249"],
+html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, rgba(248"],
 html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, #ffffff"],
 html[data-theme="dark"] .main-content [style*="background: linear-gradient(180deg, #fff"] {
   background: var(--surface) !important;
   color: var(--text-primary) !important;
 }
 
+html[data-theme="dark"] .crm-modal-overlay [style*="background: #fff"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: #ffffff"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: rgb(255, 255, 255)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: rgba(255, 255, 255"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: rgba(255,255,255"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background-color: rgba(255, 255, 255"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background-color: rgba(255,255,255"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: rgb(248, 250, 252)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: rgb(249, 250, 252)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: rgb(252, 253, 255)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: linear-gradient(180deg, rgba(255"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: linear-gradient(180deg, rgba(249"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: linear-gradient(180deg, rgba(248"],
+html[data-theme="dark"] [role="dialog"] [style*="background: #fff"],
+html[data-theme="dark"] [role="dialog"] [style*="background: #ffffff"],
+html[data-theme="dark"] [role="dialog"] [style*="background: rgb(255, 255, 255)"],
+html[data-theme="dark"] [role="dialog"] [style*="background: rgba(255, 255, 255"],
+html[data-theme="dark"] [role="dialog"] [style*="background: rgba(255,255,255"],
+html[data-theme="dark"] [role="dialog"] [style*="background-color: rgba(255, 255, 255"],
+html[data-theme="dark"] [role="dialog"] [style*="background-color: rgba(255,255,255"],
+html[data-theme="dark"] [role="dialog"] [style*="background: rgb(248, 250, 252)"],
+html[data-theme="dark"] [role="dialog"] [style*="background: rgb(249, 250, 252)"],
+html[data-theme="dark"] [role="dialog"] [style*="background: rgb(252, 253, 255)"],
+html[data-theme="dark"] [role="dialog"] [style*="background: linear-gradient(180deg, rgba(255"],
+html[data-theme="dark"] [role="dialog"] [style*="background: linear-gradient(180deg, rgba(249"],
+html[data-theme="dark"] [role="dialog"] [style*="background: linear-gradient(180deg, rgba(248"] {
+  background: var(--modal-section-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
 html[data-theme="dark"] .main-content [style*="color: #111827"],
 html[data-theme="dark"] .main-content [style*="color: #0f172a"],
+html[data-theme="dark"] .main-content [style*="color: #1f2937"],
 html[data-theme="dark"] .main-content [style*="color:#111827"],
-html[data-theme="dark"] .main-content [style*="color:#0f172a"] {
+html[data-theme="dark"] .main-content [style*="color:#0f172a"],
+html[data-theme="dark"] .main-content [style*="color:#1f2937"],
+html[data-theme="dark"] .main-content [style*="color: rgb(17, 24, 39)"],
+html[data-theme="dark"] .main-content [style*="color: rgb(15, 23, 42)"],
+html[data-theme="dark"] .main-content [style*="color: rgb(31, 41, 55)"] {
   color: var(--text-primary) !important;
 }
 
@@ -1128,7 +1222,45 @@ html[data-theme="dark"] .main-content [style*="color:#334155"],
 html[data-theme="dark"] .main-content [style*="color:#475569"],
 html[data-theme="dark"] .main-content [style*="color:#64748b"],
 html[data-theme="dark"] .main-content [style*="color: #6b7280"],
-html[data-theme="dark"] .main-content [style*="color:#6b7280"] {
+html[data-theme="dark"] .main-content [style*="color:#6b7280"],
+html[data-theme="dark"] .main-content [style*="color: rgb(51, 65, 85)"],
+html[data-theme="dark"] .main-content [style*="color: rgb(71, 85, 105)"],
+html[data-theme="dark"] .main-content [style*="color: rgb(100, 116, 139)"],
+html[data-theme="dark"] .main-content [style*="color: rgb(107, 114, 128)"] {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #111827"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #0f172a"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #1f2937"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(17, 24, 39)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(15, 23, 42)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(31, 41, 55)"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #111827"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #0f172a"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #1f2937"],
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(17, 24, 39)"],
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(15, 23, 42)"],
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(31, 41, 55)"] {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #334155"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #475569"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #64748b"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #6b7280"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(51, 65, 85)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(71, 85, 105)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(100, 116, 139)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(107, 114, 128)"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #334155"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #475569"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #64748b"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #6b7280"],
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(51, 65, 85)"],
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(71, 85, 105)"],
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(100, 116, 139)"],
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(107, 114, 128)"] {
   color: var(--text-secondary) !important;
 }
 
@@ -1149,8 +1281,47 @@ html[data-theme="dark"] .main-content .dashboard-card,
 html[data-theme="dark"] .main-content .stat-card,
 html[data-theme="dark"] .main-content .form-card,
 html[data-theme="dark"] .main-content .panel,
-html[data-theme="dark"] .main-content .modal-content {
+html[data-theme="dark"] .main-content .modal-content,
+html[data-theme="dark"] .main-content .summary-card,
+html[data-theme="dark"] .main-content .kpi-card,
+html[data-theme="dark"] .main-content .metric-card,
+html[data-theme="dark"] .main-content .chart-card,
+html[data-theme="dark"] .main-content .section-card,
+html[data-theme="dark"] .main-content .filter-card,
+html[data-theme="dark"] .main-content .table-card,
+html[data-theme="dark"] .main-content .table-wrapper,
+html[data-theme="dark"] .main-content .responsive-table,
+html[data-theme="dark"] .main-content .content-card {
   background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .crm-modal,
+html[data-theme="dark"] .crm-modal-surface,
+html[data-theme="dark"] [role="dialog"] .modal-content,
+html[data-theme="dark"] [role="dialog"] .card,
+html[data-theme="dark"] [role="dialog"] .form-card,
+html[data-theme="dark"] [role="dialog"] .panel,
+html[data-theme="dark"] [role="dialog"] .section-card,
+html[data-theme="dark"] [role="dialog"] .content-card,
+html[data-theme="dark"] [role="dialog"] .summary-card {
+  background: var(--modal-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .crm-modal-body,
+html[data-theme="dark"] .crm-modal-surface-body,
+html[data-theme="dark"] [role="dialog"] section,
+html[data-theme="dark"] [role="dialog"] fieldset,
+html[data-theme="dark"] [role="dialog"] .form-section,
+html[data-theme="dark"] [role="dialog"] .address-section,
+html[data-theme="dark"] [role="dialog"] .billing-section,
+html[data-theme="dark"] [role="dialog"] .shipping-section,
+html[data-theme="dark"] [role="dialog"] .totals-section,
+html[data-theme="dark"] [role="dialog"] .items-section {
+  background: var(--modal-section-bg) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
 }
@@ -1177,6 +1348,96 @@ html[data-theme="dark"] .main-content .dashboard-card span,
 html[data-theme="dark"] .main-content .stat-card p,
 html[data-theme="dark"] .main-content .stat-card span {
   color: inherit;
+}
+
+html[data-theme="dark"] .main-content input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] .main-content textarea,
+html[data-theme="dark"] .main-content select,
+html[data-theme="dark"] .crm-modal-overlay input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] .crm-modal-overlay textarea,
+html[data-theme="dark"] .crm-modal-overlay select,
+html[data-theme="dark"] [role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] [role="dialog"] textarea,
+html[data-theme="dark"] [role="dialog"] select {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+  caret-color: var(--input-text) !important;
+}
+
+html[data-theme="dark"] .main-content label,
+html[data-theme="dark"] .main-content legend,
+html[data-theme="dark"] .crm-modal-overlay label,
+html[data-theme="dark"] .crm-modal-overlay legend,
+html[data-theme="dark"] [role="dialog"] label,
+html[data-theme="dark"] [role="dialog"] legend {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .main-content input[type="checkbox"],
+html[data-theme="dark"] .main-content input[type="radio"],
+html[data-theme="dark"] .crm-modal-overlay input[type="checkbox"],
+html[data-theme="dark"] .crm-modal-overlay input[type="radio"],
+html[data-theme="dark"] [role="dialog"] input[type="checkbox"],
+html[data-theme="dark"] [role="dialog"] input[type="radio"] {
+  accent-color: var(--color-primary);
+  border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] .main-content table,
+html[data-theme="dark"] .main-content thead,
+html[data-theme="dark"] .main-content tbody,
+html[data-theme="dark"] .main-content tfoot,
+html[data-theme="dark"] .main-content tr {
+  background: var(--table-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .main-content tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
+html[data-theme="dark"] .main-content table th,
+html[data-theme="dark"] .main-content table th * {
+  color: var(--table-header-text) !important;
+}
+
+html[data-theme="dark"] .main-content table td {
+  background: var(--table-row-bg) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .main-content table td:first-child,
+html[data-theme="dark"] .main-content table th:first-child {
+  background: var(--table-row-bg) !important;
+}
+
+html[data-theme="dark"] .main-content table thead th:first-child {
+  background: var(--table-header-bg) !important;
+}
+
+html[data-theme="dark"] .main-content table tbody tr:hover td {
+  background: var(--table-row-hover) !important;
+}
+
+html[data-theme="dark"] .main-content .recharts-wrapper,
+html[data-theme="dark"] .main-content .recharts-surface,
+html[data-theme="dark"] .main-content .recharts-responsive-container {
+  background: transparent !important;
+}
+
+html[data-theme="dark"] .main-content .recharts-cartesian-grid line {
+  stroke: var(--chart-grid) !important;
+}
+
+html[data-theme="dark"] .main-content .recharts-cartesian-axis-tick-value,
+html[data-theme="dark"] .main-content .recharts-text,
+html[data-theme="dark"] .main-content .recharts-label,
+html[data-theme="dark"] .main-content .recharts-legend-item-text {
+  fill: var(--chart-axis) !important;
+  color: var(--chart-axis) !important;
 }
 
 html[data-theme="dark"] .sidebar {
