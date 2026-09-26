@@ -151,6 +151,9 @@ export default function Login() {
   }, []);
 
   const isNarrow = viewportWidth <= 480;
+  const isMobile = viewportWidth <= 640;
+  const isStacked = viewportWidth < 900;
+  const isTablet = viewportWidth >= 641 && viewportWidth < 1100;
   const hasValidLogo = Boolean(settings.dashboardImageUrl) && !logoBroken;
   const panelBg = 'linear-gradient(135deg, #160f33 0%, #120d2a 100%)';
   const textPrimary = '#ffffff';
@@ -158,6 +161,15 @@ export default function Login() {
   const textMuted = 'rgba(255, 255, 255, 0.64)';
   const fieldBg = 'rgba(255, 255, 255, 0.08)';
   const fieldBorder = 'rgba(255, 255, 255, 0.16)';
+  const pagePadding = isMobile ? 'clamp(10px, 3vw, 16px)' : isTablet ? '24px' : '28px';
+  const cardMaxWidth = isStacked ? (isMobile ? '430px' : '520px') : '760px';
+  const cardRadius = isMobile ? '14px' : '16px';
+  const cardMinHeight = isStacked ? 'auto' : '390px';
+  const logoWidth = isMobile ? 'clamp(112px, 42vw, 152px)' : isStacked ? '190px' : '220px';
+  const logoMaxHeight = isMobile ? '118px' : isStacked ? '160px' : '210px';
+  const logoPanelPadding = isMobile ? '14px 14px 0' : isStacked ? '20px 22px 0' : '24px 20px';
+  const formPanelPadding = isMobile ? '12px 14px 16px' : isStacked ? '22px 28px 28px' : '28px 30px';
+  const formMaxWidth = isStacked ? '100%' : '340px';
   const loginInputStyle = isNarrow
     ? {
         width: '100%',
@@ -170,7 +182,9 @@ export default function Login() {
         color: '#ffffff',
         WebkitTextFillColor: '#ffffff',
         caretColor: '#ffffff',
-        outline: 'none'
+        outline: 'none',
+        fontSize: '16px',
+        lineHeight: 1.25
       }
     : {
         width: '100%',
@@ -183,7 +197,9 @@ export default function Login() {
         color: '#ffffff',
         WebkitTextFillColor: '#ffffff',
         caretColor: '#ffffff',
-        outline: 'none'
+        outline: 'none',
+        fontSize: isMobile ? '16px' : '14px',
+        lineHeight: 1.25
       };
   const calendarModalBodyStyle = {
     flex: 1,
@@ -298,18 +314,19 @@ export default function Login() {
   };
 
   return (
-    <div className="login-page" style={{ minHeight: '100dvh', width: '100%', background: 'linear-gradient(120deg, #eef4ff 0%, #f7f9fd 52%, #ecf2fb 100%)', display: 'grid', placeItems: 'center', padding: isNarrow ? '10px' : '24px' }}>
-      <div className="login-card" style={{ width: '100%', maxWidth: viewportWidth < 900 ? '430px' : '820px', borderRadius: isNarrow ? '14px' : '16px', border: '1px solid rgba(255, 255, 255, 0.08)', background: panelBg, boxShadow: '0 14px 34px rgba(15, 23, 42, 0.22)', overflow: 'hidden' }}>
-        <section style={{ display: 'grid', gridTemplateColumns: viewportWidth < 900 ? '1fr' : '1fr 1fr', minHeight: viewportWidth < 900 ? 'auto' : '420px' }}>
-          <div style={{ display: 'grid', placeItems: 'center', padding: isNarrow ? '12px 14px 0' : '18px 18px 8px' }}>
+    <div className="login-page" style={{ padding: pagePadding, alignItems: isMobile ? 'start' : 'center' }}>
+      <div className="login-card" style={{ width: '100%', maxWidth: cardMaxWidth, borderRadius: cardRadius, border: '1px solid rgba(255, 255, 255, 0.08)', background: panelBg, boxShadow: '0 14px 34px rgba(15, 23, 42, 0.22)', overflow: 'hidden' }}>
+        <section style={{ display: 'grid', gridTemplateColumns: isStacked ? '1fr' : 'minmax(0, 0.9fr) minmax(320px, 1fr)', minHeight: cardMinHeight }}>
+          <div style={{ display: 'grid', placeItems: 'center', padding: logoPanelPadding }}>
             {hasValidLogo ? (
               <img
                 src={settings.dashboardImageUrl}
                 alt="Company Logo"
                 onError={() => setLogoBroken(true)}
                 style={{
-                  width: isNarrow ? 'min(168px, 72vw)' : '260px',
+                  width: logoWidth,
                   maxWidth: '95%',
+                  maxHeight: logoMaxHeight,
                   height: 'auto',
                   objectFit: 'contain',
                   background: 'transparent'
@@ -335,13 +352,13 @@ export default function Login() {
             )}
           </div>
 
-          <div style={{ padding: isNarrow ? '10px 14px 16px' : '28px 30px 26px', display: 'grid', alignContent: isNarrow ? 'start' : 'center', gap: isNarrow ? '10px' : '14px' }}>
+          <div style={{ padding: formPanelPadding, display: 'grid', alignContent: isStacked ? 'start' : 'center', justifyItems: 'stretch', gap: isMobile ? '10px' : '14px', minWidth: 0 }}>
             <div>
-              <h2 style={{ margin: 0, fontSize: isNarrow ? '24px' : '34px', color: textPrimary, fontWeight: 800, lineHeight: 1.08 }}>Welcome</h2>
+              <h2 style={{ margin: 0, fontSize: isMobile ? 'clamp(22px, 7vw, 24px)' : isStacked ? '28px' : '32px', color: textPrimary, fontWeight: 800, lineHeight: 1.08 }}>Welcome</h2>
             </div>
 
-            <div style={{ width: '100%', padding: 0 }}>
-            <form onSubmit={handleLogin} style={{ display: 'grid', gap: '14px' }}>
+            <div style={{ width: '100%', maxWidth: formMaxWidth, padding: 0, justifySelf: 'stretch' }}>
+            <form onSubmit={handleLogin} style={{ display: 'grid', gap: isMobile ? '12px' : '14px' }}>
             <div>
               <label htmlFor="login-username" style={{ display: 'block', marginBottom: '8px', color: textSecondary, fontSize: '13px', fontWeight: 700 }}>Login Mobile Number / Username</label>
               <input
@@ -357,6 +374,8 @@ export default function Login() {
                 autoCorrect="off"
                 spellCheck={false}
                 inputMode="text"
+                aria-invalid={Boolean(loginError)}
+                aria-describedby={loginError ? 'login-error' : undefined}
                 required
               />
               <p style={{ margin: '6px 0 0', fontSize: '12px', color: textMuted, fontWeight: 600 }}>For employees, use your 10-digit mobile number.</p>
@@ -372,8 +391,10 @@ export default function Login() {
                 onChange={handleChange}
                 value={credentials.password}
                 className="login-credential-input"
-                style={{ ...loginInputStyle, padding: '12px 42px 12px 13px' }}
+                style={{ ...loginInputStyle, padding: '12px 48px 12px 13px' }}
                 autoComplete="current-password"
+                aria-invalid={Boolean(loginError)}
+                aria-describedby={loginError ? 'login-error' : undefined}
                 required
               />
                 <button
@@ -381,7 +402,7 @@ export default function Login() {
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: textSecondary, cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+                  style={{ position: 'absolute', right: '5px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: textSecondary, cursor: 'pointer', display: 'grid', placeItems: 'center' }}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -389,17 +410,18 @@ export default function Login() {
             </div>
 
             {loginError ? (
-              <div role="alert" style={{ color: '#fecaca', background: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(248, 113, 113, 0.28)', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', fontWeight: 700 }}>
+              <div id="login-error" role="alert" style={{ color: '#fecaca', background: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(248, 113, 113, 0.28)', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', fontWeight: 700, lineHeight: 1.35, overflowWrap: 'anywhere' }}>
                 {loginError}
               </div>
             ) : null}
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: textSecondary, fontSize: '13px', fontWeight: 600 }}>
-                <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', columnGap: '12px', rowGap: '8px', flexWrap: 'wrap' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: textSecondary, fontSize: '13px', fontWeight: 600, minHeight: '32px' }}>
+                <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} style={{ accentColor: '#8b5cf6' }} />
                 Remember me
               </label>
               <button
+                className="login-link-button"
                 type="button"
                 onClick={() => {
                   setForgotOpen(true);
@@ -412,10 +434,11 @@ export default function Login() {
             </div>
 
             <button
+              className="login-submit-button"
               type="submit"
               disabled={authLoading}
               style={{
-                marginTop: '6px',
+                marginTop: isMobile ? '4px' : '6px',
                 minHeight: '48px',
                 background: 'linear-gradient(135deg, #2f176d 0%, #6d5be3 100%)',
                 color: '#fff',

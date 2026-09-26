@@ -1614,7 +1614,16 @@ textarea:focus {
 }
 
 .login-page {
-  background: linear-gradient(135deg, #0f0b22 0%, #160f33 50%, #120d2a 100%);
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: linear-gradient(120deg, #eef4ff 0%, #f7f9fd 52%, #ecf2fb 100%);
 }
 
 .login-card {
@@ -1630,6 +1639,7 @@ textarea:focus {
   -webkit-text-fill-color: #ffffff !important;
   caret-color: #ffffff !important;
   background-color: rgba(255, 255, 255, 0.1) !important;
+  line-height: 1.25 !important;
   opacity: 1 !important;
 }
 
@@ -1651,6 +1661,12 @@ textarea:focus {
   opacity: 1 !important;
 }
 
+.login-page .login-credential-input:autofill {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+}
+
 .login-page .login-credential-input:-webkit-autofill,
 .login-page .login-credential-input:-webkit-autofill:hover,
 .login-page .login-credential-input:-webkit-autofill:focus,
@@ -1664,10 +1680,10 @@ textarea:focus {
 }
 
 .login-page .login-password-toggle {
-  min-width: 34px !important;
-  width: 34px !important;
-  height: 34px !important;
-  min-height: 34px !important;
+  min-width: 40px !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
   padding: 0 !important;
   border-radius: 8px !important;
   color: rgba(255, 255, 255, 0.82) !important;
@@ -1676,6 +1692,33 @@ textarea:focus {
 .login-page .login-password-toggle:focus-visible {
   outline: 2px solid rgba(199, 210, 254, 0.9);
   outline-offset: 2px;
+}
+
+.login-page .login-link-button {
+  width: auto !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 32px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+}
+
+.login-page .login-link-button:focus-visible {
+  outline: 2px solid rgba(199, 210, 254, 0.9);
+  outline-offset: 2px;
+}
+
+.login-page .login-submit-button {
+  width: 100% !important;
+  min-height: 48px !important;
+  height: auto !important;
+  padding: 0 16px !important;
+}
+
+.login-page .login-submit-button:disabled {
+  cursor: progress !important;
 }
 
 @media (max-width: 640px) {
