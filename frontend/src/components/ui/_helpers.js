@@ -1,15 +1,13 @@
-import { theme } from '../../styles/theme';
-
 export const cx = (...parts) => parts.filter(Boolean).join(' ');
 
 export const baseControl = {
-  minHeight: `${theme.buttonSize.md.height}px`,
-  borderRadius: `${theme.radius.md}px`,
-  border: `1px solid ${theme.colors.border}`,
-  background: '#fff',
-  color: theme.colors.text,
+  minHeight: '40px',
+  borderRadius: '12px',
+  border: '1px solid var(--input-border)',
+  background: 'var(--input-bg)',
+  color: 'var(--input-text)',
   padding: '0 12px',
-  fontSize: theme.fontSize.sm,
+  fontSize: '14px',
   outline: 'none',
   width: '100%',
   maxWidth: '100%',
@@ -19,6 +17,6 @@ export const baseControl = {
 };
 
 export const focusRingStyle = {
-  boxShadow: `0 0 0 3px rgba(159,23,77,0.2)`,
-  borderColor: theme.colors.primary
+  boxShadow: '0 0 0 3px var(--focus-ring)',
+  borderColor: 'var(--color-primary)'
 };

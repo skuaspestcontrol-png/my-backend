@@ -22,6 +22,8 @@ import {
   LogOut,
   Settings,
   ShoppingCart,
+  Moon,
+  Sun,
   Smartphone,
   Truck,
   TrendingUp,
@@ -30,6 +32,7 @@ import {
   X
 } from 'lucide-react';
 import RupeeSymbol from './ui/RupeeSymbol';
+import { applyPortalTheme, loadPortalTheme, savePortalTheme } from '../utils/themePreference';
 
 const ServiceCalendar = lazy(() => import('./ServiceCalendar'));
 
@@ -211,6 +214,7 @@ export default function DashboardLayout({ children }) {
   const [serviceSchedules, setServiceSchedules] = useState(() => cachedNotificationData?.serviceSchedules || []);
   const [readNotificationIds, setReadNotificationIds] = useState(() => loadReadNotificationIds());
   const [serviceCalendarOpen, setServiceCalendarOpen] = useState(false);
+  const [themeMode, setThemeMode] = useState(() => loadPortalTheme());
   const notificationLoadRef = useRef(null);
 
   const syncBrandingFromCache = useCallback(() => {
@@ -245,6 +249,7 @@ export default function DashboardLayout({ children }) {
         };
         setSettings(nextSettings);
         applyBrandingTheme(nextSettings || {});
+        applyPortalTheme(loadPortalTheme());
         saveBrandingSettings(nextSettings || {});
       } catch (error) {
         console.error(error);
@@ -256,7 +261,12 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     applyBrandingTheme(settings || {});
-  }, [settings]);
+    applyPortalTheme(themeMode);
+  }, [settings, themeMode]);
+
+  const toggleThemeMode = useCallback(() => {
+    setThemeMode((prev) => savePortalTheme(prev === 'dark' ? 'light' : 'dark'));
+  }, []);
 
   useEffect(() => {
     syncBrandingFromCache();
@@ -1099,6 +1109,26 @@ export default function DashboardLayout({ children }) {
               title="Settings"
             >
               <Settings size={isMobile ? 18 : 20} />
+            </button>
+            <button
+              type="button"
+              onClick={toggleThemeMode}
+              style={{
+                border: '1px solid rgba(255, 255, 255, 0.14)',
+                background: 'rgba(255, 255, 255, 0.06)',
+                color: '#fff',
+                width: isMobile ? '38px' : '42px',
+                height: isMobile ? '38px' : '42px',
+                borderRadius: '999px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              aria-label={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={themeMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {themeMode === 'dark' ? <Sun size={isMobile ? 18 : 20} /> : <Moon size={isMobile ? 18 : 20} />}
             </button>
             <button
               type="button"

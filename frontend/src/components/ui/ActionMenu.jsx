@@ -91,9 +91,9 @@ export default function ActionMenu({ items = [], triggerLabel = 'Action', trigge
           setOpen(true);
         }}
         style={{
-          border: '1px solid rgba(17,17,17,0.16)',
-          background: '#fff',
-          color: '#1F2937',
+          border: '1px solid var(--border-soft)',
+          background: 'var(--dropdown-bg)',
+          color: 'var(--text-primary)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -121,11 +121,11 @@ export default function ActionMenu({ items = [], triggerLabel = 'Action', trigge
                 width: 16,
                 height: 16,
                 borderRadius: 5,
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-soft)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: '#f8fafc',
+                background: 'var(--surface-secondary)',
                 flexShrink: 0
               }}
             >
@@ -145,7 +145,7 @@ export default function ActionMenu({ items = [], triggerLabel = 'Action', trigge
             padding: 4,
             border: '1px solid var(--color-border)',
             borderRadius: 10,
-            background: '#fff',
+            background: 'var(--dropdown-bg)',
             boxShadow: '0 8px 18px rgba(15,23,42,0.1)',
             overflow: 'visible',
             zIndex: 5000
@@ -164,9 +164,9 @@ export default function ActionMenu({ items = [], triggerLabel = 'Action', trigge
                 width: '100%',
                 textAlign: 'left',
                 border: 'none',
-                background: item.disabled ? '#F8FAFC' : '#fff',
+                background: item.disabled ? 'var(--surface-secondary)' : 'var(--dropdown-bg)',
                 padding: '6px 10px',
-                color: item.disabled ? '#9CA3AF' : '#1F2937',
+                color: item.disabled ? 'var(--text-muted)' : 'var(--text-primary)',
                 fontSize: 11,
                 fontWeight: 600,
                 lineHeight: 1.1,

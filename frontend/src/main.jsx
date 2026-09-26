@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import { applyBrandingTheme, loadBrandingSettings } from './utils/brandingTheme'
 import { initFirebaseAppCheck } from './utils/firebaseAppCheck'
+import { initializePortalTheme } from './utils/themePreference'
 import axios from 'axios'
 import { buildPortalAuthHeaders, clearPortalUser, getPortalUser } from './utils/portalAuth'
 
@@ -11,6 +12,7 @@ const cachedBranding = loadBrandingSettings();
 if (cachedBranding) {
   applyBrandingTheme(cachedBranding);
 }
+initializePortalTheme();
 
 axios.defaults.withCredentials = true;
 axios.interceptors.request.use((config) => {
