@@ -25,11 +25,17 @@ const RENEWAL_PAGE_SIZE = 20;
 const RENEWAL_DASHBOARD_CACHE_KEY = 'renewal_dashboard_cache_v1';
 const statuses = ['All', 'Not Due', 'Upcoming', 'Due', 'Follow-up', 'Overdue', 'Renewed', 'Declined'];
 const relationshipTypes = [
-  { value: 'All', label: 'All' },
-  { value: 'CONTRACT', label: 'Contract' },
-  { value: 'ONE_TIME', label: 'One-Time' },
-  { value: 'RECURRING', label: 'Recurring' },
+  { value: 'All', label: 'All Contracts' },
+  { value: 'CONTRACT', label: 'Contracts' },
+  { value: 'ONE_TIME', label: 'One-Time / Re-engagement' },
+  { value: 'RECURRING', label: 'Recurring Review' },
   { value: 'NEEDS_REVIEW', label: 'Needs Review' }
+];
+const durationFilters = [
+  { value: '', label: 'All Durations' },
+  { value: '1_year', label: '1 Year' },
+  { value: '2_years', label: '2 Years' },
+  { value: 'over_2_years', label: '>2 Years' }
 ];
 const ranges = [
   { value: 'thisMonth', label: 'This Month' },
@@ -49,16 +55,16 @@ const searchScopes = [
   { value: 'renewalId', label: 'Renewal ID' },
   { value: 'followup', label: 'Follow-up Note' }
 ];
-const tabs = ['Renewals', 'Upcoming', 'Overdue', 'Renewed', 'Declined', 'One-Time Treatments', 'Renewal Letters', 'Reports'];
+const tabs = ['Renewals', 'Upcoming', 'Overdue', 'Renewed', 'Declined', 'Needs Review', 'One-Time Treatments', 'Renewal Letters', 'Reports'];
 const renewalColumns = [
   { key: 'customer', label: 'Customer' },
   { key: 'mobile', label: 'Mobile' },
   { key: 'area', label: 'Area' },
-  { key: 'svc', label: 'Svc' },
-  { key: 'start', label: 'Start' },
-  { key: 'end', label: 'End' },
-  { key: 'previousAmount', label: 'Prev Amt' },
-  { key: 'proposedAmount', label: 'Proposed' },
+  { key: 'svc', label: 'Service' },
+  { key: 'period', label: 'Period' },
+  { key: 'progress', label: 'Progress' },
+  { key: 'amount', label: 'Amount' },
+  { key: 'outstanding', label: 'Outstanding' },
   { key: 'salesPerson', label: 'Sales' },
   { key: 'status', label: 'Status' },
   { key: 'followup', label: 'Follow-up' },
@@ -68,11 +74,11 @@ const renewalDefaultWidths = {
   customer: 180,
   mobile: 120,
   area: 130,
-  svc: 90,
-  start: 110,
-  end: 110,
-  previousAmount: 110,
-  proposedAmount: 120,
+  svc: 120,
+  period: 165,
+  progress: 135,
+  amount: 110,
+  outstanding: 115,
   salesPerson: 120,
   status: 100,
   followup: 150,
@@ -82,11 +88,11 @@ const renewalColumnBounds = {
   customer: { min: 150, max: 260 },
   mobile: { min: 100, max: 160 },
   area: { min: 110, max: 200 },
-  svc: { min: 80, max: 120 },
-  start: { min: 90, max: 140 },
-  end: { min: 90, max: 140 },
-  previousAmount: { min: 100, max: 160 },
-  proposedAmount: { min: 100, max: 170 },
+  svc: { min: 95, max: 190 },
+  period: { min: 145, max: 230 },
+  progress: { min: 120, max: 180 },
+  amount: { min: 100, max: 160 },
+  outstanding: { min: 105, max: 170 },
   salesPerson: { min: 110, max: 180 },
   status: { min: 90, max: 150 },
   followup: { min: 130, max: 220 },
@@ -161,6 +167,25 @@ const formatINR = (value) => {
   const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
 };
+const hasAmount = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+const hasNumericValue = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
+const formatOptionalINR = (value) => (hasAmount(value) ? formatINR(value) : '-');
+const contractDurationText = (row) => {
+  const value = Number(row?.contractDurationValue || 0);
+  const unit = String(row?.contractDurationUnit || '').trim();
+  if (!value || !unit) return '-';
+  const label = unit === 'YEAR' ? 'Year' : unit === 'MONTH' ? 'Month' : 'Day';
+  return `${value} ${label}${value === 1 ? '' : 's'}`;
+};
+const serviceProgressText = (row) => {
+  const hasCompleted = hasNumericValue(row?.completedServiceVisits);
+  const hasTotal = hasNumericValue(row?.totalServiceVisits) && Number(row.totalServiceVisits) > 0;
+  const next = formatDate(row?.nextServiceDate);
+  const parts = [];
+  if (hasCompleted && hasTotal) parts.push(`${Number(row.completedServiceVisits)}/${Number(row.totalServiceVisits)} visits`);
+  if (next !== '-') parts.push(`Next ${next}`);
+  return parts.join(' • ') || '-';
+};
 const normalizeSearchText = (value) => String(value || '').toLowerCase().trim();
 const serviceShort = (value) => {
   const text = String(value || '').trim();
@@ -215,6 +240,8 @@ const getRenewalSearchText = (row) => [
   row?.status,
   row?.renewalId,
   row?.renewalDisplayId,
+  row?.contractId,
+  row?.invoiceNumber,
   row?.lastFollowupNote,
   row?.followupDate
 ].map((part) => String(part || '').trim()).filter(Boolean).join(' ').toLowerCase();
@@ -275,6 +302,7 @@ export default function RenewalDashboard() {
     toDate: '',
     status: 'All',
     relationshipType: 'All',
+    duration: '',
     assignedSalesPersonId: '',
     searchScope: 'all',
     search: ''
@@ -562,7 +590,7 @@ export default function RenewalDashboard() {
         await axios.post(`${API_BASE}/api/renewals/sync`);
         return loadData(overrideFilters, { autoSync: false });
       }
-      if (options.autoGenerateLetters !== false) {
+      if (options.autoGenerateLetters === true) {
         const letterRenewalIds = new Set(letterRows.map((letter) => String(letter.renewal_id || letter.renewalId || '').trim()).filter(Boolean));
 	        const missingLetterRows = renewalRows.filter((row) => {
 	          const renewalId = String(row.renewalId || '').trim();
@@ -762,6 +790,11 @@ export default function RenewalDashboard() {
   const visibleRows = useMemo(() => {
     const onlyContracts = (row) => row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible;
     if (activeTab === 'One-Time Treatments') return rows.filter((row) => row.serviceRelationshipType === 'ONE_TIME');
+    if (activeTab === 'Needs Review') return rows.filter((row) => (
+      row.serviceRelationshipType === 'NEEDS_REVIEW'
+      || row.serviceRelationshipType === 'RECURRING'
+      || (row.serviceRelationshipType !== 'ONE_TIME' && !row.renewalEligible)
+    ));
     if (activeTab === 'Upcoming') return rows.filter((row) => onlyContracts(row) && row.status === 'Upcoming');
     if (activeTab === 'Overdue') return rows.filter((row) => onlyContracts(row) && row.status === 'Overdue');
     if (activeTab === 'Renewed') return rows.filter((row) => onlyContracts(row) && row.status === 'Renewed');
@@ -963,7 +996,7 @@ export default function RenewalDashboard() {
     loadData(next);
   };
   const resetFilters = () => {
-    const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', relationshipType: 'All', serviceType: '', assignedSalesPersonId: '', searchScope: 'all', search: '' };
+    const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', relationshipType: 'All', duration: '', serviceType: '', assignedSalesPersonId: '', searchScope: 'all', search: '' };
     setPage(1);
     skipNextSearchSyncRef.current = true;
     setFilters(next);
@@ -1038,8 +1071,8 @@ export default function RenewalDashboard() {
   }, [filters.search, filters.searchScope]);
 
   const stats = [
-    ['Active Contracts', summary.activeContractCount || summary.totalRenewals || 0],
-    ['Renewal Due', summary.dueCount || summary.pendingCount || 0],
+    ['Active Contracts', summary.activeContractCount ?? summary.totalRenewals ?? 0],
+    ['Renewal Due', summary.dueCount ?? summary.pendingCount ?? 0],
     ['Due in 30 Days', summary.dueIn30Count || 0],
     ['Overdue', summary.overdueCount || 0],
     ['Renewed', summary.doneCount || 0],
@@ -1087,6 +1120,7 @@ export default function RenewalDashboard() {
         <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>{statuses.map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Relationship Type</span><select style={shell.input} value={filters.relationshipType} onChange={(e) => updateFilter('relationshipType', e.target.value)}>{relationshipTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Duration</span><select style={shell.input} value={filters.duration || ''} onChange={(e) => updateFilter('duration', e.target.value)}>{durationFilters.map((duration) => <option key={duration.value} value={duration.value}>{duration.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Service</span><select style={shell.input} value={filters.serviceType || ''} onChange={(e) => updateFilter('serviceType', e.target.value)}><option value="">All Services</option>{serviceOptions.map((service) => <option key={service} value={service}>{service}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>All Fields</span><select style={shell.input} value={filters.searchScope} onChange={(e) => updateFilter('searchScope', e.target.value)}>{searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}</select></label>
@@ -1100,6 +1134,13 @@ export default function RenewalDashboard() {
 
   const renderRows = () => {
     const displayRenewalId = (row) => row.renewalDisplayId || row.renewal_display_id || row.renewalId || row.renewal_id || '';
+    if (pagedRows.length === 0) {
+      return (
+        <div style={{ ...shell.panelPad, color: '#64748b', fontSize: 13, fontWeight: 700 }}>
+          {rows.length === 0 ? 'No renewal records are available.' : 'No renewal records match the current filters.'}
+        </div>
+      );
+    }
     if (isMobile) {
       return (
         <div style={{ display: 'grid', gap: 8, padding: 10 }}>
@@ -1122,9 +1163,12 @@ export default function RenewalDashboard() {
                 <span style={statusStyle(row.status)}>{row.status}</span>
               </div>
               <div style={shell.mobileMeta}>
-                <span>Conclude Date: {formatDate(row.previousContractEnd || row.renewalDueDate)}</span>
-                <span style={{ textAlign: 'center', justifySelf: 'center', width: '100%' }} title={row.serviceType}>{serviceShort(row.serviceType)}</span>
-                <span>{formatINR(row.proposedAmount)}</span>
+                <span>Expiry: {formatDate(row.previousContractEnd || row.renewalDueDate)}</span>
+                <span title={row.serviceType}>{row.serviceType || '-'}</span>
+                <span>{contractDurationText(row)}</span>
+                <span>{serviceProgressText(row)}</span>
+                <span>{formatOptionalINR(row.contractAmount)}</span>
+                <span>Due: {formatOptionalINR(row.outstandingAmount)}</span>
               </div>
               {renderRowActions(row, true)}
             </div>
@@ -1145,11 +1189,11 @@ export default function RenewalDashboard() {
               <th style={renewalHeadCellStyle('customer')}>Customer</th>
               <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile</th>
               <th style={renewalHeadCellStyle('area')}>Area</th>
-              <th style={renewalHeadCellStyle('svc', 'center')}>Svc</th>
-              <th style={renewalHeadCellStyle('start', 'center')}>Start</th>
-              <th style={renewalHeadCellStyle('end', 'center')}>End</th>
-              <th style={renewalHeadCellStyle('previousAmount', 'center')}>Prev Amt</th>
-              <th style={renewalHeadCellStyle('proposedAmount', 'center')}>Proposed</th>
+              <th style={renewalHeadCellStyle('svc')}>Service</th>
+              <th style={renewalHeadCellStyle('period', 'center')}>Period</th>
+              <th style={renewalHeadCellStyle('progress')}>Progress</th>
+              <th style={renewalHeadCellStyle('amount', 'center')}>Amount</th>
+              <th style={renewalHeadCellStyle('outstanding', 'center')}>Outstanding</th>
               <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
               <th style={renewalHeadCellStyle('status', 'center')}>Status</th>
               <th style={renewalHeadCellStyle('followup', 'center')}>Follow-up</th>
@@ -1166,11 +1210,13 @@ export default function RenewalDashboard() {
                 <td style={renewalBodyCellStyle('customer')} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
                 <td style={renewalBodyCellStyle('mobile', 'center')}>{row.mobile || '-'}</td>
                 <td style={renewalBodyCellStyle('area')} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
-                <td style={renewalBodyCellStyle('svc', 'center')} title={row.serviceType}>{serviceShort(row.serviceType)}</td>
-                <td style={renewalBodyCellStyle('start', 'center')}>{formatDate(row.previousContractStart)}</td>
-                <td style={renewalBodyCellStyle('end', 'center')}>{formatDate(row.previousContractEnd)}</td>
-                <td style={renewalBodyCellStyle('previousAmount', 'center')}>{formatINR(row.previousAmount)}</td>
-                <td style={renewalBodyCellStyle('proposedAmount', 'center')}>{formatINR(row.proposedAmount)}</td>
+                <td style={renewalBodyCellStyle('svc')} title={row.serviceType}>{row.serviceType || '-'}</td>
+                <td style={renewalBodyCellStyle('period', 'center')} title={contractDurationText(row)}>
+                  {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}
+                </td>
+                <td style={renewalBodyCellStyle('progress')} title={serviceProgressText(row)}>{serviceProgressText(row)}</td>
+                <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(row.contractAmount)}</td>
+                <td style={renewalBodyCellStyle('outstanding', 'center')}>{formatOptionalINR(row.outstandingAmount)}</td>
                 <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
                 <td style={renewalBodyCellStyle('status', 'center')}><span style={statusStyle(row.status)}>{row.status}</span></td>
                 <td style={renewalBodyCellStyle('followup', 'center')} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
@@ -1321,8 +1367,15 @@ export default function RenewalDashboard() {
                 <span>Renewal ID: {displayRenewalId || '-'}</span>
                 <span>Mobile: {row.mobile || '-'}</span>
                 <span>Service: {row.serviceType || '-'}</span>
-                <span>Conclude Date: {formatDate(row.previousContractEnd || row.renewalDueDate)}</span>
-                <span>Proposed Amount: {formatINR(row.proposedAmount)}</span>
+                <span>Contract / Invoice: {row.invoiceNumber || row.contractId || '-'}</span>
+                <span>Contract Period: {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}</span>
+                <span>Duration: {contractDurationText(row)}</span>
+                <span>Renewal Date: {formatDate(row.renewalDueDate || row.previousContractEnd)}</span>
+                <span>Service Progress: {serviceProgressText(row)}</span>
+                <span>Contract Amount: {formatOptionalINR(row.contractAmount)}</span>
+                <span>Paid: {formatOptionalINR(row.paidAmount)}</span>
+                <span>Outstanding: {formatOptionalINR(row.outstandingAmount)}</span>
+                <span>Proposed Amount: {formatOptionalINR(row.proposedAmount)}</span>
                 <span>Sales Person: {row.assignedSalesPersonName || '-'}</span>
                 {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Open renewal letter</a> : null}
                 {canUseAssignedRenewal(row) ? <button style={shell.ghostBtn} onClick={() => openModal('edit', row)}>Edit Renewal</button> : null}
@@ -1466,7 +1519,7 @@ export default function RenewalDashboard() {
           </div>
         </div>
         <div style={shell.actions}>
-          <button type="button" style={shell.ghostBtn} onClick={loadData}><RefreshCw size={15} />Refresh</button>
+          <button type="button" style={shell.ghostBtn} onClick={() => loadData(filters, { autoSync: false, autoGenerateLetters: false })}><RefreshCw size={15} />Refresh</button>
           {canAdminRenewals ? <button type="button" style={shell.primaryBtn} onClick={syncRenewals}><RefreshCw size={15} />Sync Renewals</button> : null}
         </div>
       </div>
@@ -1497,7 +1550,7 @@ export default function RenewalDashboard() {
           ))}
         </div>
         {loading ? <div style={shell.panelPad}>Loading renewals...</div> : null}
-        {!loading && ['Renewals', 'Upcoming', 'Overdue', 'Renewed', 'Declined', 'One-Time Treatments'].includes(activeTab) ? renderRows() : null}
+        {!loading && ['Renewals', 'Upcoming', 'Overdue', 'Renewed', 'Declined', 'Needs Review', 'One-Time Treatments'].includes(activeTab) ? renderRows() : null}
         {!loading && activeTab === 'Reports' ? (
           <div style={{ ...shell.chartGrid, padding: 12 }}>
             {canAdminRenewals ? renderAuditPanel() : null}

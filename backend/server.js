@@ -10337,6 +10337,25 @@ const loadCustomersForContext = async () => {
   return readJsonFile(customersFile, []);
 };
 
+const renewalCustomerKey = (value) => String(value ?? '').trim();
+const renewalCustomerNameKey = (value) => String(value ?? '').trim().toLowerCase();
+const resolveCustomerForInvoice = (invoice = {}, customers = []) => {
+  const invoiceCustomerId = renewalCustomerKey(invoice.customerId || invoice.customer_external_id || invoice.customerExternalId);
+  const invoiceCustomerName = renewalCustomerNameKey(invoice.customerName || invoice.customer_name);
+  const list = Array.isArray(customers) ? customers : [];
+  if (invoiceCustomerId) {
+    return list.find((entry) => [
+      entry?._id,
+      entry?.external_id,
+      entry?.externalId,
+      entry?.customerId,
+      entry?.id
+    ].some((candidate) => renewalCustomerKey(candidate) === invoiceCustomerId)) || {};
+  }
+  if (!invoiceCustomerName) return {};
+  return list.find((entry) => renewalCustomerNameKey(entry?.displayName || entry?.name || entry?.customerName) === invoiceCustomerName) || {};
+};
+
 const resolveInvoiceContext = async (invoiceId) => {
   const invoices = await loadInvoicesForContext();
   const invoiceReference = normalizePdfReference(invoiceId);
@@ -10344,10 +10363,7 @@ const resolveInvoiceContext = async (invoiceId) => {
   if (!invoice) return null;
 
   const customers = await loadCustomersForContext();
-  const customer = (Array.isArray(customers) ? customers : []).find((entry) =>
-    (invoice.customerId && String(entry?._id || '') === String(invoice.customerId || '')) ||
-    String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase()
-  ) || null;
+  const customer = resolveCustomerForInvoice(invoice, customers) || null;
 
   const settings = await loadCurrentSettingsForNumbering();
 
@@ -13264,6 +13280,74 @@ const renewalCleanStatus = (status) => {
   if (renewalStatusesNew.has(raw)) return raw;
   return 'DUE';
 };
+const renewalMoney = (value, fallback = null) => {
+  if (value === null || value === undefined || value === '') return fallback;
+  const amount = toNumber(value, Number.NaN);
+  return Number.isFinite(amount) ? Number(amount.toFixed(2)) : fallback;
+};
+const renewalSourceInvoiceFrom = (merged = {}, payload = {}) => {
+  const source = payload.sourceInvoice || merged.sourceInvoice || {};
+  return source && typeof source === 'object' ? source : {};
+};
+const renewalScheduleDate = (schedule = {}) => renewalSqlDate(
+  schedule.finalServiceDate
+  || schedule.serviceDate
+  || schedule.scheduledDate
+  || schedule.visitDate
+  || schedule.date
+);
+const deriveRenewalServiceProgress = ({ merged = {}, payload = {} } = {}) => {
+  const sourceInvoice = renewalSourceInvoiceFrom(merged, payload);
+  const schedules = Array.isArray(sourceInvoice.serviceSchedules)
+    ? sourceInvoice.serviceSchedules
+    : (Array.isArray(merged.serviceSchedules) ? merged.serviceSchedules : []);
+  const scheduleDates = schedules.map(renewalScheduleDate).filter(Boolean).sort();
+  const today = renewalSqlDate(new Date());
+  const nextServiceDate = scheduleDates.find((date) => !today || date >= today) || '';
+  const totalVisits = scheduleDates.length || toNumber(merged.total_service_visits ?? merged.totalServiceVisits, 0);
+  const explicitCompletedVisits = merged.completed_service_visits ?? merged.completedServiceVisits;
+  const completedVisits = explicitCompletedVisits === null || explicitCompletedVisits === undefined || explicitCompletedVisits === ''
+    ? null
+    : toNumber(explicitCompletedVisits, 0);
+  return {
+    totalServiceVisits: totalVisits || null,
+    completedServiceVisits: completedVisits == null ? null : (totalVisits ? Math.min(completedVisits, totalVisits) : completedVisits),
+    nextServiceDate
+  };
+};
+const deriveRenewalFinance = ({ merged = {}, payload = {} } = {}) => {
+  const sourceInvoice = renewalSourceInvoiceFrom(merged, payload);
+  const contractAmount = renewalMoney(
+    sourceInvoice.total
+    ?? sourceInvoice.amount
+    ?? sourceInvoice.totalAmount
+    ?? merged.contract_amount
+    ?? merged.contractAmount
+    ?? merged.previous_amount
+    ?? merged.previousAmount,
+    null
+  );
+  const outstandingAmount = renewalMoney(
+    merged.outstanding_amount
+    ?? merged.outstandingAmount
+    ?? sourceInvoice.balanceDue
+    ?? sourceInvoice.balance_due,
+    null
+  );
+  const paidAmount = renewalMoney(
+    merged.paid_amount
+    ?? merged.paidAmount
+    ?? sourceInvoice.paymentReceivedTotal
+    ?? sourceInvoice.payment_received_total,
+    outstandingAmount == null || contractAmount == null ? null : Math.max(contractAmount - outstandingAmount, 0)
+  );
+  return {
+    contractAmount,
+    paidAmount,
+    outstandingAmount,
+    invoiceNumber: String(merged.invoice_number || merged.invoiceNumber || sourceInvoice.invoiceNumber || '').trim()
+  };
+};
 const computeRenewalStatus = (row = {}) => {
   const stored = renewalCleanStatus(row.renewal_status || row.renewalStatus || row.status);
   if (['RENEWED', 'DECLINED'].includes(stored)) return stored;
@@ -13355,6 +13439,8 @@ const classifyRenewalSource = (invoice = {}) => {
 const renewalPublicRow = (row = {}) => {
   const payload = parseMysqlPayloadObject(row.payload) || {};
   const merged = { ...payload, ...row };
+  const serviceProgress = deriveRenewalServiceProgress({ merged, payload });
+  const finance = deriveRenewalFinance({ merged, payload });
   const renewalId = String(merged.renewal_id || merged.renewalId || merged.external_id || merged._id || '').trim();
   const renewalDisplayId = String(merged.renewal_display_id || merged.renewalDisplayId || '').trim();
   return {
@@ -13365,6 +13451,7 @@ const renewalPublicRow = (row = {}) => {
     renewalDisplayId,
     renewal_display_id: renewalDisplayId,
     customerId: merged.customer_id ?? merged.customerId ?? null,
+    customerExternalId: merged.customer_external_id || merged.customerExternalId || payload.sourceInvoice?.customerId || payload.sourceInvoice?.customer_external_id || '',
     customerName: merged.customer_name || merged.customerName || '',
     mobile: merged.mobile || merged.mobileNumber || '',
     mobileNumber: merged.mobile || merged.mobileNumber || '',
@@ -13376,6 +13463,7 @@ const renewalPublicRow = (row = {}) => {
     areaName: merged.area_name || merged.areaName || merged.billingArea || '',
     serviceType: merged.service_type || merged.serviceType || '',
     contractId: merged.contract_id || merged.contractId || merged.invoiceId || '',
+    invoiceNumber: finance.invoiceNumber,
     serviceRelationshipType: normalizeRenewalRelationshipType(merged.service_relationship_type || merged.serviceRelationshipType, 'NEEDS_REVIEW'),
     renewalEligible: normalizeRenewalEligibleFlag(merged.renewal_eligible ?? merged.renewalEligible, false),
     contractDurationValue: toNumber(merged.contract_duration_value ?? merged.contractDurationValue, 0),
@@ -13390,6 +13478,12 @@ const renewalPublicRow = (row = {}) => {
     previousAmount: toNumber(merged.previous_amount ?? merged.previousAmount ?? merged.totalAmount, 0),
     proposedAmount: toNumber(merged.proposed_amount ?? merged.proposedAmount ?? merged.previous_amount, 0),
     finalRenewalAmount: toNumber(merged.final_renewal_amount ?? merged.finalRenewalAmount, 0),
+    contractAmount: finance.contractAmount,
+    paidAmount: finance.paidAmount,
+    outstandingAmount: finance.outstandingAmount,
+    totalServiceVisits: serviceProgress.totalServiceVisits,
+    completedServiceVisits: serviceProgress.completedServiceVisits,
+    nextServiceDate: serviceProgress.nextServiceDate,
     assignedSalesPersonId: merged.assigned_sales_person_id || merged.assignedSalesPersonId || '',
     assignedSalesPersonName: merged.assigned_sales_person_name || merged.assignedSalesPersonName || '',
     renewedBySalesPersonId: merged.renewed_by_sales_person_id || merged.renewedBySalesPersonId || '',
@@ -13695,14 +13789,20 @@ const markMatchingRenewalCompleteForInvoice = async (invoice = {}) => {
   if (!customerId && !customerName) return null;
 
   const isMatch = (row = {}) => {
-    const rowCustomerId = String(row?.customerId || '').trim();
+    const rowCustomerIds = [
+      row?.customerExternalId,
+      row?.customer_external_id,
+      row?.customerId,
+      row?.customer_id
+    ].map((value) => String(value || '').trim()).filter(Boolean);
     const rowCustomerName = String(row?.customerName || '').trim().toLowerCase();
     const rowStatus = renewalCleanStatus(row?.renewalStatus || row?.status);
     if (rowStatus === 'DECLINED') return false;
     if (String(row?.convertedContractId || '').trim() && rowStatus === 'RENEWED') {
       return false;
     }
-    return (customerId && rowCustomerId === customerId) || (customerName && rowCustomerName === customerName);
+    if (customerId) return rowCustomerIds.includes(customerId);
+    return Boolean(customerName && rowCustomerName === customerName);
   };
 
   const chooseBestRow = (rows = []) => {
@@ -13828,9 +13928,7 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
   if (!canUseMysql()) throw new Error('MySQL is required for renewal sync');
 
   const customers = await loadCustomersForContext();
-  const customer = customers.find((entry) => String(entry?._id || '').trim() === String(invoice.customerId || '').trim())
-    || customers.find((entry) => String(entry?.displayName || entry?.name || '').trim().toLowerCase() === String(invoice.customerName || '').trim().toLowerCase())
-    || {};
+  const customer = resolveCustomerForInvoice(invoice, customers) || {};
   const window = deriveInvoiceContractWindow(invoice);
   const classification = classifyRenewalSource(invoice);
   const base = existing || {};
@@ -14097,13 +14195,17 @@ const applyRenewalFilters = (rows, query = {}) => {
   const search = String(query.search || '').trim().toLowerCase();
   const searchScope = String(query.searchScope || 'all').trim().toLowerCase();
   const normalizedSearchScope = ({
-    salesperson: 'salesPerson',
-    renewalid: 'renewalId'
+    salesperson: 'salesperson',
+    sales_person: 'salesperson',
+    salespersonname: 'salesperson',
+    renewalid: 'renewalid',
+    renewal_id: 'renewalid'
   })[searchScope] || searchScope;
   const status = String(query.status || '').trim();
   const assigned = String(query.assignedSalesPersonId || '').trim();
   const relationshipType = String(query.relationshipType || '').trim().toUpperCase();
   const serviceType = String(query.serviceType || '').trim().toLowerCase();
+  const durationFilter = String(query.duration || '').trim().toLowerCase();
   return rows.filter((row) => {
     const due = parseDateOnly(row.renewalDueDate);
     if (from && due && due < from) return false;
@@ -14111,6 +14213,14 @@ const applyRenewalFilters = (rows, query = {}) => {
     if (status && status !== 'All' && row.status !== status) return false;
     if (assigned && String(row.assignedSalesPersonId || '') !== assigned && String(row.assignedSalesPersonName || '') !== assigned) return false;
     if (relationshipType && relationshipType !== 'ALL' && normalizeRenewalRelationshipType(row.serviceRelationshipType) !== relationshipType) return false;
+    if (durationFilter) {
+      const value = toNumber(row.contractDurationValue, 0);
+      const unit = normalizeRenewalDurationUnit(row.contractDurationUnit || 'MONTH');
+      const months = unit === 'YEAR' ? value * 12 : unit === 'MONTH' ? value : value / 30.4375;
+      if (durationFilter === '1_year' && Math.round(months) !== 12) return false;
+      if (durationFilter === '2_years' && Math.round(months) !== 24) return false;
+      if (durationFilter === 'over_2_years' && months <= 24) return false;
+    }
     if (serviceType && String(row.serviceType || '').trim().toLowerCase() !== serviceType) return false;
     if (search) {
       const haystacks = {
@@ -14124,6 +14234,8 @@ const applyRenewalFilters = (rows, query = {}) => {
           row.status,
           row.renewalId,
           row.renewalDisplayId,
+          row.contractId,
+          row.invoiceNumber,
           row.lastFollowupNote,
           row.followupDate
         ],
@@ -14133,7 +14245,7 @@ const applyRenewalFilters = (rows, query = {}) => {
         service: [row.serviceType],
         salesperson: [row.assignedSalesPersonName],
         status: [row.status],
-        renewalid: [row.renewalId, row.renewalDisplayId],
+        renewalid: [row.renewalId, row.renewalDisplayId, row.contractId, row.invoiceNumber],
         followup: [row.lastFollowupNote, row.followupDate]
       };
       const hay = String((haystacks[normalizedSearchScope] || haystacks.all).filter(Boolean).join(' ')).toLowerCase();
@@ -14202,19 +14314,40 @@ const summarizeRenewals = (rows = []) => {
 const sourceRenewalCandidates = async () => {
   const invoices = await loadInvoicesForContext();
   const customers = await loadCustomersForContext();
-  const customerById = new Map(customers.map((customer) => [String(customer?._id || ''), customer]));
+  const jobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
+  const jobsByInvoiceId = new Map();
+  (Array.isArray(jobs) ? jobs : []).forEach((job) => {
+    const invoiceId = String(job?.invoiceId || job?.invoice_external_id || job?.contractId || '').trim();
+    if (!invoiceId) return;
+    const list = jobsByInvoiceId.get(invoiceId) || [];
+    list.push(job);
+    jobsByInvoiceId.set(invoiceId, list);
+  });
   return (Array.isArray(invoices) ? invoices : [])
     .map((invoice) => {
       const window = deriveInvoiceContractWindow(invoice);
       const end = parseDateOnly(window.contractEndDate || invoice.servicePeriodEnd || invoice.dueDate);
       if (!end) return null;
-      const customer = customerById.get(String(invoice.customerId || '')) || {};
+      const customer = resolveCustomerForInvoice(invoice, customers) || {};
       const firstItem = Array.isArray(invoice.items) ? invoice.items[0] || {} : {};
       const customerName = invoice.customerName || customer.displayName || customer.name || customer.customerName || '';
       const mobile = customer.mobileNumber || customer.workPhone || invoice.mobileNumber || '';
       if (!customerName || !mobile) return null;
       const amount = toNumber(invoice.total ?? invoice.amount, 0);
       const classification = classifyRenewalSource(invoice);
+      const scheduleDates = (Array.isArray(invoice.serviceSchedules) ? invoice.serviceSchedules : [])
+        .map(renewalScheduleDate)
+        .filter(Boolean)
+        .sort();
+      const relatedJobs = jobsByInvoiceId.get(String(invoice._id || '').trim()) || [];
+      const completedJobs = relatedJobs.filter((job) => /completed|done/i.test(String(job?.status || '')));
+      const today = renewalSqlDate(new Date());
+      const nextServiceDate = scheduleDates.find((date) => !today || date >= today) || '';
+      const balanceDue = renewalMoney(invoice.balanceDue ?? invoice.balance_due, null);
+      const paidAmount = renewalMoney(
+        invoice.paymentReceivedTotal ?? invoice.payment_received_total,
+        balanceDue == null ? null : Math.max(amount - balanceDue, 0)
+      );
       return {
         sourceRenewalKey: renewalIdFromContract(invoice._id, customerName),
         customerId: Number(customer.id || customer.customerId) || null,
@@ -14257,6 +14390,14 @@ const sourceRenewalCandidates = async () => {
         renewalDueDate: renewalSqlDate(window.contractEndDate || invoice.servicePeriodEnd || invoice.dueDate),
         previousAmount: amount,
         proposedAmount: amount,
+        contractAmount: amount,
+        paidAmount,
+        outstandingAmount: balanceDue,
+        totalServiceVisits: scheduleDates.length || null,
+        completedServiceVisits: relatedJobs.length > 0
+          ? (scheduleDates.length ? Math.min(completedJobs.length, scheduleDates.length) : completedJobs.length)
+          : null,
+        nextServiceDate,
         assignedSalesPersonId: invoice.salespersonId || customer.assignedToId || customer.assignedSalesPersonId || '',
         assignedSalesPersonName: invoice.salesperson || invoice.salesPerson || customer.assignedTo || customer.assignedSalesPersonName || '',
         sourceInvoice: invoice
@@ -14475,6 +14616,13 @@ app.post('/api/renewals/sync', async (req, res) => {
           source: 'invoice-sync',
           syncedAt: new Date().toISOString(),
           sourceInvoice: row.sourceInvoice,
+          invoiceNumber: row.sourceInvoice?.invoiceNumber || '',
+          contractAmount: row.contractAmount,
+          paidAmount: row.paidAmount,
+          outstandingAmount: row.outstandingAmount,
+          totalServiceVisits: row.totalServiceVisits,
+          completedServiceVisits: row.completedServiceVisits,
+          nextServiceDate: row.nextServiceDate,
           classification: {
             serviceRelationshipType: row.serviceRelationshipType,
             renewalEligible: row.renewalEligible,
