@@ -4447,6 +4447,55 @@ html[data-theme="dark"] .customer-dashboard-page :where([aria-label="More option
   stroke: currentColor !important;
 }
 
+html[data-theme="dark"] .contract-dashboard-page > [style*="background"],
+html[data-theme="dark"] .contract-dashboard-page > div:first-child,
+html[data-theme="dark"] .contract-dashboard-page > div:first-child > div {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page > div:first-child > div:first-child {
+  background: var(--table-header-bg) !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page > div:first-child > div:first-child h1,
+html[data-theme="dark"] .contract-dashboard-page > div:first-child label,
+html[data-theme="dark"] .contract-dashboard-page > div:first-child :where(h1, h2, h3, h4, p, span, label, button, th, td) {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page > div:first-child > div:nth-child(2),
+html[data-theme="dark"] .contract-dashboard-page > div:first-child > div:nth-child(3),
+html[data-theme="dark"] .contract-dashboard-page > div:first-child > div:nth-child(4) {
+  background: var(--surface-card) !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page .crm-table-shell.crm-table-shell--clipped {
+  background: var(--table-bg) !important;
+  border-color: var(--border-soft) !important;
+  border-radius: 0 !important;
+  background-clip: border-box !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page .crm-table-shell.crm-table-shell--clipped .crm-compact-table,
+html[data-theme="dark"] .contract-dashboard-page .crm-table-shell.crm-table-shell--clipped .crm-compact-table :where(thead, tbody, tr, th, td) {
+  border-radius: 0 !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page :where([aria-label="Customize fields"], [data-contract-customize="true"] button) {
+  background: var(--surface-elevated) !important;
+  color: var(--icon-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page :where([aria-label="Customize fields"], [data-contract-customize="true"] button) svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
 /* Final CRM dark theme consistency pass for lead, contract, invoice, quotation, and payment views. */
 html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page) {
   color: var(--text-primary) !important;
