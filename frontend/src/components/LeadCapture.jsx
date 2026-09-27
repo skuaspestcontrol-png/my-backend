@@ -2407,7 +2407,7 @@ export default function LeadCapture() {
     : { ...s.cell, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 
   return (
-    <div style={pageStyle}>
+    <div className="lead-capture-page" style={pageStyle}>
       <div style={s.analyticsWrap}>
         <div style={analyticsHeaderStyle}>
           <div style={s.analyticsTitleWrap}>

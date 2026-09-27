@@ -345,6 +345,29 @@ html[data-theme="dark"] .sales-performance-page .crm-kpi-card {
   box-shadow: var(--shadow-card) !important;
 }
 
+html[data-theme="dark"] .sales-performance-page .crm-page-header {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+html[data-theme="dark"] .sales-performance-page .crm-page-header h1,
+html[data-theme="dark"] .sales-performance-page .crm-page-header p,
+html[data-theme="dark"] .sales-performance-page .crm-card h1,
+html[data-theme="dark"] .sales-performance-page .crm-card h2,
+html[data-theme="dark"] .sales-performance-page .crm-card h3,
+html[data-theme="dark"] .sales-performance-page .crm-card p,
+html[data-theme="dark"] .sales-performance-page .crm-card span {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .sales-performance-page .crm-card .crm-form-label,
+html[data-theme="dark"] .sales-performance-page .crm-card label,
+html[data-theme="dark"] .sales-performance-page .crm-page-header-copy p {
+  color: var(--text-secondary) !important;
+}
+
 html[data-theme="dark"] .sales-performance-page .sales-chart-frame {
   background: var(--chart-surface) !important;
   border: 1px solid var(--border-soft);
@@ -372,4 +395,13 @@ html[data-theme="dark"] .sales-dashboard-page .sales-matrix-table tbody .table-s
 html[data-theme="dark"] .sales-performance-page .sales-performance-table tbody tr:nth-child(even) .sticky-sales-person,
 html[data-theme="dark"] .sales-dashboard-page .sales-matrix-table tbody tr:nth-child(even) .table-sticky-first {
   background: var(--table-row-alt) !important;
+}
+
+html[data-theme="dark"] .sales-performance-page .sales-performance-table thead th,
+html[data-theme="dark"] .sales-performance-page .sales-performance-table tbody td {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .sales-performance-page .sales-performance-table tbody td {
+  color: var(--text-primary) !important;
 }

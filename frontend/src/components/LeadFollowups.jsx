@@ -408,7 +408,7 @@ export default function LeadFollowups() {
   ];
 
   return (
-    <div style={shell.page}>
+    <div className="lead-followups-page" style={shell.page}>
       <div style={shell.header}>
         <div>
           <h1 style={shell.title}>Lead Follow-ups</h1>

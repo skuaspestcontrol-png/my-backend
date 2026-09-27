@@ -158,7 +158,7 @@ const shell = {
   },
   sourceHeaderTitle: { margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 },
   sourceHeaderBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '84px', color: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', textAlign: 'center' },
-  sourceHeaderSelect: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '92px', color: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', border: 'none', outline: 'none', appearance: 'none', textAlign: 'center' },
+  sourceHeaderSelect: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '92px', color: '#ffffff', WebkitTextFillColor: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', border: 'none', outline: 'none', appearance: 'none', textAlign: 'center' },
   sourceBody: { padding: '14px 14px 14px', display: 'grid', gap: '12px', alignItems: 'center' },
   panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
   panelTitle: { margin: 0, color: '#475569', fontSize: '17px', fontWeight: 700 },
@@ -879,18 +879,12 @@ export default function Dashboard() {
     ...(darkPanelStyle || {})
   };
   const salesChartCardHeaderStyle = {
-    padding: '11px 16px',
-    background: '#f8fafc',
-    borderBottom: '1px solid #dbe4f0',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '10px',
+    ...shell.sourceHeader,
     flexWrap: 'wrap',
     ...(darkHeaderStyle || {})
   };
-  const salesChartTitleStyle = { margin: 0, color: isDarkTheme ? '#ffffff' : '#334155', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 };
-  const salesChartSubtitleStyle = { margin: '4px 0 0 0', color: isDarkTheme ? darkDashboardMuted : '#64748b', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 };
+  const salesChartTitleStyle = { margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 };
+  const salesChartSubtitleStyle = { margin: '4px 0 0 0', color: 'rgba(255, 255, 255, 0.78)', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 };
   const salesChartHeaderControlsStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -908,7 +902,9 @@ export default function Dashboard() {
     height: '34px',
     minHeight: '34px',
     padding: '0 8px',
-    background: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : '#fff',
+    background: 'rgba(255, 255, 255, 0.08)',
+    color: '#ffffff',
+    WebkitTextFillColor: '#ffffff',
     flex: '1 1 0'
   };
   const salesChartYearSelectStyle = isMobile

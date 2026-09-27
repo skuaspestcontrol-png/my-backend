@@ -1505,6 +1505,18 @@ html[data-theme="dark"] .main-content .content-card {
   border-color: var(--border-soft) !important;
 }
 
+html[data-theme="dark"] .main-content .crm-page-header {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+html[data-theme="dark"] .main-content .crm-page-header h1,
+html[data-theme="dark"] .main-content .crm-page-header p {
+  color: var(--text-primary) !important;
+}
+
 html[data-theme="dark"] .crm-modal,
 html[data-theme="dark"] .crm-modal-surface,
 html[data-theme="dark"] [role="dialog"] .modal-content,
@@ -1605,6 +1617,12 @@ html[data-theme="dark"] [role="dialog"] input[type="checkbox"],
 html[data-theme="dark"] [role="dialog"] input[type="radio"] {
   accent-color: var(--color-primary);
   border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] .crm-modal-surface label,
+html[data-theme="dark"] .crm-modal-surface legend,
+html[data-theme="dark"] .crm-modal-surface .crm-form-label {
+  color: var(--text-primary) !important;
 }
 
 html[data-theme="dark"] .main-content table,
@@ -3415,6 +3433,20 @@ html[data-theme="dark"] .crm-cell-wrap {
   color: var(--text-muted) !important;
 }
 
+html[data-theme="dark"] .main-content tfoot,
+html[data-theme="dark"] .main-content tfoot tr,
+html[data-theme="dark"] .main-content tfoot td,
+html[data-theme="dark"] .main-content .crm-table-footer,
+html[data-theme="dark"] .main-content .table-footer,
+html[data-theme="dark"] .main-content .pagination,
+html[data-theme="dark"] .main-content [style*="background: #fff"][style*="border-top"],
+html[data-theme="dark"] .main-content [style*="background: #ffffff"][style*="border-top"],
+html[data-theme="dark"] .main-content [style*="background: rgb(255, 255, 255)"][style*="border-top"] {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
 html[data-theme="dark"] .crm-icon-action-btn,
 html[data-theme="dark"] .crm-action-chip,
 html[data-theme="dark"] .crm-action-menu-item,
@@ -3656,8 +3688,192 @@ html[data-theme="dark"] .main-content [class*="calendar" i] [style*="background:
   border-color: var(--border-soft) !important;
 }
 
+html[data-theme="dark"] .service-calendar-page {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .service-calendar-card,
+html[data-theme="dark"] .service-calendar-summary-card,
+html[data-theme="dark"] .service-calendar-selected-card {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+html[data-theme="dark"] .service-calendar-head,
+html[data-theme="dark"] .service-calendar-selected-head {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .service-calendar-body,
+html[data-theme="dark"] .service-calendar-selected-body {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .service-calendar-page h1,
+html[data-theme="dark"] .service-calendar-page h2,
+html[data-theme="dark"] .service-calendar-page h3,
+html[data-theme="dark"] .service-calendar-page p,
+html[data-theme="dark"] .service-calendar-summary-value,
+html[data-theme="dark"] .service-calendar-day-number,
+html[data-theme="dark"] .service-calendar-event-title {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .service-calendar-summary-label,
+html[data-theme="dark"] .service-calendar-week-cell,
+html[data-theme="dark"] .service-calendar-event-meta {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .service-calendar-day {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .service-calendar-day-muted {
+  background: rgba(148, 163, 184, 0.12) !important;
+  color: var(--text-muted) !important;
+  opacity: 0.78 !important;
+}
+
+html[data-theme="dark"] .service-calendar-day-selected {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px var(--focus-ring) !important;
+}
+
+html[data-theme="dark"] .service-calendar-day-badge,
+html[data-theme="dark"] .service-calendar-event-pill {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .service-calendar-event-card,
+html[data-theme="dark"] .service-calendar-empty {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .service-calendar-page button {
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .service-calendar-head button {
+  background: var(--surface-elevated) !important;
+}
+
+html[data-theme="dark"] .lead-followups-page {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .lead-followups-page [style*="background: var(--color-white)"],
+html[data-theme="dark"] .lead-followups-page [style*="background: #fff"],
+html[data-theme="dark"] .lead-followups-page [style*="background: #ffffff"],
+html[data-theme="dark"] .lead-followups-page [style*="background: rgb(255, 255, 255)"] {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .lead-followups-page h1,
+html[data-theme="dark"] .lead-followups-page h2,
+html[data-theme="dark"] .lead-followups-page h3,
+html[data-theme="dark"] .lead-followups-page p,
+html[data-theme="dark"] .lead-followups-page span,
+html[data-theme="dark"] .lead-followups-page button {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .lead-followups-page label,
+html[data-theme="dark"] .lead-followups-page .crm-table-muted {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .lead-followups-page .lead-followups-table button {
+  background: var(--surface-secondary) !important;
+  color: #ffffff !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .lead-followups-page .lead-followups-table thead th,
+html[data-theme="dark"] .lead-followups-page .lead-followups-table thead th button {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+}
+
+html[data-theme="dark"] .lead-followups-page [style*="padding: 10px 16px"][style*="background: var(--color-white)"],
+html[data-theme="dark"] .lead-followups-page [style*="padding: 10px 16px"][style*="border-top"] {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .lead-capture-page {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .lead-capture-page [style*="background: #fff"],
+html[data-theme="dark"] .lead-capture-page [style*="background: #ffffff"],
+html[data-theme="dark"] .lead-capture-page [style*="background: rgb(255, 255, 255)"],
+html[data-theme="dark"] .lead-capture-page [style*="background: rgba(255"],
+html[data-theme="dark"] .lead-capture-page [style*="background: linear-gradient(180deg, rgba(255"],
+html[data-theme="dark"] .lead-capture-page [style*="background: linear-gradient(180deg, rgba(249"],
+html[data-theme="dark"] .lead-capture-page [style*="background: linear-gradient(180deg, rgba(248"] {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .lead-capture-page h1,
+html[data-theme="dark"] .lead-capture-page h2,
+html[data-theme="dark"] .lead-capture-page h3,
+html[data-theme="dark"] .lead-capture-page p,
+html[data-theme="dark"] .lead-capture-page span,
+html[data-theme="dark"] .lead-capture-page button {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .lead-capture-page label,
+html[data-theme="dark"] .lead-capture-page [style*="color: #64748b"],
+html[data-theme="dark"] .lead-capture-page [style*="color: #6b7280"] {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .lead-capture-page .crm-table-shell {
+  background: var(--table-bg) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .lead-capture-page .crm-compact-table thead th,
+html[data-theme="dark"] .lead-capture-page .crm-compact-table thead th button {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+}
+
+html[data-theme="dark"] .lead-capture-page [style*="padding: 10px 12px"][style*="background: #fff"],
+html[data-theme="dark"] .lead-capture-page [style*="padding: 10px 12px"][style*="border-top"] {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
 html[data-theme="dark"] .dashboard-page {
   color: #f8fafc;
+}
+
+html[data-theme="dark"] body:has(.dashboard-page),
+html[data-theme="dark"] .app-layout:has(.dashboard-page),
+html[data-theme="dark"] .main-wrapper:has(.dashboard-page),
+html[data-theme="dark"] .main-content:has(.dashboard-page) {
+  background: var(--page-bg) !important;
 }
 
 html[data-theme="dark"] .dashboard-page .hero-section.command-center,
@@ -3753,6 +3969,11 @@ html[data-theme="dark"] .dashboard-page .recharts-cartesian-axis-tick-value {
   color: #a9b5d5 !important;
 }
 
+html[data-theme="dark"] .dashboard-page .dashboard-target-card p,
+html[data-theme="dark"] .dashboard-page .dashboard-target-card [style*="color:"] {
+  color: #ffffff !important;
+}
+
 html[data-theme="dark"] .settings-page {
   color: var(--text-primary);
 }
@@ -3760,14 +3981,26 @@ html[data-theme="dark"] .settings-page {
 html[data-theme="dark"] .settings-page [style*="background: #fff"],
 html[data-theme="dark"] .settings-page [style*="background: #ffffff"],
 html[data-theme="dark"] .settings-page [style*="background: rgb(255, 255, 255)"],
+html[data-theme="dark"] .settings-page [style*="background: rgba(255"],
+html[data-theme="dark"] .settings-page [style*="background: rgba(255, 255"],
+html[data-theme="dark"] .settings-page [style*="background: rgba(255,255"],
 html[data-theme="dark"] .settings-page [style*="background: #fbfcff"],
 html[data-theme="dark"] .settings-page [style*="background: #f8fafc"],
 html[data-theme="dark"] .settings-page [style*="background-color: #fff"],
 html[data-theme="dark"] .settings-page [style*="background-color: #ffffff"],
+html[data-theme="dark"] .settings-page [style*="background-color: rgba(255"],
 html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, rgba(255"],
 html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, rgba(249"],
 html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, rgba(248"] {
-  background: var(--surface) !important;
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .settings-page .crm-page-header,
+html[data-theme="dark"] .settings-page .crm-card,
+html[data-theme="dark"] .settings-page .crm-card-body {
+  background: var(--surface-card) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
 }
@@ -3798,6 +4031,49 @@ html[data-theme="dark"] .settings-page textarea {
 
 html[data-theme="dark"] .settings-page button[style*="background: var(--color-primary)"] {
   color: #ffffff !important;
+}
+
+html[data-theme="dark"] .items-dashboard-page {
+  color: var(--text-primary);
+}
+
+html[data-theme="dark"] .items-dashboard-page [style*="background: #fff"],
+html[data-theme="dark"] .items-dashboard-page [style*="background: #ffffff"],
+html[data-theme="dark"] .items-dashboard-page [style*="background: rgb(255, 255, 255)"],
+html[data-theme="dark"] .items-dashboard-page [style*="background: linear-gradient(180deg, rgba(255"],
+html[data-theme="dark"] .items-dashboard-page [style*="background: linear-gradient(180deg, rgba(249"],
+html[data-theme="dark"] .items-dashboard-page [style*="background: linear-gradient(180deg, rgba(248"] {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .items-dashboard-page table th {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .items-dashboard-page table td {
+  background: var(--table-row-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .items-dashboard-page table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
+html[data-theme="dark"] .items-dashboard-page [style*="padding: 9px 12px"][style*="background: #fff"],
+html[data-theme="dark"] .items-dashboard-page [style*="border-top"][style*="background: #fff"] {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .items-dashboard-page button:not([style*="background: var(--color-primary)"]) {
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
 }
 
 html[data-theme="dark"] .hr-dashboard-page {

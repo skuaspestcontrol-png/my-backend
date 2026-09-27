@@ -329,9 +329,9 @@ export default function ServiceCalendar() {
   ];
 
   return (
-    <section style={shell.page}>
-      <div style={shell.card}>
-        <div style={shell.head}>
+    <section className="service-calendar-page" style={shell.page}>
+      <div className="service-calendar-card" style={shell.card}>
+        <div className="service-calendar-head" style={shell.head}>
           <div>
             <div style={shell.titleWrap}>
               <CalendarDays size={20} color="var(--color-primary-dark)" />
@@ -378,35 +378,36 @@ export default function ServiceCalendar() {
           </div>
         </div>
 
-        <div style={shell.body}>
+        <div className="service-calendar-body" style={shell.body}>
           {error ? <div style={shell.error}>{error}</div> : null}
 
-          <div style={summaryGridStyle}>
+          <div className="service-calendar-summary-grid" style={summaryGridStyle}>
             {summaryItems.map((item) => (
-              <div key={item.label} style={summaryCardStyle}>
-                <div style={{ fontSize: isMobile ? '9px' : '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.15 }}>
+              <div key={item.label} className="service-calendar-summary-card" style={summaryCardStyle}>
+                <div className="service-calendar-summary-label" style={{ fontSize: isMobile ? '9px' : '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.15 }}>
                   {item.label}
                 </div>
-                <div style={{ fontSize: isMobile ? '20px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
+                <div className="service-calendar-summary-value" style={{ fontSize: isMobile ? '20px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
                   {item.value}
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={shell.weekRow}>
+          <div className="service-calendar-week-row" style={shell.weekRow}>
             {weekDays.map((day) => (
-              <div key={day} style={shell.weekCell}>{day}</div>
+              <div key={day} className="service-calendar-week-cell" style={shell.weekCell}>{day}</div>
             ))}
           </div>
 
-          <div style={shell.grid}>
+          <div className="service-calendar-grid" style={shell.grid}>
             {monthCells.map((cell) => {
               const isSelected = selectedDate === cell.dateKey;
               return (
                 <button
                   key={cell.dateKey}
                   type="button"
+                  className={`service-calendar-day${cell.inCurrentMonth ? '' : ' service-calendar-day-muted'}${isSelected ? ' service-calendar-day-selected' : ''}`}
                   style={{
                     ...dayBtnStyle,
                     ...(cell.inCurrentMonth ? null : shell.dayBtnMuted),
@@ -414,9 +415,9 @@ export default function ServiceCalendar() {
                   }}
                   onClick={() => setSelectedDate(cell.dateKey)}
                 >
-                  <span style={dayNumberStyle}>{cell.date.getDate()}</span>
+                  <span className="service-calendar-day-number" style={dayNumberStyle}>{cell.date.getDate()}</span>
                   {cell.events.length > 0 ? (
-                    <span style={dayBadgeStyle} title={`${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}>
+                    <span className="service-calendar-day-badge" style={dayBadgeStyle} title={`${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}>
                       {isMobile ? `${cell.events.length} svc` : `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}
                     </span>
                   ) : null}
@@ -425,32 +426,32 @@ export default function ServiceCalendar() {
             })}
           </div>
 
-          <div style={shell.selectedCard}>
-            <div style={shell.selectedHead}>Services on {displayDate(selectedDate)}</div>
-            <div style={shell.selectedBody}>
+          <div className="service-calendar-selected-card" style={shell.selectedCard}>
+            <div className="service-calendar-selected-head" style={shell.selectedHead}>Services on {displayDate(selectedDate)}</div>
+            <div className="service-calendar-selected-body" style={shell.selectedBody}>
               {selectedDayEvents.length === 0 ? (
-                <div style={shell.empty}>No services scheduled for this date.</div>
+                <div className="service-calendar-empty" style={shell.empty}>No services scheduled for this date.</div>
               ) : (
-                <div style={eventGridStyle}>
+                <div className="service-calendar-event-grid" style={eventGridStyle}>
                   {selectedDayEvents.map((event) => (
-                    <div key={event._id} style={eventCardStyle}>
-                      <div style={shell.eventTitle}>
+                    <div key={event._id} className="service-calendar-event-card" style={eventCardStyle}>
+                      <div className="service-calendar-event-title" style={shell.eventTitle}>
                         {event.itemName || 'Service Item'}
                       </div>
-                      <div style={shell.eventRow}>
-                        <span style={shell.eventPill}>
+                      <div className="service-calendar-event-row" style={shell.eventRow}>
+                        <span className="service-calendar-event-pill" style={shell.eventPill}>
                           <Clock3 size={12} /> {event.serviceTime}
                         </span>
-                        <span style={shell.eventPill}>
+                        <span className="service-calendar-event-pill" style={shell.eventPill}>
                           <UserRound size={12} /> {event.customerName || 'Customer not linked'}
                         </span>
                       </div>
-                      <div style={shell.eventRow}>
-                        <span style={shell.eventPill}>
+                      <div className="service-calendar-event-row" style={shell.eventRow}>
+                        <span className="service-calendar-event-pill" style={shell.eventPill}>
                           <FileText size={12} /> {event.invoiceNumber || 'Invoice not set'}
                         </span>
                       </div>
-                      <div style={shell.eventMeta}>
+                      <div className="service-calendar-event-meta" style={shell.eventMeta}>
                         {event.itemDescription || 'No item description'}
                       </div>
                     </div>
