@@ -178,6 +178,12 @@ html[data-theme="dark"] {
   --color-white: #151a33;
 }
 
+html[data-theme="dark"],
+html[data-theme="dark"] body,
+html[data-theme="dark"] #root {
+  color: var(--text-primary);
+}
+
 html,
 body,
 #root {
@@ -1345,6 +1351,9 @@ html[data-theme="dark"] .crm-modal-overlay [style*="background-color: rgba(255,2
 html[data-theme="dark"] .crm-modal-overlay [style*="background: rgb(248, 250, 252)"],
 html[data-theme="dark"] .crm-modal-overlay [style*="background: rgb(249, 250, 252)"],
 html[data-theme="dark"] .crm-modal-overlay [style*="background: rgb(252, 253, 255)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: #F3F4F6"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: #F8FAFC"],
+html[data-theme="dark"] .crm-modal-overlay [style*="background: #F9FAFB"],
 html[data-theme="dark"] .crm-modal-overlay [style*="background: linear-gradient(180deg, rgba(255"],
 html[data-theme="dark"] .crm-modal-overlay [style*="background: linear-gradient(180deg, rgba(249"],
 html[data-theme="dark"] .crm-modal-overlay [style*="background: linear-gradient(180deg, rgba(248"],
@@ -1358,6 +1367,9 @@ html[data-theme="dark"] [role="dialog"] [style*="background-color: rgba(255,255,
 html[data-theme="dark"] [role="dialog"] [style*="background: rgb(248, 250, 252)"],
 html[data-theme="dark"] [role="dialog"] [style*="background: rgb(249, 250, 252)"],
 html[data-theme="dark"] [role="dialog"] [style*="background: rgb(252, 253, 255)"],
+html[data-theme="dark"] [role="dialog"] [style*="background: #F3F4F6"],
+html[data-theme="dark"] [role="dialog"] [style*="background: #F8FAFC"],
+html[data-theme="dark"] [role="dialog"] [style*="background: #F9FAFB"],
 html[data-theme="dark"] [role="dialog"] [style*="background: linear-gradient(180deg, rgba(255"],
 html[data-theme="dark"] [role="dialog"] [style*="background: linear-gradient(180deg, rgba(249"],
 html[data-theme="dark"] [role="dialog"] [style*="background: linear-gradient(180deg, rgba(248"] {
@@ -1369,12 +1381,23 @@ html[data-theme="dark"] [role="dialog"] [style*="background: linear-gradient(180
 html[data-theme="dark"] .main-content [style*="color: #111827"],
 html[data-theme="dark"] .main-content [style*="color: #0f172a"],
 html[data-theme="dark"] .main-content [style*="color: #1f2937"],
+html[data-theme="dark"] .main-content [style*="color: #000"],
+html[data-theme="dark"] .main-content [style*="color: #000000"],
+html[data-theme="dark"] .main-content [style*="color: #111"],
+html[data-theme="dark"] .main-content [style*="color: black"],
 html[data-theme="dark"] .main-content [style*="color:#111827"],
 html[data-theme="dark"] .main-content [style*="color:#0f172a"],
 html[data-theme="dark"] .main-content [style*="color:#1f2937"],
+html[data-theme="dark"] .main-content [style*="color:#000"],
+html[data-theme="dark"] .main-content [style*="color:#000000"],
+html[data-theme="dark"] .main-content [style*="color:#111"],
+html[data-theme="dark"] .main-content [style*="color:black"],
 html[data-theme="dark"] .main-content [style*="color: rgb(17, 24, 39)"],
 html[data-theme="dark"] .main-content [style*="color: rgb(15, 23, 42)"],
-html[data-theme="dark"] .main-content [style*="color: rgb(31, 41, 55)"] {
+html[data-theme="dark"] .main-content [style*="color: rgb(31, 41, 55)"],
+html[data-theme="dark"] .main-content [style*="color: rgb(0, 0, 0)"],
+html[data-theme="dark"] .main-content [style*="color:rgb(0, 0, 0)"],
+html[data-theme="dark"] .main-content [style*="color:rgb(0,0,0)"] {
   color: var(--text-primary) !important;
 }
 
@@ -1396,15 +1419,37 @@ html[data-theme="dark"] .main-content [style*="color: rgb(107, 114, 128)"] {
 html[data-theme="dark"] .crm-modal-overlay [style*="color: #111827"],
 html[data-theme="dark"] .crm-modal-overlay [style*="color: #0f172a"],
 html[data-theme="dark"] .crm-modal-overlay [style*="color: #1f2937"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #000"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #000000"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: #111"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: black"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color:#000"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color:#000000"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color:#111"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color:black"],
 html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(17, 24, 39)"],
 html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(15, 23, 42)"],
 html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(31, 41, 55)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color: rgb(0, 0, 0)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color:rgb(0, 0, 0)"],
+html[data-theme="dark"] .crm-modal-overlay [style*="color:rgb(0,0,0)"],
 html[data-theme="dark"] [role="dialog"] [style*="color: #111827"],
 html[data-theme="dark"] [role="dialog"] [style*="color: #0f172a"],
 html[data-theme="dark"] [role="dialog"] [style*="color: #1f2937"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #000"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #000000"],
+html[data-theme="dark"] [role="dialog"] [style*="color: #111"],
+html[data-theme="dark"] [role="dialog"] [style*="color: black"],
+html[data-theme="dark"] [role="dialog"] [style*="color:#000"],
+html[data-theme="dark"] [role="dialog"] [style*="color:#000000"],
+html[data-theme="dark"] [role="dialog"] [style*="color:#111"],
+html[data-theme="dark"] [role="dialog"] [style*="color:black"],
 html[data-theme="dark"] [role="dialog"] [style*="color: rgb(17, 24, 39)"],
 html[data-theme="dark"] [role="dialog"] [style*="color: rgb(15, 23, 42)"],
-html[data-theme="dark"] [role="dialog"] [style*="color: rgb(31, 41, 55)"] {
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(31, 41, 55)"],
+html[data-theme="dark"] [role="dialog"] [style*="color: rgb(0, 0, 0)"],
+html[data-theme="dark"] [role="dialog"] [style*="color:rgb(0, 0, 0)"],
+html[data-theme="dark"] [role="dialog"] [style*="color:rgb(0,0,0)"] {
   color: var(--text-primary) !important;
 }
 
@@ -1487,6 +1532,20 @@ html[data-theme="dark"] [role="dialog"] .items-section {
   background: var(--modal-section-bg) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: #F3F4F6"],
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: #f3f4f6"],
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: #F8FAFC"],
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: #f8fafc"],
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: #F9FAFB"],
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: #f9fafb"],
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: rgb(243, 244, 246)"],
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: rgb(248, 250, 252)"],
+html[data-theme="dark"] .crm-modal-surface-body > div[style*="background: rgb(249, 250, 251)"] {
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
 }
 
 html[data-theme="dark"] .main-content .card h1,
@@ -3233,6 +3292,37 @@ html[data-theme="dark"] .crm-table-shell.crm-table-shell--clipped {
   box-shadow: var(--shadow-card) !important;
 }
 
+html[data-theme="dark"] .crm-page.crm-section {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+html[data-theme="dark"] .crm-page.crm-section > div:first-child,
+html[data-theme="dark"] .crm-page.crm-section > div:last-child,
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: #fff"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: #ffffff"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: rgb(255, 255, 255)"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: rgba(255,255,255"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: rgba(255, 255, 255"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: #f8fafc"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: #f9fafb"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: linear-gradient(180deg, rgba(255"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: linear-gradient(180deg, rgba(249"],
+html[data-theme="dark"] .crm-page.crm-section > div[style*="background: linear-gradient(180deg, rgba(248"] {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .crm-page.crm-section > div:last-child {
+  border-top-color: var(--border-soft) !important;
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+
 html[data-theme="dark"] .crm-card-header,
 html[data-theme="dark"] .crm-modal-header,
 html[data-theme="dark"] .crm-modal-surface-header {
@@ -3418,6 +3508,29 @@ html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="co
 }
 
 /* Second-pass dark theme hardening for inline CRM screens and portal menus. */
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: #000"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: #000000"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: #111"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: #111827"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: #0f172a"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: #1f2937"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: black"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:#000"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:#000000"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:#111"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:#111827"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:#0f172a"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:#1f2937"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:black"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: rgb(0, 0, 0)"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: rgb(17, 24, 39)"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: rgb(15, 23, 42)"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color: rgb(31, 41, 55)"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:rgb(0, 0, 0)"],
+html[data-theme="dark"] :where(.app-layout, .topbar, .sidebar, .main-content, .crm-modal, .crm-modal-overlay, .modal-content, [role="dialog"]) [style*="color:rgb(0,0,0)"] {
+  color: var(--text-primary) !important;
+}
+
 html[data-theme="dark"] .sidebar .sidebar-nav-item,
 html[data-theme="dark"] .sidebar .sidebar-nav-item[style] {
   background: transparent !important;
