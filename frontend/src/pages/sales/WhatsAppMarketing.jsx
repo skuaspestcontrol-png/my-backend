@@ -34,7 +34,7 @@ const campaignTypeOptions = [
   'Custom Campaign'
 ];
 
-const audienceOptions = [
+const audienceTypeOptions = [
   'All Customers',
   'Active Customers',
   'Expired Customers',
@@ -242,6 +242,33 @@ const styles = {
 
 const normalizeText = (value) => String(value || '').trim();
 
+const listFromPayload = (payload, keys = []) => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+  for (const key of keys) {
+    if (Array.isArray(payload[key])) return payload[key];
+  }
+  return [];
+};
+
+const normalizeOptionLabel = (value) => {
+  if (!value || typeof value !== 'object') return normalizeText(value);
+  return normalizeText(value.label || value.name || value.value || value.title || value.serviceName || value.areaName || value.cityName || value.salesPersonName);
+};
+
+const normalizeOptionList = (value) => listFromPayload(value).map(normalizeOptionLabel).filter(Boolean);
+
+const normalizeAudienceFilterOptions = (payload = {}) => {
+  const source = payload && typeof payload === 'object' ? payload : {};
+  return {
+    services: normalizeOptionList(source.services || source.serviceOptions),
+    areas: normalizeOptionList(source.areas || source.areaOptions),
+    cities: normalizeOptionList(source.cities || source.cityOptions),
+    states: normalizeOptionList(source.states || source.stateOptions),
+    salesPersons: normalizeOptionList(source.salesPersons || source.salesPersonOptions || source.sales_people)
+  };
+};
+
 const renderTemplate = (template = '', context = {}) => String(template || '').replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_match, key) => {
   const value = context[key];
   return value === undefined || value === null ? '' : String(value);
@@ -429,7 +456,7 @@ export default function WhatsAppMarketing() {
   const [sendProgress, setSendProgress] = useState({ busy: false, total: 0, sent: 0, failed: 0, skipped: 0 });
   const [refreshToken, setRefreshToken] = useState(0);
   const [audiencePreview, setAudiencePreview] = useState(null);
-  const [audienceOptions, setAudienceOptions] = useState({ services: [], areas: [], cities: [], states: [], salesPersons: [] });
+  const [audienceFilterOptions, setAudienceFilterOptions] = useState({ services: [], areas: [], cities: [], states: [], salesPersons: [] });
   const [audiencePresets, setAudiencePresets] = useState([]);
 
   const loadData = async () => {
@@ -446,13 +473,17 @@ export default function WhatsAppMarketing() {
         axios.get(`${API_BASE_URL}/api/whatsapp-marketing/audience-presets`)
       ]);
 
-      setCustomers(customerRes.status === 'fulfilled' && Array.isArray(customerRes.value.data) ? customerRes.value.data : []);
-      setTemplates(templateRes.status === 'fulfilled' && Array.isArray(templateRes.value.data) ? templateRes.value.data : []);
+      const customerPayload = customerRes.status === 'fulfilled' ? customerRes.value.data : [];
+      const templatePayload = templateRes.status === 'fulfilled' ? templateRes.value.data : [];
+      const logsPayload = logsRes.status === 'fulfilled' ? logsRes.value.data : [];
+      const presetsPayload = presetsRes.status === 'fulfilled' ? presetsRes.value.data : [];
+      setCustomers(listFromPayload(customerPayload, ['customers', 'items', 'rows', 'data']));
+      setTemplates(listFromPayload(templatePayload, ['templates', 'items', 'rows', 'data']));
       const campaignPayload = campaignRes.status === 'fulfilled' ? campaignRes.value.data : {};
-      setCampaigns(Array.isArray(campaignPayload?.campaigns) ? campaignPayload.campaigns : []);
-      setWhatsappLogs(logsRes.status === 'fulfilled' && Array.isArray(logsRes.value.data) ? logsRes.value.data : []);
-      if (optionsRes.status === 'fulfilled') setAudienceOptions(optionsRes.value.data || {});
-      if (presetsRes.status === 'fulfilled') setAudiencePresets(Array.isArray(presetsRes.value.data) ? presetsRes.value.data : []);
+      setCampaigns(listFromPayload(campaignPayload, ['campaigns', 'items', 'rows', 'data']));
+      setWhatsappLogs(listFromPayload(logsPayload, ['logs', 'items', 'rows', 'data']));
+      if (optionsRes.status === 'fulfilled') setAudienceFilterOptions(normalizeAudienceFilterOptions(optionsRes.value.data));
+      setAudiencePresets(listFromPayload(presetsPayload, ['presets', 'audiencePresets', 'items', 'rows', 'data']));
       setMessage('');
     } catch (error) {
       setMessage(error?.response?.data?.error || 'Unable to load WhatsApp marketing data.');
@@ -822,7 +853,7 @@ export default function WhatsAppMarketing() {
   const canUseManualSelection = form.audience === 'Custom Selected Customers';
 
   return (
-    <div style={styles.page}>
+    <div className="whatsapp-marketing-page" style={styles.page}>
       <PageHeader
         title="WhatsApp Marketing"
         subtitle="Run controlled WhatsApp campaigns for festival greetings, offers, reminders, and renewals without leaving the CRM."
@@ -889,7 +920,7 @@ export default function WhatsAppMarketing() {
                   <label style={styles.field}>
                     <span style={styles.label}>Audience</span>
                     <select value={form.audience} onChange={(event) => updateForm({ audience: event.target.value })} style={styles.select}>
-                      {audienceOptions.map((option) => <option key={option}>{option}</option>)}
+                      {audienceTypeOptions.map((option) => <option key={option}>{option}</option>)}
                     </select>
                   </label>
                   <label style={styles.field}>
@@ -1108,11 +1139,11 @@ export default function WhatsAppMarketing() {
                   <label style={styles.field}><span style={styles.label}>Contract Audience</span><select value={filters.contractAudience} onChange={(event) => setFilters((prev) => ({ ...prev, contractAudience: event.target.value }))} style={styles.select}><option value="">Any contract status</option><option value="active">Active contracts</option><option value="expired">Expired contracts</option><option value="expiring">Expiring soon</option><option value="renewed">Renewed contracts</option><option value="without_active">Without active contract</option></select></label>
                   <label style={styles.field}><span style={styles.label}>Outstanding</span><select value={filters.outstandingAudience} onChange={(event) => setFilters((prev) => ({ ...prev, outstandingAudience: event.target.value }))} style={styles.select}><option value="">Any balance</option><option value="outstanding">Outstanding customers</option><option value="overdue">Overdue customers</option></select></label>
                   <label style={styles.field}><span style={styles.label}>Dormant Activity</span><select value={filters.dormantMonths} onChange={(event) => setFilters((prev) => ({ ...prev, dormantMonths: event.target.value }))} style={styles.select}><option value="">Any activity</option><option value="3">No activity in 3 months</option><option value="6">No activity in 6 months</option><option value="12">No activity in 12 months</option><option value="18">No activity in 18 months</option><option value="24">No activity in 24 months</option></select></label>
-                  <label style={styles.field}><span style={styles.label}>Has Service</span><select value={filters.hasService} onChange={(event) => setFilters((prev) => ({ ...prev, hasService: event.target.value }))} style={styles.select}><option value="">Any service</option>{audienceOptions.services.map((value) => <option key={`has-${value}`} value={value}>{value}</option>)}</select></label>
-                  <label style={styles.field}><span style={styles.label}>Does Not Have</span><select value={filters.doesNotHaveService} onChange={(event) => setFilters((prev) => ({ ...prev, doesNotHaveService: event.target.value }))} style={styles.select}><option value="">No exclusion</option>{audienceOptions.services.map((value) => <option key={`not-${value}`} value={value}>{value}</option>)}</select></label>
-                  <label style={styles.field}><span style={styles.label}>Area</span><select value={filters.area} onChange={(event) => setFilters((prev) => ({ ...prev, area: event.target.value }))} style={styles.select}><option value="">All areas</option>{audienceOptions.areas.map((value) => <option key={value}>{value}</option>)}</select></label>
-                  <label style={styles.field}><span style={styles.label}>City</span><select value={filters.city} onChange={(event) => setFilters((prev) => ({ ...prev, city: event.target.value }))} style={styles.select}><option value="">All cities</option>{audienceOptions.cities.map((value) => <option key={value}>{value}</option>)}</select></label>
-                  <label style={styles.field}><span style={styles.label}>Sales Person</span><select value={filters.salesPerson} onChange={(event) => setFilters((prev) => ({ ...prev, salesPerson: event.target.value }))} style={styles.select}><option value="">All sales persons</option>{audienceOptions.salesPersons.map((value) => <option key={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>Has Service</span><select value={filters.hasService} onChange={(event) => setFilters((prev) => ({ ...prev, hasService: event.target.value }))} style={styles.select}><option value="">Any service</option>{audienceFilterOptions.services.map((value) => <option key={`has-${value}`} value={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>Does Not Have</span><select value={filters.doesNotHaveService} onChange={(event) => setFilters((prev) => ({ ...prev, doesNotHaveService: event.target.value }))} style={styles.select}><option value="">No exclusion</option>{audienceFilterOptions.services.map((value) => <option key={`not-${value}`} value={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>Area</span><select value={filters.area} onChange={(event) => setFilters((prev) => ({ ...prev, area: event.target.value }))} style={styles.select}><option value="">All areas</option>{audienceFilterOptions.areas.map((value) => <option key={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>City</span><select value={filters.city} onChange={(event) => setFilters((prev) => ({ ...prev, city: event.target.value }))} style={styles.select}><option value="">All cities</option>{audienceFilterOptions.cities.map((value) => <option key={value}>{value}</option>)}</select></label>
+                  <label style={styles.field}><span style={styles.label}>Sales Person</span><select value={filters.salesPerson} onChange={(event) => setFilters((prev) => ({ ...prev, salesPerson: event.target.value }))} style={styles.select}><option value="">All sales persons</option>{audienceFilterOptions.salesPersons.map((value) => <option key={value}>{value}</option>)}</select></label>
                   <label style={styles.field}><span style={styles.label}>Exclude Contacted</span><select value={filters.excludeRecentlyContactedDays} onChange={(event) => setFilters((prev) => ({ ...prev, excludeRecentlyContactedDays: event.target.value }))} style={styles.select}><option value="0">Do not exclude</option><option value="7">Last 7 days</option><option value="15">Last 15 days</option><option value="30">Last 30 days</option><option value="60">Last 60 days</option><option value="90">Last 90 days</option></select></label>
                 </div>
                 <div style={styles.checkboxRow}><ShieldAlert size={14} color="#92400e" /><span style={styles.muted}>Opted-out customers are always excluded. Payment audiences should use transactional or service-reminder templates.</span></div>

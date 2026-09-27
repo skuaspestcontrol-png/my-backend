@@ -3409,3 +3409,129 @@ html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="co
 html[data-theme="dark"] .main-content [style*="background: #ffffff"] [style*="color: #6b7280"] {
   color: var(--text-secondary) !important;
 }
+
+/* Second-pass dark theme hardening for inline CRM screens and portal menus. */
+html[data-theme="dark"] .sidebar .sidebar-nav-item,
+html[data-theme="dark"] .sidebar .sidebar-nav-item[style] {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .sidebar .sidebar-nav-item.active,
+html[data-theme="dark"] .sidebar .sidebar-nav-item[aria-current="page"] {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.24) !important;
+}
+
+html[data-theme="dark"] .sidebar .sidebar-nav-item:hover,
+html[data-theme="dark"] .sidebar .sidebar-nav-item:focus-visible {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] [data-action-trigger="true"],
+html[data-theme="dark"] [data-action-menu="true"] {
+  background: var(--dropdown-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] [data-action-menu="true"] {
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.44) !important;
+}
+
+html[data-theme="dark"] [data-action-menu="true"] .crm-action-menu-item {
+  background: var(--dropdown-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] [data-action-menu="true"] .crm-action-menu-item:hover,
+html[data-theme="dark"] [data-action-menu="true"] .crm-action-menu-item:focus-visible {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] [data-action-menu="true"] .crm-action-menu-item[data-danger="true"] {
+  background: rgba(127, 29, 29, 0.22) !important;
+  color: #fca5a5 !important;
+}
+
+html[data-theme="dark"] [data-action-menu="true"] .crm-action-menu-item[data-danger="true"]:hover,
+html[data-theme="dark"] [data-action-menu="true"] .crm-action-menu-item[data-danger="true"]:focus-visible {
+  background: rgba(153, 27, 27, 0.34) !important;
+  color: #fecaca !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page,
+html[data-theme="dark"] .quotation-dashboard-page {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: #fff"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: #ffffff"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: rgb(255, 255, 255)"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: #f8fafc"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: #f1f5f9"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: linear-gradient(180deg, #fff"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: linear-gradient(180deg, #ffffff"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: linear-gradient(180deg, rgba(255"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: linear-gradient(180deg, rgba(249"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="background: linear-gradient(180deg, rgba(248"] {
+  background: var(--surface-card-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: #111827"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color:#111827"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: rgb(17, 24, 39)"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: #0f172a"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: #1f2937"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: #111827"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color:#111827"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: rgb(17, 24, 39)"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: #0f172a"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: #1f2937"] {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: #334155"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: #475569"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: #64748b"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: #6b7280"],
+html[data-theme="dark"] .whatsapp-marketing-page [style*="color: rgb(100, 116, 139)"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: #334155"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: #475569"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: #64748b"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: #6b7280"],
+html[data-theme="dark"] .quotation-dashboard-page [style*="color: rgb(100, 116, 139)"] {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .main-content input,
+html[data-theme="dark"] .main-content select,
+html[data-theme="dark"] .main-content textarea,
+html[data-theme="dark"] .main-content [contenteditable="true"] {
+  background-color: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] .main-content input::placeholder,
+html[data-theme="dark"] .main-content textarea::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+html[data-theme="dark"] .main-content [class*="calendar" i] [style*="background: #f8fafc"],
+html[data-theme="dark"] .main-content [class*="calendar" i] [style*="background: #f1f5f9"],
+html[data-theme="dark"] .main-content [class*="calendar" i] [style*="background: #eef2f7"],
+html[data-theme="dark"] .main-content [class*="calendar" i] [style*="background: rgb(248, 250, 252)"],
+html[data-theme="dark"] .main-content [class*="calendar" i] [style*="background: rgb(241, 245, 249)"] {
+  background: var(--surface-card-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}

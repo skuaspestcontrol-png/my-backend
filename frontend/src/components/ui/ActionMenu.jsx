@@ -151,37 +151,42 @@ export default function ActionMenu({ items = [], triggerLabel = 'Action', trigge
             zIndex: 5000
           }}
         >
-          {menuItems.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              disabled={item.disabled}
-              onClick={() => {
-                item.onClick?.();
-                closeMenu();
-              }}
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                border: 'none',
-                background: item.disabled ? 'var(--surface-secondary)' : 'var(--dropdown-bg)',
-                padding: '6px 10px',
-                color: item.disabled ? 'var(--text-muted)' : 'var(--text-primary)',
-                fontSize: 11,
-                fontWeight: 600,
-                lineHeight: 1.1,
-                minHeight: 30,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                cursor: item.disabled ? 'not-allowed' : 'pointer',
-                marginBottom: 0,
-                borderRadius: 0
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
+          {menuItems.map((item) => {
+            const isDanger = Boolean(item.danger) || /delete|remove|cancel/i.test(String(item.label || ''));
+            return (
+              <button
+                key={item.label}
+                type="button"
+                className="crm-action-menu-item"
+                data-danger={isDanger ? 'true' : undefined}
+                disabled={item.disabled}
+                onClick={() => {
+                  item.onClick?.();
+                  closeMenu();
+                }}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  border: 'none',
+                  background: item.disabled ? 'var(--surface-secondary)' : 'var(--dropdown-bg)',
+                  padding: '6px 10px',
+                  color: item.disabled ? 'var(--text-muted)' : 'var(--text-primary)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  lineHeight: 1.1,
+                  minHeight: 30,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  cursor: item.disabled ? 'not-allowed' : 'pointer',
+                  marginBottom: 0,
+                  borderRadius: 0
+                }}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </div>,
         document.body
       ) : null}

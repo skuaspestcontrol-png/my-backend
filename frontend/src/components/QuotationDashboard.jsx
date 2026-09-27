@@ -168,11 +168,37 @@ const shell = {
   }
 };
 
+const resolveDateValue = (value) => {
+  if (!value) return '';
+  if (value instanceof Date) return value;
+  if (typeof value !== 'object') return value;
+  if (typeof value.seconds === 'number') return value.seconds * 1000;
+  return resolveDateValue(
+    value.date
+    || value.value
+    || value.iso
+    || value.isoDate
+    || value.quotation_date
+    || value.created_at
+    || value.createdAt
+    || value.$date
+    || ''
+  );
+};
+
+const getDateTime = (value) => {
+  const resolved = resolveDateValue(value);
+  if (!resolved) return 0;
+  const d = new Date(resolved);
+  return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+};
+
 const formatDate = (value) => {
-  const raw = String(value || '').trim();
+  const resolved = resolveDateValue(value);
+  const raw = typeof resolved === 'string' ? resolved.trim() : resolved;
   if (!raw) return '-';
   const d = new Date(raw);
-  if (Number.isNaN(d.getTime())) return raw;
+  if (Number.isNaN(d.getTime())) return typeof raw === 'string' ? raw : '-';
   return d.toLocaleDateString('en-GB');
 };
 
@@ -372,7 +398,7 @@ function QuotationDashboardInner() {
           customer_name: customerName,
           quotation_no: quotationNumber,
           quotation_number: quotationNumber,
-          quotation_date: String(row.date || row.quotation_date || '').trim(),
+          quotation_date: formatDate(row.quotation_date || row.date || row.created_at || row.createdAt),
           quotation_amount: String(row.total || row.amount || '').trim(),
           company_name: 'SKUAS Pest Control'
         }
@@ -408,7 +434,7 @@ function QuotationDashboardInner() {
         switch (sortConfig.key) {
           case 'srNo': return Number(left.srNo || left.sr_no || 0);
           case 'quotationNumber': return String(left.quotation_number || left.quotationNumber || left.quotationNo || '');
-          case 'date': return new Date(left.date || left.created_at || 0).getTime() || 0;
+          case 'date': return getDateTime(left.quotation_date || left.date || left.created_at || left.createdAt);
           case 'customer': return String(left.customer || left.customerName || '');
           case 'salesPerson': return String(left.salesPerson || left.salesperson || '');
           case 'status': return String(left.status || '');
@@ -420,7 +446,7 @@ function QuotationDashboardInner() {
         switch (sortConfig.key) {
           case 'srNo': return Number(right.srNo || right.sr_no || 0);
           case 'quotationNumber': return String(right.quotation_number || right.quotationNumber || right.quotationNo || '');
-          case 'date': return new Date(right.date || right.created_at || 0).getTime() || 0;
+          case 'date': return getDateTime(right.quotation_date || right.date || right.created_at || right.createdAt);
           case 'customer': return String(right.customer || right.customerName || '');
           case 'salesPerson': return String(right.salesPerson || right.salesperson || '');
           case 'status': return String(right.status || '');
@@ -515,7 +541,7 @@ function QuotationDashboardInner() {
       };
 
   return (
-    <section style={shell.page}>
+    <section className="quotation-dashboard-page" style={shell.page}>
       <header style={headerStyle}>
         <div>
           <h1 style={titleStyle}>Quotation</h1>
@@ -632,7 +658,7 @@ function QuotationDashboardInner() {
                   <tr key={row.id}>
                     <td style={shell.td} data-label="Sr No">{(safePage - 1) * perPage + idx + 1}</td>
                     <td style={shell.td} data-label="Quotation #"><span className="crm-cell-wrap">{row.quotation_number || '-'}</span></td>
-                    <td style={shell.td} data-label="Date">{formatDate(row.quotation_date)}</td>
+                    <td style={shell.td} data-label="Date">{formatDate(row.quotation_date || row.date || row.created_at || row.createdAt)}</td>
                     <td style={shell.td} data-label="Customer"><span className="crm-table-primary crm-cell-wrap">{row.customer_name || '-'}</span></td>
                     <td style={shell.td} data-label="Sales Person">{row.sales_person || '-'}</td>
                     <td style={shell.td} data-label="Status"><span style={shell.badge}>{row.status || 'Draft'}</span></td>
