@@ -68,7 +68,7 @@ const shell = {
     backdropFilter: 'none'
   },
   hero: {
-    background: 'linear-gradient(135deg, #1a1237 0%, #2f176d 52%, #6d5be3 100%)',
+    background: '#1a1237',
     color: '#ffffff',
     borderRadius: '28px',
     padding: '30px',
