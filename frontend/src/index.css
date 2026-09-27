@@ -3852,6 +3852,19 @@ html[data-theme="dark"] .lead-capture-page .crm-table-shell {
   border-color: var(--border-soft) !important;
 }
 
+html[data-theme="dark"] .lead-capture-page .crm-table-shell.crm-table-shell--clipped {
+  background: var(--table-bg) !important;
+  border-color: var(--border-soft) !important;
+  border-radius: 0 !important;
+  background-clip: border-box !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .lead-capture-page .crm-table-shell.crm-table-shell--clipped .crm-compact-table,
+html[data-theme="dark"] .lead-capture-page .crm-table-shell.crm-table-shell--clipped .crm-compact-table :where(thead, tbody, tr, th, td) {
+  border-radius: 0 !important;
+}
+
 html[data-theme="dark"] .lead-capture-page .crm-compact-table thead th,
 html[data-theme="dark"] .lead-capture-page .crm-compact-table thead th button {
   background: var(--table-header-bg) !important;
@@ -3888,9 +3901,9 @@ html[data-theme="dark"] .dashboard-page .dashboard-panel {
 }
 
 html[data-theme="dark"] .dashboard-page .dashboard-panel-header {
-  background: #1a1237 !important;
+  background: #111936 !important;
   color: #ffffff !important;
-  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+  border-bottom-color: rgba(73, 101, 221, 0.36) !important;
 }
 
 html[data-theme="dark"] .dashboard-page .dashboard-panel-header h1,
@@ -4416,6 +4429,22 @@ html[data-theme="dark"] .stock-management-page button:not([style*="background: v
 
 html[data-theme="dark"] .stock-management-page button[style*="background: var(--color-primary)"] {
   color: #ffffff !important;
+}
+
+html[data-theme="dark"] .customer-dashboard-page {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .customer-dashboard-page :where([aria-label="More options"], [aria-label="Customize fields"]) {
+  background: var(--surface-elevated) !important;
+  color: var(--icon-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .customer-dashboard-page :where([aria-label="More options"], [aria-label="Customize fields"]) svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
 }
 
 /* Final CRM dark theme consistency pass for lead, contract, invoice, quotation, and payment views. */

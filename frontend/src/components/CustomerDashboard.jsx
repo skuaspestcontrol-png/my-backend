@@ -2812,7 +2812,7 @@ export default function CustomerDashboard() {
   };
 
   return (
-    <section className="crm-page crm-section" style={shell.page}>
+    <section className="crm-page crm-section customer-dashboard-page" style={shell.page}>
       <div style={topbarStyle}>
         <div style={shell.titleWrap}>
           <h1 style={titleStyle}>Active Customers</h1>
