@@ -584,7 +584,7 @@ export default function HRDashboard() {
   });
 
   return (
-    <div style={shell.page}>
+    <div className="hr-dashboard-page" style={shell.page}>
       <style>{`
         @keyframes hr-dashboard-refresh-spin {
           from { transform: rotate(0deg); }

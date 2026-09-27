@@ -8,7 +8,7 @@ Audit date: 2026-09-10. Scope: this working checkout, handwritten backend/fronte
 
 Four critical finding groups were confirmed: committed credentials, publicly returned administrator credentials, public sensitive uploads, and payroll PDF access based on caller-supplied identity. Code and repository fixes address their application paths, but credential rotation, history handling, and Hostinger static routing remain mandatory.
 
-High findings include missing role/ownership enforcement, plaintext password storage, upload extension/MIME bypasses, unrestricted server fetches and local PDF asset paths, and marketing recipient/opt-out bypass. Medium findings include cookie CSRF exposure, limited brute-force controls, weak CSP, input/error handling, host-derived URLs, CSV formula injection, and resource-limit gaps. Low/info findings include repository dependency artifacts and deployment-policy inconsistencies.
+High findings include missing role/ownership enforcement, plaintext password storage, upload extension/MIME bypasses, unrestricted server fetches and local PDF asset paths, and marketing recipient/opt-out bypass. Medium findings include cookie CSRF exposure, limited brute-force controls, weak CSP, input/err    or handling, host-derived URLs, CSV formula injection, and resource-limit gaps. Low/info findings include repository dependency artifacts and deployment-policy inconsistencies.
 
 The remaining release blockers are listed in Q and the final decision. Some broad requirements remain incomplete: durable session revocation, complete sales/operations permissions, full financial validation, bounded legacy lists/import parsing, all logging paths, and real database/browser integration coverage. These are explicitly not reported as fixed.
 

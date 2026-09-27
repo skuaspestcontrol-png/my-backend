@@ -343,7 +343,7 @@ export default function StockIssueUsage() {
   );
 
   return (
-    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section stock-management-page" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Issue & Usage"
         subtitle="Issue items to technicians, record site usage, and capture returns or wastage."

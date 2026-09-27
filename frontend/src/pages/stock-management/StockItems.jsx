@@ -324,7 +324,7 @@ export default function StockItems() {
   };
 
   return (
-    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section stock-management-page" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Items"
         subtitle="Manage stock items, units, rates, opening stock, and minimum levels."

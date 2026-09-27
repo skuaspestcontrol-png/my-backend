@@ -89,7 +89,7 @@ export default function StockDashboard() {
   const isHealthyStock = (value) => Number(value || 0) > 0;
 
   return (
-    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section stock-management-page" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Stock Dashboard"
         subtitle="Monitor office stock, technician stock, purchase flow, and low stock items."

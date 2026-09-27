@@ -1200,7 +1200,7 @@ export default function DashboardLayout({ children }) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 gap: '12px',
-                background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))',
+                background: 'var(--card-header-bg)',
                 color: serviceCalendarHeaderTextColor
               }}
             >

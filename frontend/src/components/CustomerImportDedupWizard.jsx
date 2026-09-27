@@ -83,7 +83,7 @@ const logDefaultWidths = {
 const shell = {
   overlay: { position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(15,23,42,0.54)', backdropFilter: 'blur(6px)', display: 'grid', placeItems: 'center', padding: '12px' },
   modal: { width: 'min(1180px, 100%)', height: 'min(92vh, 860px)', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', borderRadius: '16px', overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto auto 1fr auto', boxShadow: '0 24px 60px rgba(15,23,42,0.22)', border: '1px solid rgba(148, 163, 184, 0.18)', backgroundClip: 'padding-box' },
-  header: { padding: '14px 16px', background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' },
+  header: { padding: '14px 16px', background: 'var(--card-header-bg)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' },
   title: { margin: 0, fontSize: '20px', fontWeight: 850, letterSpacing: 0 },
   sub: { margin: '3px 0 0', fontSize: '12px', opacity: 0.9, fontWeight: 600 },
   close: { border: '1px solid rgba(255,255,255,0.38)', background: 'rgba(255,255,255,0.12)', color: '#fff', borderRadius: '9px', height: '34px', padding: '0 10px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 800, cursor: 'pointer' },

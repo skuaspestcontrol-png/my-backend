@@ -183,7 +183,7 @@ export default function StockPurchase() {
   };
 
   return (
-    <div className="crm-page crm-section" style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section stock-management-page" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
         title="Stock In / Purchase"
         subtitle="Record purchases from vendors and add stock to office balance automatically."

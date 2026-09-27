@@ -156,7 +156,7 @@ const shell = {
     margin: 'auto'
   },
   modalHeader: {
-    background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))',
+    background: 'var(--card-header-bg)',
     color: '#fff',
     minHeight: '56px',
     boxSizing: 'border-box',
@@ -779,7 +779,7 @@ export default function EmployeeMaster() {
   };
 
   return (
-    <section style={shell.page}>
+    <section className="employee-master-page" style={shell.page}>
       <div style={shell.topbar}>
         <h2 style={shell.title}>Employee Master</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -943,7 +943,7 @@ export default function EmployeeMaster() {
 
       {showModal ? createPortal(
         <div style={shell.modalOverlay}>
-          <form className="crm-modal-surface" style={shell.modal} onSubmit={handleSave}>
+          <form className="crm-modal-surface employee-master-modal" style={shell.modal} onSubmit={handleSave}>
             <div className="crm-modal-surface-header" style={shell.modalHeader}>
               <span>{editingId ? 'Edit Employee' : 'Add Employee'} - {form.empCode || 'Auto'}</span>
               <button type="button" onClick={closeModal} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}>

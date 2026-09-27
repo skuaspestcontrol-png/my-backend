@@ -14,6 +14,7 @@ import {
 } from '../pages/sales-performance/SalesChartPrimitives';
 import { apiGet, currentYear, money, safeRows, subscribeSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { subscribeDashboardRefresh } from '../utils/dashboardRefresh';
+import { loadPortalTheme } from '../utils/themePreference';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const DASHBOARD_CACHE_KEY = 'skuasmaster-dashboard-cache-v1';
@@ -152,12 +153,12 @@ const shell = {
     justifyContent: 'space-between',
     gap: '10px',
     padding: '11px 16px',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(244,246,250,0.98) 100%)',
-    borderBottom: '1px solid rgba(148, 163, 184, 0.14)'
+    background: '#1a1237',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
   },
-  sourceHeaderTitle: { margin: 0, color: '#334155', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 },
-  sourceHeaderBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '84px', color: '#111827', fontWeight: 700, background: 'rgba(255,255,255,0.95)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.12)', textAlign: 'center' },
-  sourceHeaderSelect: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '92px', color: '#111827', fontWeight: 700, background: 'rgba(255,255,255,0.95)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(148,163,184,0.12)', border: 'none', outline: 'none', appearance: 'none', textAlign: 'center' },
+  sourceHeaderTitle: { margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 },
+  sourceHeaderBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '84px', color: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', textAlign: 'center' },
+  sourceHeaderSelect: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '92px', color: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', border: 'none', outline: 'none', appearance: 'none', textAlign: 'center' },
   sourceBody: { padding: '14px 14px 14px', display: 'grid', gap: '12px', alignItems: 'center' },
   panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
   panelTitle: { margin: 0, color: '#475569', fontSize: '17px', fontWeight: 700 },
@@ -259,6 +260,11 @@ export default function Dashboard() {
   const loadSalesPerformanceSummaryRef = useRef(() => {});
   const loadSalesPerformanceRef = useRef(() => {});
   const dashboardLoadingRef = useRef(false);
+  const [themeMode, setThemeMode] = useState(() => (
+    typeof document === 'undefined'
+      ? 'light'
+      : document.documentElement.dataset.theme || loadPortalTheme()
+  ));
   const cachedDashboardState = useMemo(() => readDashboardCache(), []);
   const [summary, setSummary] = useState(() => cachedDashboardState?.summary || null);
   const [settings, setSettings] = useState(() => cachedDashboardState?.settings || {});
@@ -354,6 +360,16 @@ export default function Dashboard() {
       loadSalesPerformanceRef.current();
     });
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const root = document.documentElement;
+    const syncTheme = () => setThemeMode(root.dataset.theme || loadPortalTheme());
+    syncTheme();
+    const observer = new MutationObserver(syncTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
@@ -742,12 +758,42 @@ export default function Dashboard() {
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
   const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
+  const isDarkTheme = themeMode === 'dark';
+  const darkDashboardSurface = '#111936';
+  const darkDashboardPanel = '#0e1530';
+  const darkDashboardHeader = '#1a1237';
+  const darkDashboardBorder = 'rgba(73, 101, 221, 0.36)';
+  const darkDashboardText = '#f8fafc';
+  const darkDashboardMuted = '#a9b5d5';
+  const darkSurfaceStyle = isDarkTheme
+    ? {
+        background: darkDashboardSurface,
+        color: darkDashboardText,
+        borderColor: darkDashboardBorder,
+        boxShadow: 'none'
+      }
+    : null;
+  const darkPanelStyle = isDarkTheme
+    ? {
+        background: darkDashboardPanel,
+        color: darkDashboardText,
+        borderColor: darkDashboardBorder,
+        boxShadow: 'none'
+      }
+    : null;
+  const darkHeaderStyle = isDarkTheme
+    ? {
+        background: darkDashboardHeader,
+        color: '#ffffff',
+        borderBottomColor: 'rgba(255, 255, 255, 0.08)'
+      }
+    : null;
 
   const heroStyle = isMobile
-    ? { ...shell.hero, gridTemplateColumns: '1fr', padding: isSmallMobile ? '16px' : '20px' }
+    ? { ...shell.hero, ...darkSurfaceStyle, gridTemplateColumns: '1fr', padding: isSmallMobile ? '16px' : '20px' }
     : isTablet || isLaptop
-      ? { ...shell.hero, gridTemplateColumns: '1fr', padding: isTablet ? '22px' : '26px' }
-      : shell.hero;
+      ? { ...shell.hero, ...darkSurfaceStyle, gridTemplateColumns: '1fr', padding: isTablet ? '22px' : '26px' }
+      : { ...shell.hero, ...darkSurfaceStyle };
 
   const metricsStyle = isMobile
     ? { ...shell.metrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }
@@ -761,37 +807,38 @@ export default function Dashboard() {
     border: 'none',
     padding: isMobile ? '8px 12px' : '14px',
     borderRadius: isMobile ? '16px' : shell.heroCard.borderRadius,
-    background: '#ffffff',
+    background: isDarkTheme ? '#202a4c' : '#ffffff',
     display: 'grid',
     placeItems: 'center'
   };
   const heroFinanceTextStyle = {
     margin: 0,
     textAlign: 'center',
-    color: 'var(--color-primary-dark)',
+    color: isDarkTheme ? '#ffffff' : 'var(--color-primary-dark)',
     lineHeight: isMobile ? 1.35 : 1.7,
     fontSize: isMobile ? '12px' : '15px',
     fontWeight: 700
   };
   const receivableColor = '#16a34a';
   const payableColor = '#dc2626';
+  const heroPipeColor = isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : '#111827';
   const taglineStyle = isMobile
     ? { ...shell.tagline, fontSize: isSmallMobile ? '18px' : '20px', lineHeight: 1.3 }
     : isTablet || isLaptop
       ? { ...shell.tagline, fontSize: '22px' }
       : shell.tagline;
   const metricStyle = isMobile
-    ? { ...shell.metric, padding: '12px 14px', borderRadius: '10px', minHeight: '122px' }
-    : shell.metric;
+    ? { ...shell.metric, ...darkSurfaceStyle, padding: '12px 14px', borderRadius: '10px', minHeight: '122px' }
+    : { ...shell.metric, ...darkSurfaceStyle };
   const metricLabelStyle = isMobile
-    ? { ...shell.metricLabel, fontSize: '9px', lineHeight: 1.25 }
-    : shell.metricLabel;
+    ? { ...shell.metricLabel, color: isDarkTheme ? darkDashboardMuted : shell.metricLabel.color, fontSize: '9px', lineHeight: 1.25 }
+    : { ...shell.metricLabel, color: isDarkTheme ? darkDashboardMuted : shell.metricLabel.color };
   const metricValueStyle = isMobile
-    ? { ...shell.metricValue, margin: '8px 0 0 0', fontSize: '23px', lineHeight: 1.05 }
-    : shell.metricValue;
+    ? { ...shell.metricValue, color: isDarkTheme ? darkDashboardText : shell.metricValue.color, margin: '8px 0 0 0', fontSize: '23px', lineHeight: 1.05 }
+    : { ...shell.metricValue, color: isDarkTheme ? darkDashboardText : shell.metricValue.color };
   const metricSubStyle = isMobile
-    ? { ...shell.metricSub, margin: '6px 0 0 0', fontSize: '11px', lineHeight: 1.35 }
-    : shell.metricSub;
+    ? { ...shell.metricSub, color: isDarkTheme ? darkDashboardMuted : shell.metricSub.color, margin: '6px 0 0 0', fontSize: '11px', lineHeight: 1.35 }
+    : { ...shell.metricSub, color: isDarkTheme ? darkDashboardMuted : shell.metricSub.color };
 
   const graphGridStyle = viewportWidth >= 1200
     ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignItems: 'start' }
@@ -800,8 +847,8 @@ export default function Dashboard() {
     ? { minHeight: '390px', boxSizing: 'border-box' }
     : {};
   const graphSourceCardStyle = viewportWidth >= 1200
-    ? { ...shell.sourcePanel, minHeight: '390px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }
-    : shell.sourcePanel;
+    ? { ...shell.sourcePanel, ...darkPanelStyle, minHeight: '390px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }
+    : { ...shell.sourcePanel, ...darkPanelStyle };
   const sourceBodyStyle = isMobile
     ? { ...shell.sourceBody, justifyItems: 'center' }
     : viewportWidth >= 1200
@@ -828,7 +875,8 @@ export default function Dashboard() {
     boxShadow: 'none',
     minHeight: isMobile ? 'auto' : '390px',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    ...(darkPanelStyle || {})
   };
   const salesChartCardHeaderStyle = {
     padding: '11px 16px',
@@ -838,10 +886,11 @@ export default function Dashboard() {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: '10px',
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
+    ...(darkHeaderStyle || {})
   };
-  const salesChartTitleStyle = { margin: 0, color: '#334155', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 };
-  const salesChartSubtitleStyle = { margin: '4px 0 0 0', color: '#64748b', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 };
+  const salesChartTitleStyle = { margin: 0, color: isDarkTheme ? '#ffffff' : '#334155', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 };
+  const salesChartSubtitleStyle = { margin: '4px 0 0 0', color: isDarkTheme ? darkDashboardMuted : '#64748b', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 };
   const salesChartHeaderControlsStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -859,7 +908,7 @@ export default function Dashboard() {
     height: '34px',
     minHeight: '34px',
     padding: '0 8px',
-    background: '#fff',
+    background: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : '#fff',
     flex: '1 1 0'
   };
   const salesChartYearSelectStyle = isMobile
@@ -885,7 +934,7 @@ export default function Dashboard() {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
-    color: '#334155',
+    color: isDarkTheme ? darkDashboardMuted : '#334155',
     fontSize: '12px',
     fontWeight: 700
   };
@@ -909,43 +958,47 @@ export default function Dashboard() {
     alignContent: 'space-between',
     padding: '8px 0 26px 0'
   };
-  const salesChartYAxisLabelStyle = { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1 };
+  const salesChartYAxisLabelStyle = { color: isDarkTheme ? darkDashboardMuted : '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1 };
   const yearlySummaryGridStyle = isMobile
     ? { ...shell.targetMetrics, gridTemplateColumns: '1fr' }
     : isTablet
       ? { ...shell.targetMetrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
       : shell.targetMetrics;
   const targetSectionHeadStyle = isMobile
-    ? { ...shell.targetSectionHead, flexDirection: 'column', alignItems: 'stretch', padding: '14px' }
-    : shell.targetSectionHead;
+    ? { ...shell.targetSectionHead, ...darkSurfaceStyle, flexDirection: 'column', alignItems: 'stretch', padding: '14px' }
+    : { ...shell.targetSectionHead, ...darkSurfaceStyle };
+  const targetSectionTitleStyle = {
+    ...shell.targetSectionTitle,
+    color: isDarkTheme ? darkDashboardText : shell.targetSectionTitle.color
+  };
   const targetSectionHintStyle = isMobile
-    ? { ...shell.targetSectionHint, maxWidth: '100%' }
-    : shell.targetSectionHint;
+    ? { ...shell.targetSectionHint, color: isDarkTheme ? darkDashboardMuted : shell.targetSectionHint.color, maxWidth: '100%' }
+    : { ...shell.targetSectionHint, color: isDarkTheme ? darkDashboardMuted : shell.targetSectionHint.color };
   const targetYearSelectStyle = {
-    border: '1px solid #dbe4f0',
-    background: '#fff',
-    color: '#334155',
+    border: isDarkTheme ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #dbe4f0',
+    background: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : '#fff',
+    color: isDarkTheme ? '#ffffff' : '#334155',
     fontWeight: 700,
     borderRadius: '12px',
     padding: '8px 12px',
     fontSize: '12px',
     outline: 'none',
     minWidth: isMobile ? '100%' : '120px',
-    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)'
+    boxShadow: isDarkTheme ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.06)' : '0 1px 2px rgba(15, 23, 42, 0.04)'
   };
   const targetMetricValueStyle = isMobile
-    ? { ...shell.targetMetricValue, fontSize: '22px' }
-    : shell.targetMetricValue;
+    ? { ...shell.targetMetricValue, color: isDarkTheme ? darkDashboardText : shell.targetMetricValue.color, fontSize: '22px' }
+    : { ...shell.targetMetricValue, color: isDarkTheme ? darkDashboardText : shell.targetMetricValue.color };
   const targetMetricSubStyle = isMobile
-    ? { ...shell.targetMetricSub, fontSize: '11px' }
-    : shell.targetMetricSub;
+    ? { ...shell.targetMetricSub, color: isDarkTheme ? darkDashboardMuted : shell.targetMetricSub.color, fontSize: '11px' }
+    : { ...shell.targetMetricSub, color: isDarkTheme ? darkDashboardMuted : shell.targetMetricSub.color };
 
   const successGreen = '#16A34A';
   const incomeGreen = '#24c17f';
   const dangerRed = '#DC2626';
   const axisGray = '#94a3b8';
   const gridGray = '#dbe4f0';
-  const expenseColors = ['#16A34A', '#DC2626', '#111827', '#8B5CF6', '#0F766E'];
+  const expenseColors = ['#16A34A', '#DC2626', isDarkTheme ? '#f8fafc' : '#111827', '#8B5CF6', '#0F766E'];
   const leadFunnelRows = [
     { label: 'Total Leads', value: leadPipeline.totalLeads, color: '#4965dd' },
     { label: 'Interested', value: leadPipeline.interested, color: '#12abc4' },
@@ -966,17 +1019,17 @@ export default function Dashboard() {
   const incomeExpenseScale = incomeExpenseYAxisMax > 0 ? incomeExpenseChartHeight / incomeExpenseYAxisMax : 1;
   const currencyLabel = (value) => (value >= 1000 ? `${Math.round(value / 1000)} K` : `${Math.round(value)}`);
   const incomeExpenseChartStyle = isMobile
-    ? { ...shell.incomeChart, minHeight: '250px', padding: '10px 8px 8px 8px' }
+    ? { ...shell.incomeChart, background: isDarkTheme ? darkDashboardPanel : shell.incomeChart.background, borderLeftColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, borderBottomColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, minHeight: '250px', padding: '10px 8px 8px 8px' }
     : viewportWidth >= 1200
-      ? { ...shell.incomeChart, minHeight: '200px', padding: '8px 10px 6px 10px' }
-    : shell.incomeChart;
+      ? { ...shell.incomeChart, background: isDarkTheme ? darkDashboardPanel : shell.incomeChart.background, borderLeftColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, borderBottomColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, minHeight: '200px', padding: '8px 10px 6px 10px' }
+    : { ...shell.incomeChart, background: isDarkTheme ? darkDashboardPanel : shell.incomeChart.background, borderLeftColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, borderBottomColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined };
   const incomeExpenseYAxisStyle = isMobile
     ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
     : viewportWidth >= 1200
       ? { ...shell.incomeYAxis, padding: '6px 0 18px 0' }
     : shell.incomeYAxis;
-  const incomeExpenseLegendValueStyle = { ...shell.incomeLegendValue, fontSize: '13px', lineHeight: 1.1 };
-  const incomeExpenseLegendLabelStyle = { ...shell.incomeLegendLabel, fontSize: '13px', lineHeight: 1.1 };
+  const incomeExpenseLegendValueStyle = { ...shell.incomeLegendValue, color: isDarkTheme ? darkDashboardText : shell.incomeLegendValue.color, fontSize: '13px', lineHeight: 1.1 };
+  const incomeExpenseLegendLabelStyle = { ...shell.incomeLegendLabel, color: isDarkTheme ? darkDashboardMuted : shell.incomeLegendLabel.color, fontSize: '13px', lineHeight: 1.1 };
   const formatCurrencyPrecise = (value) => {
     const formatted = Number(value || 0).toLocaleString('en-IN', {
       minimumFractionDigits: 2,
@@ -1012,7 +1065,7 @@ export default function Dashboard() {
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="#e5e7eb"
+            stroke={isDarkTheme ? 'rgba(148, 163, 184, 0.22)' : '#e5e7eb'}
             strokeWidth={strokeWidth}
           />
           {segments.map((segment, idx) => {
@@ -1051,17 +1104,17 @@ export default function Dashboard() {
           }}
         >
           <div
-            style={{ color: '#64748b', fontWeight: 700, fontSize: labelSize, lineHeight: 1.15 }}
+            style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700, fontSize: labelSize, lineHeight: 1.15 }}
           >
             {label}
           </div>
-          <div style={{ color: '#0f172a', fontSize: valueSize, fontWeight: 800, lineHeight: 1.1 }}>{value}</div>
+          <div style={{ color: isDarkTheme ? darkDashboardText : '#0f172a', fontSize: valueSize, fontWeight: 800, lineHeight: 1.1 }}>{value}</div>
         </div>
       </div>
     );
   };
   return (
-    <div style={shell.page}>
+    <div className="dashboard-page" style={shell.page}>
       <section className="hero-section command-center" style={heroStyle}>
         <div>
           <h1 style={{ ...shell.title, color: '#ffffff' }}>{companyName}</h1>
@@ -1076,7 +1129,7 @@ export default function Dashboard() {
               Receivables: <strong>{formatCurrency(analytics.totalReceivables)}</strong>
             </span>
             {' '}
-            <span style={{ color: '#111827' }}>|</span>
+            <span style={{ color: heroPipeColor }}>|</span>
             {' '}
             <span style={{ color: payableColor }}>
               Payables: <strong>{formatCurrency(analytics.totalPayables)}</strong>
@@ -1086,22 +1139,22 @@ export default function Dashboard() {
       </section>
 
       <section className="stats-grid dashboard-grid" style={metricsStyle}>
-        <div style={metricStyle}>
+        <div className="dashboard-metric-card" style={metricStyle}>
           <p style={metricLabelStyle}>Leads</p>
           <p style={metricValueStyle}>{topCards.leadsCount}</p>
           <p style={metricSubStyle}>Total leads</p>
         </div>
-        <div style={metricStyle}>
+        <div className="dashboard-metric-card" style={metricStyle}>
           <p style={metricLabelStyle}>Customers</p>
           <p style={metricValueStyle}>{topCards.customersCount}</p>
           <p style={metricSubStyle}>Active customers</p>
         </div>
-        <div style={metricStyle}>
+        <div className="dashboard-metric-card" style={metricStyle}>
           <p style={metricLabelStyle}>Employees</p>
           <p style={metricValueStyle}>{topCards.employeesCount}</p>
           <p style={metricSubStyle}>Workforce</p>
         </div>
-        <div style={metricStyle}>
+        <div className="dashboard-metric-card" style={metricStyle}>
           <p style={metricLabelStyle}>Invoices Value</p>
           <p style={metricValueStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
           <p style={metricSubStyle}>{topCards.invoicesCount} invoices</p>
@@ -1109,9 +1162,9 @@ export default function Dashboard() {
       </section>
 
       <section style={shell.targetSection}>
-        <div style={targetSectionHeadStyle}>
+        <div className="dashboard-section-head" style={targetSectionHeadStyle}>
           <div>
-            <h2 style={shell.targetSectionTitle}>Yearly Target vs Achievement</h2>
+            <h2 style={targetSectionTitleStyle}>Yearly Target vs Achievement</h2>
             <p style={targetSectionHintStyle}>Choose a year to review sales targets and progress.</p>
           </div>
           <select
@@ -1128,7 +1181,7 @@ export default function Dashboard() {
 
         <div style={yearlySummaryGridStyle}>
           {yearlyTargetCards.map((card) => (
-            <article key={card.label} style={shell.targetMetric}>
+            <article key={card.label} className="dashboard-target-card" style={{ ...shell.targetMetric, ...darkSurfaceStyle }}>
               <p style={shell.metricLabel}>{card.label}</p>
               <p style={targetMetricValueStyle}>{card.value}</p>
               <p style={targetMetricSubStyle}>{card.sub}</p>
@@ -1138,8 +1191,8 @@ export default function Dashboard() {
       </section>
 
       <section style={graphGridStyle}>
-        <article style={graphSourceCardStyle}>
-          <div style={shell.sourceHeader}>
+        <article className="dashboard-panel" style={graphSourceCardStyle}>
+          <div className="dashboard-panel-header" style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Pipeline</h2>
             <select
               value={selectedContractYear}
@@ -1173,7 +1226,7 @@ export default function Dashboard() {
                   minHeight: '48px'
                 }}
               >
-                <span style={{ color: '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
+                <span style={{ color: isDarkTheme ? darkDashboardText : '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
                 <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
                   <span
                     style={{
@@ -1193,7 +1246,7 @@ export default function Dashboard() {
                     <strong style={{ fontSize: isMobile ? '16px' : '16px', lineHeight: 1 }}>{row.value}</strong>
                   </span>
                 </span>
-                <span style={{ color: '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '13px', textAlign: 'left' }}>
+                <span style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '13px', textAlign: 'left' }}>
                   {`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`}
                 </span>
               </button>
@@ -1202,22 +1255,22 @@ export default function Dashboard() {
             <div style={{ ...shell.legendRow, marginTop: '14px', justifyContent: 'space-between' }}>
               <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
                 <strong style={{ color: '#4965dd', fontSize: '19px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>Conversion Rate</span>
+                <span style={{ fontSize: '12px', color: isDarkTheme ? darkDashboardMuted : '#64748b' }}>Conversion Rate</span>
               </span>
               <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
                 <strong style={{ color: '#16A34A', fontSize: '19px' }}>{formatCurrency(leadPipeline.pipelineValue)}</strong>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>Pipeline Value</span>
+                <span style={{ fontSize: '12px', color: isDarkTheme ? darkDashboardMuted : '#64748b' }}>Pipeline Value</span>
               </span>
               <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
                 <strong style={{ color: '#45ABC8', fontSize: '19px' }}>{formatCurrency(leadPipeline.avgDealValue)}</strong>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>Avg Deal Value</span>
+                <span style={{ fontSize: '12px', color: isDarkTheme ? darkDashboardMuted : '#64748b' }}>Avg Deal Value</span>
               </span>
             </div>
           </div>
         </article>
 
-        <article style={graphSourceCardStyle}>
-          <div style={shell.sourceHeader}>
+        <article className="dashboard-panel" style={graphSourceCardStyle}>
+          <div className="dashboard-panel-header" style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Income and Expense</h2>
             <select
               value={selectedContractYear}
@@ -1233,16 +1286,16 @@ export default function Dashboard() {
 
           <div style={{ padding: '18px 18px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', color: '#64748b', fontSize: '13px', fontWeight: 700, lineHeight: 1.1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', color: isDarkTheme ? darkDashboardMuted : '#64748b', fontSize: '13px', fontWeight: 700, lineHeight: 1.1 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ ...shell.dot, width: '10px', height: '10px', background: incomeGreen }} />
                   <span style={incomeExpenseLegendLabelStyle}>Total Income-</span>
-                  <span style={{ ...incomeExpenseLegendValueStyle, color: '#111827' }}>{formatCurrency(selectedYearAnalytics.totalIncome)}</span>
+                  <span style={{ ...incomeExpenseLegendValueStyle, color: isDarkTheme ? darkDashboardText : '#111827' }}>{formatCurrency(selectedYearAnalytics.totalIncome)}</span>
                 </span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ ...shell.dot, width: '10px', height: '10px', background: dangerRed }} />
                   <span style={incomeExpenseLegendLabelStyle}>Total Expenses-</span>
-                  <span style={{ ...incomeExpenseLegendValueStyle, color: '#111827' }}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
+                  <span style={{ ...incomeExpenseLegendValueStyle, color: isDarkTheme ? darkDashboardText : '#111827' }}>{formatCurrency(selectedYearAnalytics.totalExpenses)}</span>
                 </span>
               </div>
             </div>
@@ -1343,7 +1396,7 @@ export default function Dashboard() {
                               />
                             </div>
                           </div>
-                          <div style={shell.incomeMonthLabel}>
+                          <div style={{ ...shell.incomeMonthLabel, color: isDarkTheme ? darkDashboardMuted : shell.incomeMonthLabel.color }}>
                             <span>{month.label}</span>
                           </div>
                           {hoveredIncomeBar?.monthKey === month.key ? (
@@ -1353,8 +1406,8 @@ export default function Dashboard() {
                                 left: '50%',
                                 bottom: 'calc(100% + 14px)',
                                 transform: 'translateX(-50%)',
-                                background: '#fff',
-                                border: '1px solid #dbe4f0',
+                                background: isDarkTheme ? '#202a4c' : '#fff',
+                                border: isDarkTheme ? '1px solid rgba(73, 101, 221, 0.36)' : '1px solid #dbe4f0',
                                 borderRadius: '18px',
                                 boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
                                 padding: '14px 16px 12px',
@@ -1364,10 +1417,10 @@ export default function Dashboard() {
                                 zIndex: 20
                               }}
                             >
-                              <div style={{ color: '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
+                              <div style={{ color: isDarkTheme ? darkDashboardText : '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
                                 {formatCurrencyPrecise(hoveredIncomeBar.value)}
                               </div>
-                              <div style={{ marginTop: '10px', color: '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
+                              <div style={{ marginTop: '10px', color: isDarkTheme ? darkDashboardMuted : '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
                                 {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
                               </div>
                               <div
@@ -1377,9 +1430,9 @@ export default function Dashboard() {
                                   bottom: '-7px',
                                   width: '14px',
                                   height: '14px',
-                                  background: '#fff',
-                                  borderRight: '1px solid #dbe4f0',
-                                  borderBottom: '1px solid #dbe4f0',
+                                  background: isDarkTheme ? '#202a4c' : '#fff',
+                                  borderRight: isDarkTheme ? '1px solid rgba(73, 101, 221, 0.36)' : '1px solid #dbe4f0',
+                                  borderBottom: isDarkTheme ? '1px solid rgba(73, 101, 221, 0.36)' : '1px solid #dbe4f0',
                                   transform: 'translateX(-50%) rotate(45deg)'
                                 }}
                               />
@@ -1395,8 +1448,8 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={graphSourceCardStyle}>
-          <div style={shell.sourceHeader}>
+        <article className="dashboard-panel" style={graphSourceCardStyle}>
+          <div className="dashboard-panel-header" style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
             <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
           </div>
@@ -1413,7 +1466,7 @@ export default function Dashboard() {
               '22px'
             )}
             {leadPipeline.sourceSeries.length === 0 ? (
-              <div style={{ color: '#64748b', fontWeight: 700 }}>No lead source data available.</div>
+              <div style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>No lead source data available.</div>
             ) : (
               <div style={sourceLegendStyle}>
                 {leadPipeline.sourceSeries.map((entry) => (
@@ -1425,7 +1478,7 @@ export default function Dashboard() {
                       }}
                     />
                     <span>{mapLeadSourceDisplayLabel(entry.name)}</span>
-                    <span style={{ color: '#64748b', fontWeight: 700 }}>{entry.count}</span>
+                    <span style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>{entry.count}</span>
                   </span>
                 ))}
               </div>
@@ -1433,8 +1486,8 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article style={graphSourceCardStyle}>
-          <div style={shell.sourceHeader}>
+        <article className="dashboard-panel" style={graphSourceCardStyle}>
+          <div className="dashboard-panel-header" style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
             <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
           </div>
@@ -1452,12 +1505,12 @@ export default function Dashboard() {
             )}
             <div style={{ display: 'grid', gap: '10px' }}>
               {selectedYearAnalytics.topExpenses.length === 0 ? (
-                <div style={{ color: '#64748b', fontWeight: 700 }}>No expense data available.</div>
+                <div style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>No expense data available.</div>
               ) : selectedYearAnalytics.topExpenses.map((entry, idx) => (
                 <div key={`${entry.name}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: '10px', alignItems: 'center' }}>
                   <span style={{ ...shell.dot, width: '16px', height: '16px', borderRadius: '5px', background: expenseColors[idx % expenseColors.length] }} />
-                  <span style={{ color: '#334155', fontWeight: 700 }}>{entry.name}</span>
-                  <span style={{ color: '#0f172a', fontWeight: 800 }}>{formatCurrency(entry.amount)}</span>
+                  <span style={{ color: isDarkTheme ? darkDashboardText : '#334155', fontWeight: 700 }}>{entry.name}</span>
+                  <span style={{ color: isDarkTheme ? darkDashboardText : '#0f172a', fontWeight: 800 }}>{formatCurrency(entry.amount)}</span>
                 </div>
               ))}
             </div>
@@ -1466,8 +1519,8 @@ export default function Dashboard() {
       </section>
 
       <section style={salesChartSectionStyle}>
-        <div style={salesChartCardStyle}>
-          <div style={salesChartCardHeaderStyle}>
+        <div className="dashboard-panel dashboard-sales-panel" style={salesChartCardStyle}>
+          <div className="dashboard-panel-header" style={salesChartCardHeaderStyle}>
             <div>
               <h2 style={salesChartTitleStyle}>Sales Team Performance</h2>
               <p style={isMobile ? { ...salesChartSubtitleStyle, display: 'none' } : salesChartSubtitleStyle}>Month-wise target vs achievement for the selected year and salesperson.</p>
@@ -1508,14 +1561,14 @@ export default function Dashboard() {
                 <span>Achieved</span>
                 <strong style={{ color: '#16A34A' }}>{formatCurrency(salesPerformanceMonthlyAchieved)}</strong>
               </span>
-              <span style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>
+              <span style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontSize: '12px', fontWeight: 700 }}>
                 {selectedSalesPersonLabel}
               </span>
             </div>
 
             {salesPerformanceLoading ? (
               <div style={{ display: 'grid', placeItems: 'center', minHeight: salesPerformanceChartHeight }}>
-                <div style={{ color: '#64748b', fontWeight: 700 }}>Loading sales performance...</div>
+                <div style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>Loading sales performance...</div>
               </div>
             ) : salesPerformanceTrend.length ? (
               <div style={salesChartChartWrapStyle}>
@@ -1565,7 +1618,7 @@ export default function Dashboard() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', placeItems: 'center', minHeight: salesPerformanceChartHeight, color: '#64748b', fontWeight: 700 }}>
+              <div style={{ display: 'grid', placeItems: 'center', minHeight: salesPerformanceChartHeight, color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>
                 No sales performance data available.
               </div>
             )}

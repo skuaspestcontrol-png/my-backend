@@ -1979,7 +1979,7 @@ export default function PayrollModule() {
   );
 
   return (
-    <section style={shell.page}>
+    <section className="payroll-page" style={shell.page}>
       <div style={shell.hero}>
         <h2 style={shell.title}>Payroll</h2>
         <p style={shell.subtitle}>

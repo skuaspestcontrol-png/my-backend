@@ -31,7 +31,7 @@ const shell = {
     minHeight: '60px',
     padding: '14px 18px',
     borderBottom: '1px solid transparent',
-    background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))',
+    background: 'var(--card-header-bg)',
     color: '#fff',
     display: 'flex',
     alignItems: 'center',

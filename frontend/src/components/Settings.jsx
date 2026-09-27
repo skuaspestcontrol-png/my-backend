@@ -384,7 +384,7 @@ const shell = {
     padding: '8px 14px'
   },
   panel: {
-    background: '#ffffff',
+    background: 'var(--surface)',
     borderRadius: '24px',
     border: '1px solid var(--border)',
     overflow: 'hidden',
@@ -432,14 +432,14 @@ const shell = {
     gap: '6px',
     padding: '14px',
     borderRight: '1px solid var(--border)',
-    background: '#fbfcff',
+    background: 'var(--surface-secondary)',
     justifyItems: 'stretch'
   },
   tabButton: {
     border: 'none',
     borderRadius: '10px',
     background: 'transparent',
-    color: 'var(--color-text)',
+    color: 'var(--text-secondary)',
     padding: '9px 10px',
     fontSize: '13px',
     fontWeight: 600,
@@ -450,7 +450,7 @@ const shell = {
     outline: 'none'
   },
   tabButtonActive: {
-    color: 'var(--color-white)',
+    color: '#ffffff',
     borderColor: 'transparent',
     background: 'var(--color-primary)',
     boxShadow: 'var(--shadow-md)',
@@ -466,10 +466,10 @@ const shell = {
   groupToggle: {
     width: '100%',
     minHeight: '42px',
-    border: '1px solid transparent',
+    border: '1px solid var(--border-soft)',
     borderRadius: '12px',
-    background: 'transparent',
-    color: 'var(--color-text)',
+    background: 'var(--surface)',
+    color: 'var(--text-primary)',
     padding: '9px 14px',
     fontSize: '13px',
     fontWeight: 600,
@@ -482,7 +482,8 @@ const shell = {
   },
   childButton: {
     marginLeft: '8px',
-    width: 'calc(100% - 8px)'
+    width: 'calc(100% - 8px)',
+    border: '1px solid transparent'
   },
   panelBody: { padding: '14px 16px', display: 'grid', alignContent: 'start', gap: '10px', flex: 1 },
   sectionHeading: { margin: 0, color: '#374151', fontSize: '13px', fontWeight: 800, letterSpacing: '0.02em' },
@@ -2908,7 +2909,7 @@ export default function Settings({ modalMode = false }) {
       overflow: 'visible',
       borderRight: 'none',
       borderBottom: '1px solid var(--border)',
-      background: '#fff'
+      background: 'var(--surface-secondary)'
     }
     : shell.tabsRow;
   const tabButtonStyle = isCompactLayout
@@ -2954,7 +2955,7 @@ export default function Settings({ modalMode = false }) {
   };
 
   return (
-    <section style={pageStyle}>
+    <section className="settings-page" style={pageStyle}>
       <div style={shell.workspaceShell}>
         <div style={panelStyle}>
           <header style={panelHeaderStyle}>
@@ -3037,7 +3038,7 @@ export default function Settings({ modalMode = false }) {
               justifyContent: 'space-between',
               gap: '10px',
               flexWrap: 'wrap',
-              background: '#fff'
+              background: 'var(--surface)'
             }}
           >
             <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, ...statusTone }}>

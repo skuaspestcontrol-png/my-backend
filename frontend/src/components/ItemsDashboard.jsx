@@ -280,7 +280,7 @@ const shell = {
     fontSize: '24px',
     fontWeight: 800,
     color: '#fff',
-    background: 'linear-gradient(135deg, var(--color-primary-deep), var(--color-primary))',
+    background: 'var(--card-header-bg)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
