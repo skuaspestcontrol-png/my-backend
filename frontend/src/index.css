@@ -3692,20 +3692,31 @@ html[data-theme="dark"] .service-calendar-page {
   color: var(--text-primary);
 }
 
+html[data-theme="dark"] .service-calendar-modal-surface {
+  background: var(--surface-card) !important;
+  border-color: rgba(73, 101, 221, 0.38) !important;
+  box-shadow: 0 30px 90px rgba(2, 6, 23, 0.55) !important;
+}
+
+html[data-theme="dark"] .service-calendar-modal-body {
+  background: var(--surface-card) !important;
+  border-top: 1px solid rgba(73, 101, 221, 0.30) !important;
+}
+
 html[data-theme="dark"] .service-calendar-card,
 html[data-theme="dark"] .service-calendar-summary-card,
 html[data-theme="dark"] .service-calendar-selected-card {
   background: var(--surface-card) !important;
   color: var(--text-primary) !important;
-  border-color: var(--border-soft) !important;
-  box-shadow: var(--shadow-card) !important;
+  border-color: rgba(73, 101, 221, 0.30) !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="dark"] .service-calendar-head,
 html[data-theme="dark"] .service-calendar-selected-head {
-  background: var(--surface-secondary) !important;
+  background: var(--table-header-bg) !important;
   color: var(--text-primary) !important;
-  border-color: var(--border-soft) !important;
+  border-color: rgba(73, 101, 221, 0.30) !important;
 }
 
 html[data-theme="dark"] .service-calendar-body,
@@ -3724,6 +3735,12 @@ html[data-theme="dark"] .service-calendar-event-title {
   color: var(--text-primary) !important;
 }
 
+html[data-theme="dark"] .service-calendar-page svg,
+html[data-theme="dark"] .service-calendar-modal-surface svg {
+  color: var(--icon-primary) !important;
+  stroke: currentColor !important;
+}
+
 html[data-theme="dark"] .service-calendar-summary-label,
 html[data-theme="dark"] .service-calendar-week-cell,
 html[data-theme="dark"] .service-calendar-event-meta {
@@ -3731,20 +3748,20 @@ html[data-theme="dark"] .service-calendar-event-meta {
 }
 
 html[data-theme="dark"] .service-calendar-day {
-  background: var(--surface-secondary) !important;
+  background: var(--surface-card) !important;
   color: var(--text-primary) !important;
-  border-color: var(--border-soft) !important;
+  border-color: rgba(73, 101, 221, 0.30) !important;
 }
 
 html[data-theme="dark"] .service-calendar-day-muted {
-  background: rgba(148, 163, 184, 0.12) !important;
+  background: var(--surface-elevated) !important;
   color: var(--text-muted) !important;
   opacity: 0.78 !important;
 }
 
 html[data-theme="dark"] .service-calendar-day-selected {
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 2px var(--focus-ring) !important;
+  border-color: rgba(125, 157, 255, 0.70) !important;
+  box-shadow: 0 0 0 1px rgba(125, 157, 255, 0.32) !important;
 }
 
 html[data-theme="dark"] .service-calendar-day-badge,

@@ -1177,6 +1177,7 @@ export default function DashboardLayout({ children }) {
             }}
         >
           <div
+            className="service-calendar-modal-surface"
             onClick={(event) => event.stopPropagation()}
             style={{
               width: 'min(1200px, 100%)',
@@ -1232,7 +1233,7 @@ export default function DashboardLayout({ children }) {
                 <X size={18} />
               </button>
             </div>
-            <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '12px' : '16px', background: 'rgba(248, 250, 252, 0.46)' }}>
+            <div className="service-calendar-modal-body" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '12px' : '16px', background: 'rgba(248, 250, 252, 0.46)' }}>
               <Suspense fallback={<div style={{ padding: '20px', color: '#475569', fontWeight: 700 }}>Loading service calendar...</div>}>
                 <ServiceCalendar />
               </Suspense>
