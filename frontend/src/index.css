@@ -4417,3 +4417,168 @@ html[data-theme="dark"] .stock-management-page button:not([style*="background: v
 html[data-theme="dark"] .stock-management-page button[style*="background: var(--color-primary)"] {
   color: #ffffff !important;
 }
+
+/* Final CRM dark theme consistency pass for lead, contract, invoice, quotation, and payment views. */
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page) {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"], [style*="background: rgba(255"], [style*="background: linear-gradient(180deg, #fff"], [style*="background: linear-gradient(180deg, #ffffff"], [style*="background: linear-gradient(180deg, rgba(255"], [style*="background: linear-gradient(180deg, rgba(250"], [style*="background: linear-gradient(180deg, rgba(249"], [style*="background: linear-gradient(180deg, rgba(248"], [style*="background-color: #fff"], [style*="background-color: #ffffff"], [style*="background-color: rgb(255, 255, 255)"]) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where([style*="background: #f8fafc"], [style*="background: #f9fafb"], [style*="background: #f1f5f9"], [style*="background: #eef2f7"], [style*="background: #F8FAFC"], [style*="background: #F9FAFB"], [style*="background-color: #f8fafc"], [style*="background-color: #f9fafb"], [style*="background-color: #f1f5f9"]) {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where([style*="color: #000"], [style*="color: #000000"], [style*="color: #111"], [style*="color: #111111"], [style*="color: #111827"], [style*="color: #0f172a"], [style*="color: #1f2937"], [style*="color: #334155"], [style*="color: black"], [style*="color:#000"], [style*="color:#111"], [style*="color:#111111"], [style*="color:#111827"], [style*="color:#0f172a"], [style*="color:#1f2937"], [style*="color:black"], [style*="color: rgb(0, 0, 0)"], [style*="color: rgb(17, 17, 17)"], [style*="color: rgb(17, 24, 39)"], [style*="color: rgb(15, 23, 42)"], [style*="color: rgb(31, 41, 55)"], [style*="color: rgb(51, 65, 85)"]) {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where([style*="color: #475569"], [style*="color: #64748b"], [style*="color: #6b7280"], [style*="color: #7c8797"], [style*="color: #94a3b8"], [style*="color: rgb(71, 85, 105)"], [style*="color: rgb(100, 116, 139)"], [style*="color: rgb(107, 114, 128)"], [style*="color: rgb(148, 163, 184)"]) {
+  color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where(h1, h2, h3, h4, h5, h6, p, span, strong, label, legend, th, td, button) {
+  border-color: var(--border-soft);
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where(input::placeholder, textarea::placeholder) {
+  color: var(--input-placeholder) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where(.crm-table-shell, .responsive-table, table) {
+  background: var(--table-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  table thead :where(th, td) {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  table tbody td {
+  background: var(--table-row-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .lead-followups-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page, .payment-received-page)
+  :where(tfoot, tfoot tr, tfoot td, [style*="border-top"][style*="background"], [style*="padding: 10px"][style*="background"], [style*="padding: 10px"][style*="border-top"]) {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .lead-followups-page .lead-followups-stat-icon {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .lead-followups-page .lead-followups-stat-icon svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .crm-kpi-card svg,
+html[data-theme="dark"] .crm-kpi-card [style*="background: var(--color-primary-soft)"] {
+  color: var(--icon-primary) !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .lead-capture-page :where([aria-label="More options"], [aria-label="Customize fields"]),
+html[data-theme="dark"] .invoice-dashboard-page :where([aria-label="More options"], [aria-label="Customize fields"]),
+html[data-theme="dark"] .contract-dashboard-page :where([aria-label="More options"], [aria-label="Customize fields"]) {
+  background: var(--surface-elevated) !important;
+  color: var(--icon-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page) :where(.crm-action-chip, .crm-action-menu-panel, [data-action-trigger="true"], [data-action-menu="true"]) {
+  background: var(--dropdown-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.44) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page) .crm-action-menu-item {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] :where(.lead-capture-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page) .crm-action-menu-item:hover {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page :where(.crm-modal-surface, .crm-modal-surface-body, .crm-modal-surface-footer),
+html[data-theme="dark"] .invoice-dashboard-page :where(.crm-modal-surface, .crm-modal-surface-body, .crm-modal-surface-footer) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page :where(.crm-modal-surface-header),
+html[data-theme="dark"] .invoice-dashboard-page :where(.crm-modal-surface-header) {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page :where(.crm-modal-surface [style*="border: 1px"], .crm-modal-surface [style*="border:1px"]),
+html[data-theme="dark"] .invoice-dashboard-page :where(.crm-modal-surface [style*="border: 1px"], .crm-modal-surface [style*="border:1px"]) {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .contract-dashboard-page :where(.crm-modal-surface [style*="background: #fff"], .crm-modal-surface [style*="background: #ffffff"], .crm-modal-surface [style*="background: rgb(255, 255, 255)"]),
+html[data-theme="dark"] .invoice-dashboard-page :where(.crm-modal-surface [style*="background: #fff"], .crm-modal-surface [style*="background: #ffffff"], .crm-modal-surface [style*="background: rgb(255, 255, 255)"]) {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .invoice-dashboard-page :where([style*="background: #fff1f2"], [style*="background: #fee2e2"]),
+html[data-theme="dark"] .payment-received-page :where([style*="background: #fff1f2"], [style*="background: #fee2e2"]) {
+  background: rgba(127, 29, 29, 0.28) !important;
+  color: #fecaca !important;
+  border-color: rgba(248, 113, 113, 0.36) !important;
+}
+
+html[data-theme="dark"] .payment-received-page button:has(> span),
+html[data-theme="dark"] .payment-received-page button {
+  border-color: var(--border-soft);
+}
+
+html[data-theme="dark"] .payment-received-page button[style*="color: #b91c1c"] {
+  background: rgba(127, 29, 29, 0.28) !important;
+  color: #fecaca !important;
+  border-color: rgba(248, 113, 113, 0.36) !important;
+}

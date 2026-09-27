@@ -421,7 +421,7 @@ export default function LeadFollowups() {
           const Icon = stat.icon;
           return (
             <div key={stat.label} style={statCardStyle}>
-              <span style={{ ...statIconStyle, color: stat.color, background: stat.bg }}>
+              <span className="lead-followups-stat-icon" style={{ ...statIconStyle, color: stat.color, background: stat.bg }}>
                 <Icon size={24} />
               </span>
               <span>

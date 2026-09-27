@@ -1859,7 +1859,7 @@ export default function ContractDashboard() {
   };
 
   return (
-    <div style={shell.page}>
+    <div className="contract-dashboard-page" style={shell.page}>
       <div style={shell.card}>
         <div style={cardTopStyle}>
           <div style={shell.titleWrap}>

@@ -409,7 +409,7 @@ export default function PaymentReceivedDashboard() {
   };
 
   return (
-    <section style={shell.page}>
+    <section className="payment-received-page" style={shell.page}>
       <div style={shell.hero}>
         <h2 style={shell.title}>Payment Received Dashboard</h2>
         <p style={shell.sub}>{status}</p>

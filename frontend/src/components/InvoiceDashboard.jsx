@@ -4025,7 +4025,7 @@ export default function InvoiceDashboard() {
 
   return (
     <section
-      className="crm-page crm-section"
+      className="crm-page crm-section invoice-dashboard-page"
       style={{
         ...shell.page,
         visibility: hideInvoiceShellWhileOpeningModal ? 'hidden' : 'visible'
