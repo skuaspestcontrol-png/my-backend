@@ -7,7 +7,6 @@ import AppSelect from '../../components/ui/AppSelect';
 import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
-import StatusBadge from '../../components/ui/StatusBadge';
 import useColumnResize from '../../components/table/useColumnResize';
 import { apiDelete, apiGet, apiPost, apiPut, currentMonth, currentYear, monthOptions, money, number, percent, safeRows, subscribeSalesPerformanceRefresh, triggerSalesPerformanceRefresh } from './salesPerformanceApi';
 import './salesPerformance.css';
@@ -547,9 +546,9 @@ export default function SalesTargets() {
                   <tr key={row.id} style={{ height: 48 }}>
                     <td className="table-name-cell table-sticky-first sticky-sales-person" style={{ ...targetBody('salesPerson'), background: '#fff' }}>{displaySalesPersonName(row)}</td>
                     <td className="table-status-cell" style={targetBody('type', 'center')}>
-                      <StatusBadge status={row.targetType === 'yearly' ? 'info' : 'active'}>
+                      <span className={`sales-target-type-pill sales-target-type-pill--${row.targetType === 'yearly' ? 'yearly' : 'monthly'}`}>
                         {row.targetType === 'yearly' ? 'Yearly' : 'Monthly'}
-                      </StatusBadge>
+                      </span>
                     </td>
                     <td className="table-number-cell" style={targetBody('month', 'center')}>{row.targetType === 'monthly' ? monthOptions.find((month) => month.value === Number(row.targetMonth))?.label || '---' : '---'}</td>
                     <td className="table-number-cell" style={targetBody('year', 'center')}>{row.targetYear}</td>

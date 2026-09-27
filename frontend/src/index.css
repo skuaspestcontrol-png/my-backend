@@ -4464,6 +4464,103 @@ html[data-theme="dark"] .customer-dashboard-page :where([aria-label="More option
   stroke: currentColor !important;
 }
 
+html[data-theme="dark"] .vendor-dashboard-page {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-dashboard-page :where(.vendor-toolbar-icon-btn, .vendor-table-icon-btn) {
+  background: var(--surface-elevated) !important;
+  color: var(--icon-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .vendor-dashboard-page :where(.vendor-toolbar-icon-btn, .vendor-table-icon-btn) svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .vendor-dashboard-page > div:first-child {
+  background: var(--table-header-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .vendor-dashboard-page > div:first-child h1 {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-dashboard-page :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"]) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .vendor-dashboard-page :where([style*="color: #111827"], [style*="color: #1f2937"], [style*="color: #334155"], [style*="color: #475569"], [style*="color: #3f3f46"]) {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.55) !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface .crm-modal-surface-header {
+  background: var(--card-header-bg) !important;
+  color: #ffffff !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface .crm-modal-surface-body,
+html[data-theme="dark"] .vendor-modal-surface .crm-modal-surface-footer {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .vendor-modal-card {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface :where(label, h4, p, span) {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface input:not([type="checkbox"]):not([type="radio"]),
+html[data-theme="dark"] .vendor-modal-surface select,
+html[data-theme="dark"] .vendor-modal-surface textarea {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface input:disabled {
+  background: var(--surface-elevated) !important;
+  color: var(--text-muted) !important;
+  -webkit-text-fill-color: var(--text-muted) !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface button {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface .crm-modal-surface-footer button:first-of-type {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-modal-surface .crm-modal-surface-footer button:last-of-type {
+  background: var(--color-primary) !important;
+  color: #ffffff !important;
+}
+
 html[data-theme="dark"] .contract-dashboard-page > [style*="background"],
 html[data-theme="dark"] .contract-dashboard-page > div:first-child,
 html[data-theme="dark"] .contract-dashboard-page > div:first-child > div {

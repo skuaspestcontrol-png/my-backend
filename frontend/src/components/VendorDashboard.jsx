@@ -430,7 +430,7 @@ export default function VendorDashboard() {
   };
 
   return (
-    <section style={shell.page}>
+    <section className="vendor-dashboard-page" style={shell.page}>
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendors Dashboard</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -440,6 +440,7 @@ export default function VendorDashboard() {
           <div ref={customizeWrapRef} style={shell.customizeWrap}>
             <button
               type="button"
+              className="vendor-toolbar-icon-btn"
               style={shell.customizeButton}
               aria-label="Customize columns"
               title="Customize columns"
@@ -513,8 +514,8 @@ export default function VendorDashboard() {
                 })}
                 <td style={cellStyle('actions', 'left')}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', justifyContent: 'flex-start' }}>
-                    <button type="button" style={shell.iconBtn} onClick={() => openEdit(vendor)} aria-label="Edit vendor" title="Edit vendor"><Pencil size={15} strokeWidth={2.25} /></button>
-                    <button type="button" style={shell.iconBtn} onClick={() => deleteVendor(vendor._id)} aria-label="Delete vendor" title="Delete vendor"><Trash2 size={15} strokeWidth={2.25} /></button>
+                    <button type="button" className="vendor-table-icon-btn" style={shell.iconBtn} onClick={() => openEdit(vendor)} aria-label="Edit vendor" title="Edit vendor"><Pencil size={15} strokeWidth={2.25} /></button>
+                    <button type="button" className="vendor-table-icon-btn" style={shell.iconBtn} onClick={() => deleteVendor(vendor._id)} aria-label="Delete vendor" title="Delete vendor"><Trash2 size={15} strokeWidth={2.25} /></button>
                   </div>
                 </td>
               </tr>
@@ -528,13 +529,13 @@ export default function VendorDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeModal}>
-          <form className="crm-modal-surface" style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
+          <form className="crm-modal-surface vendor-modal-surface" style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
             <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalTitle}>{editingId ? 'Edit Vendor' : 'New Vendor'}</h3>
               <button type="button" style={shell.closeBtn} onClick={closeModal}><X size={24} /></button>
             </div>
             <div className="crm-modal-surface-body" style={bodyStyle}>
-              <div style={shell.card}>
+              <div className="vendor-modal-card" style={shell.card}>
                 <p style={shell.sectionTitle}>Vendor Details</p>
                 <div style={gridStyle}>
                   <div style={shell.field}><label style={shell.label}>Company Name</label><input style={shell.input} placeholder="Enter company name" value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
@@ -572,7 +573,7 @@ export default function VendorDashboard() {
               </div>
 
               <div style={addressSplitStyle}>
-                <div style={addressCardStyle}>
+                <div className="vendor-modal-card vendor-modal-address-card" style={addressCardStyle}>
                   <div style={shell.addressHead}>
                     <h4 style={addressTitleStyle}>Billing Address</h4>
                   </div>
@@ -599,7 +600,7 @@ export default function VendorDashboard() {
                   </div>
                 </div>
 
-                <div style={addressCardStyle}>
+                <div className="vendor-modal-card vendor-modal-address-card" style={addressCardStyle}>
                   <div style={shell.addressHead}>
                     <h4 style={addressTitleStyle}>Shipping Address</h4>
                     <button type="button" style={shell.addressCopy} onClick={() => setForm((prev) => ({ ...prev, ...copyBillingToShipping(prev) }))}>
