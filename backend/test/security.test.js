@@ -399,6 +399,8 @@ test('financial payload validation rejects malformed money fields', () => {
     assert.ok(security.validateFinancialPayload(body), JSON.stringify(body));
   }
   assert.equal(security.validateFinancialPayload({ total: '100.50', items: [{ quantity: '2', rate: '50.25' }], roundOff: '-0.50' }), '');
+  assert.equal(security.validateFinancialPayload({ grand_total: 6490, amount_in_words: '6,490 Rupees Only' }), '');
+  assert.equal(security.validateFinancialPayload({ net_salary: 50000, salary_in_words: 'Fifty Thousand Rupees Only' }), '');
 });
 test('outbound fetch rejects unsafe schemes and IP ranges', async () => {
   for (const ip of ['0.0.0.0', '127.0.0.1', '10.1.1.1', '169.254.169.254', '172.16.1.1', '192.168.1.1', '::1', '::ffff:127.0.0.1', 'fd00::1']) assert.equal(publicIp(ip), false, ip);
