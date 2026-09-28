@@ -5054,6 +5054,31 @@ html[data-theme="dark"] .whatsapp-marketing-page {
   color: var(--text-primary) !important;
 }
 
+html[data-theme="dark"] .whatsapp-marketing-page :where(.whatsapp-stat-card, .whatsapp-panel-card, .whatsapp-helper-card) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+  background-image: none !important;
+  -webkit-text-fill-color: initial !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page .whatsapp-helper-card {
+  background: var(--surface-secondary) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page :where(.whatsapp-stat-card, .whatsapp-panel-card, .whatsapp-helper-card)
+  :where(h1, h2, h3, h4, h5, h6, p, span, strong, div, label) {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page :where(.whatsapp-stat-card, .whatsapp-panel-card, .whatsapp-helper-card)
+  :where([style*="color: var(--text-secondary)"], [style*="color: #64748b"], [style*="color: #6b7280"]) {
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+}
+
 html[data-theme="dark"] .whatsapp-marketing-page
   :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"], [style*="background: linear-gradient(180deg, #ffffff"], [style*="background: linear-gradient(180deg, rgba(255"], [style*="background: linear-gradient(180deg, rgba(249"], [style*="background: linear-gradient(180deg, rgba(248"], [style*="background-color: #fff"], [style*="background-color: #ffffff"]) {
   background: var(--surface-card) !important;

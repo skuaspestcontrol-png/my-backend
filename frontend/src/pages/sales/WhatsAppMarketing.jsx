@@ -872,18 +872,18 @@ export default function WhatsAppMarketing() {
       />
 
       {message ? (
-        <div style={styles.helper}>
+        <div className="whatsapp-helper-card" style={styles.helper}>
           <strong style={{ color: 'var(--text-primary)' }}>Status:</strong> <span style={styles.muted}>{message}</span>
         </div>
       ) : null}
 
       <div style={styles.topRow}>
-        <div style={styles.statCard}><p style={styles.statLabel}>Total Campaigns</p><p style={styles.statValue}>{stats.totalCampaigns}</p></div>
-        <div style={styles.statCard}><p style={styles.statLabel}>Scheduled</p><p style={styles.statValue}>{stats.scheduled}</p></div>
-        <div style={styles.statCard}><p style={styles.statLabel}>Sent</p><p style={styles.statValue}>{stats.sent}</p></div>
-        <div style={styles.statCard}><p style={styles.statLabel}>Failed</p><p style={styles.statValue}>{stats.failed}</p></div>
-        <div style={styles.statCard}><p style={styles.statLabel}>Recipients</p><p style={styles.statValue}>{stats.recipients}</p></div>
-        <div style={styles.statCard}><p style={styles.statLabel}>Opted Out</p><p style={styles.statValue}>{stats.optedOut}</p></div>
+        <div className="whatsapp-stat-card" style={styles.statCard}><p style={styles.statLabel}>Total Campaigns</p><p style={styles.statValue}>{stats.totalCampaigns}</p></div>
+        <div className="whatsapp-stat-card" style={styles.statCard}><p style={styles.statLabel}>Scheduled</p><p style={styles.statValue}>{stats.scheduled}</p></div>
+        <div className="whatsapp-stat-card" style={styles.statCard}><p style={styles.statLabel}>Sent</p><p style={styles.statValue}>{stats.sent}</p></div>
+        <div className="whatsapp-stat-card" style={styles.statCard}><p style={styles.statLabel}>Failed</p><p style={styles.statValue}>{stats.failed}</p></div>
+        <div className="whatsapp-stat-card" style={styles.statCard}><p style={styles.statLabel}>Recipients</p><p style={styles.statValue}>{stats.recipients}</p></div>
+        <div className="whatsapp-stat-card" style={styles.statCard}><p style={styles.statLabel}>Opted Out</p><p style={styles.statValue}>{stats.optedOut}</p></div>
       </div>
 
       <div style={styles.actionBar}>
@@ -903,7 +903,7 @@ export default function WhatsAppMarketing() {
 
       {activeTab === 'Campaigns' ? (
         <div style={styles.grid2}>
-          <div style={styles.panel}>
+          <div className="whatsapp-panel-card" style={styles.panel}>
             <div style={styles.panelPad}>
               <div style={{ display: 'grid', gap: 10 }}>
                 <div style={styles.fieldGrid}>
@@ -974,7 +974,7 @@ export default function WhatsAppMarketing() {
                     <textarea value={form.notes} onChange={(event) => updateForm({ notes: event.target.value })} style={{ ...styles.textarea, minHeight: 80 }} placeholder="Internal note for the campaign." />
                   </label>
 
-                  <div style={{ ...styles.helper, display: 'grid', gap: 10 }}>
+                  <div className="whatsapp-helper-card" style={{ ...styles.helper, display: 'grid', gap: 10 }}>
                     <div style={styles.checkboxRow}>
                       <input type="checkbox" checked={form.allowDuplicatePhones} onChange={(event) => updateForm({ allowDuplicatePhones: event.target.checked })} />
                       <span style={styles.muted}>Allow duplicate numbers</span>
@@ -1017,7 +1017,7 @@ export default function WhatsAppMarketing() {
           </div>
 
           <div style={{ display: 'grid', gap: 12 }}>
-            <div style={styles.panel}>
+            <div className="whatsapp-panel-card" style={styles.panel}>
               <div style={styles.panelPad}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   <div>
@@ -1030,9 +1030,9 @@ export default function WhatsAppMarketing() {
                   </div>
                 </div>
                 <div style={styles.grid3}>
-                  <div style={styles.helper}><div style={styles.statLabel}>Selected</div><div style={styles.statValue}>{dedupedRecipients.selectedCount}</div></div>
-                  <div style={styles.helper}><div style={styles.statLabel}>Allowed</div><div style={styles.statValue}>{dedupedRecipients.uniqueCount}</div></div>
-                  <div style={styles.helper}><div style={styles.statLabel}>Skipped</div><div style={styles.statValue}>{dedupedRecipients.duplicatesRemoved + dedupedRecipients.optedOutCount}</div></div>
+                  <div className="whatsapp-helper-card" style={styles.helper}><div style={styles.statLabel}>Selected</div><div style={styles.statValue}>{dedupedRecipients.selectedCount}</div></div>
+                  <div className="whatsapp-helper-card" style={styles.helper}><div style={styles.statLabel}>Allowed</div><div style={styles.statValue}>{dedupedRecipients.uniqueCount}</div></div>
+                  <div className="whatsapp-helper-card" style={styles.helper}><div style={styles.statLabel}>Skipped</div><div style={styles.statValue}>{dedupedRecipients.duplicatesRemoved + dedupedRecipients.optedOutCount}</div></div>
                 </div>
                 <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
                   <div style={styles.checkboxRow}>
@@ -1051,10 +1051,10 @@ export default function WhatsAppMarketing() {
               </div>
             </div>
 
-            <div style={styles.panel}>
+            <div className="whatsapp-panel-card" style={styles.panel}>
               <div style={styles.panelPad}>
                 <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 10 }}>Preview Message</div>
-                <div style={styles.helper}>
+                <div className="whatsapp-helper-card" style={styles.helper}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Rendered sample</div>
                   <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'var(--text-primary)', fontSize: 14 }}>
                     {renderTemplate(form.message || quickTemplates[form.campaignType] || '', buildCampaignContext(filteredCustomers[0] || {}, form))}
@@ -1067,7 +1067,7 @@ export default function WhatsAppMarketing() {
       ) : null}
 
       {activeTab === 'Templates' ? (
-        <div style={styles.panel}>
+        <div className="whatsapp-panel-card" style={styles.panel}>
           <div style={styles.panelPad}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <div>
@@ -1114,7 +1114,7 @@ export default function WhatsAppMarketing() {
 
       {activeTab === 'Audience' ? (
         <div style={styles.grid2}>
-          <div style={styles.panel}>
+          <div className="whatsapp-panel-card" style={styles.panel}>
             <div style={styles.panelPad}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div>
@@ -1132,7 +1132,7 @@ export default function WhatsAppMarketing() {
                 </div>
               </div>
 
-              <div style={{ ...styles.helper, display: 'grid', gap: 10, marginTop: 12 }}>
+              <div className="whatsapp-helper-card" style={{ ...styles.helper, display: 'grid', gap: 10, marginTop: 12 }}>
                 <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>Smart CRM Segmentation</div>
                 <div style={{ ...styles.fieldGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                   <label style={styles.field}><span style={styles.label}>Renewal Window</span><select value={filters.renewalStatus === 'expired' ? 'expired' : filters.renewalDays} onChange={(event) => setFilters((prev) => ({ ...prev, renewalDays: event.target.value === 'expired' ? '' : event.target.value, renewalStatus: event.target.value === 'expired' ? 'expired' : '' }))} style={styles.select}><option value="">Any renewal date</option><option value="7">Next 7 days</option><option value="15">Next 15 days</option><option value="30">Next 30 days</option><option value="60">Next 60 days</option><option value="expired">Already expired</option></select></label>
@@ -1161,7 +1161,7 @@ export default function WhatsAppMarketing() {
                   </label>
                 ))}
               </div>
-              <div style={{ ...styles.helper, display: 'grid', gap: 8, marginTop: 12 }}>
+              <div className="whatsapp-helper-card" style={{ ...styles.helper, display: 'grid', gap: 8, marginTop: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}><strong>Server Audience Preview</strong><span style={styles.muted}>Updated from CRM data</span></div>
                 <div style={{ ...styles.grid3, gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' }}>
                   {[
@@ -1226,19 +1226,19 @@ export default function WhatsAppMarketing() {
           </div>
 
           <div style={{ display: 'grid', gap: 12 }}>
-            <div style={styles.panel}>
+            <div className="whatsapp-panel-card" style={styles.panel}>
               <div style={styles.panelPad}>
                 <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)' }}>Selection Summary</div>
                 <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
-                  <div style={styles.helper}><div style={styles.statLabel}>Filtered Customers</div><div style={styles.statValue}>{filteredCustomers.length}</div></div>
-                  <div style={styles.helper}><div style={styles.statLabel}>Selected Rows</div><div style={styles.statValue}>{selectedIds.length || filteredCustomers.length}</div></div>
-                  <div style={styles.helper}><div style={styles.statLabel}>Unique Numbers</div><div style={styles.statValue}>{dedupedRecipients.uniqueCount}</div></div>
-                  <div style={styles.helper}><div style={styles.statLabel}>Duplicates Removed</div><div style={styles.statValue}>{dedupedRecipients.duplicatesRemoved}</div></div>
+                  <div className="whatsapp-helper-card" style={styles.helper}><div style={styles.statLabel}>Filtered Customers</div><div style={styles.statValue}>{filteredCustomers.length}</div></div>
+                  <div className="whatsapp-helper-card" style={styles.helper}><div style={styles.statLabel}>Selected Rows</div><div style={styles.statValue}>{selectedIds.length || filteredCustomers.length}</div></div>
+                  <div className="whatsapp-helper-card" style={styles.helper}><div style={styles.statLabel}>Unique Numbers</div><div style={styles.statValue}>{dedupedRecipients.uniqueCount}</div></div>
+                  <div className="whatsapp-helper-card" style={styles.helper}><div style={styles.statLabel}>Duplicates Removed</div><div style={styles.statValue}>{dedupedRecipients.duplicatesRemoved}</div></div>
                 </div>
               </div>
             </div>
 
-            <div style={styles.panel}>
+            <div className="whatsapp-panel-card" style={styles.panel}>
               <div style={styles.panelPad}>
                 <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)' }}>How It Works</div>
                 <div style={styles.muted}>
@@ -1255,7 +1255,7 @@ export default function WhatsAppMarketing() {
 
       {activeTab === 'Logs' ? (
         <div style={{ display: 'grid', gap: 12 }}>
-          <div style={styles.panel}>
+          <div className="whatsapp-panel-card" style={styles.panel}>
             <div style={styles.panelPad}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div>
@@ -1298,7 +1298,7 @@ export default function WhatsAppMarketing() {
             </div>
           </div>
 
-          <div style={styles.panel}>
+          <div className="whatsapp-panel-card" style={styles.panel}>
             <div style={styles.panelPad}>
               <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Delivery Logs</div>
               <p style={styles.muted}>These are the underlying WhatsApp sends created through the centralized sender.</p>
@@ -1332,7 +1332,7 @@ export default function WhatsAppMarketing() {
       ) : null}
 
       {loading ? (
-        <div style={styles.helper}>Loading WhatsApp marketing data...</div>
+        <div className="whatsapp-helper-card" style={styles.helper}>Loading WhatsApp marketing data...</div>
       ) : null}
     </div>
   );
