@@ -6,7 +6,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const card = {
   border: '1px solid var(--border)',
   borderRadius: '14px',
-  background: '#fff',
+  background: 'var(--surface-card-elevated)',
+  color: 'var(--text-primary)',
   padding: '16px',
   display: 'grid',
   gap: '12px'
@@ -78,12 +79,12 @@ export default function GoogleIntegrationSettings() {
   return (
     <div style={{ display: 'grid', gap: '14px' }}>
       <div style={card}>
-        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text)' }}>Google Integration</h3>
-        <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
+        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>Google Integration</h3>
+        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
           Connect Google Tasks to auto-sync CRM job schedules and completion status.
         </p>
 
-        <div style={{ display: 'grid', gap: '8px', fontSize: '14px', color: 'var(--text)' }}>
+        <div style={{ display: 'grid', gap: '8px', fontSize: '14px', color: 'var(--text-primary)' }}>
           <div><strong>Connected:</strong> {integration.connected ? 'Yes' : 'No'}</div>
           <div><strong>Google Account:</strong> {integration.googleEmail || '-'}</div>
           <div><strong>Task List:</strong> {integration.tasklistId ? 'SKUAS CRM Tasks' : '-'}</div>
@@ -117,9 +118,9 @@ export default function GoogleIntegrationSettings() {
               minWidth: '150px',
               padding: '0 12px',
               borderRadius: '10px',
-              border: '1px solid rgba(220, 38, 38, 0.24)',
-              background: integration.connected ? '#fff' : '#f8fafc',
-              color: integration.connected ? '#dc2626' : '#94a3b8',
+              border: '1px solid var(--border-soft)',
+              background: 'var(--surface-card-elevated)',
+              color: integration.connected ? '#f87171' : 'var(--text-muted)',
               fontWeight: 700,
               cursor: integration.connected ? 'pointer' : 'not-allowed'
             }}
@@ -132,7 +133,7 @@ export default function GoogleIntegrationSettings() {
         </div>
 
         {status ? (
-          <div style={{ color: status.toLowerCase().includes('could not') ? '#dc2626' : '#166534', fontSize: '14px' }}>
+          <div style={{ color: status.toLowerCase().includes('could not') ? '#f87171' : '#86efac', fontSize: '14px' }}>
             {status}
           </div>
         ) : null}

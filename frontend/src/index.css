@@ -4008,6 +4008,12 @@ html[data-theme="dark"] .settings-page {
   color: var(--text-primary) !important;
 }
 
+html[data-theme="dark"] .settings-page ::selection {
+  background: rgba(124, 58, 237, 0.55);
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+
 html[data-theme="dark"] .settings-page [style*="background: #fff"],
 html[data-theme="dark"] .settings-page [style*="background: #ffffff"],
 html[data-theme="dark"] .settings-page [style*="background: rgb(255, 255, 255)"],
@@ -4138,6 +4144,26 @@ html[data-theme="dark"] .settings-page a[style*="background: #1d4ed8"] {
 html[data-theme="dark"] .settings-page svg {
   color: currentColor !important;
   stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .crm-action-menu-panel {
+  background: var(--surface-card-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.50) !important;
+}
+
+html[data-theme="dark"] .crm-action-menu-panel .crm-action-menu-item {
+  background: var(--surface-card-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .crm-action-menu-panel .crm-action-menu-item:hover,
+html[data-theme="dark"] .crm-action-menu-panel .crm-action-menu-item:focus-visible {
+  background: var(--hover-bg) !important;
+  color: #ffffff !important;
+  outline: none;
 }
 
 html[data-theme="dark"] .items-dashboard-page {
