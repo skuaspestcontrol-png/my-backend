@@ -30,8 +30,26 @@ const toNumber = (v, d = 0) => {
 };
 
 const clean = (v) => String(v ?? '').trim();
-const uploadsDir = path.join(__dirname, '..', 'uploads');
 const resolveServerOrigin = (_req) => String(process.env.SERVER_ORIGIN || 'https://crm.skuaspestcontrol.com').replace(/\/+$/, '');
+
+const resolveQuotationUploadsDir = () => {
+  const preferred = String(
+    process.env.UPLOADS_DIR
+    || process.env.UPLOADS_ROOT_DIR
+    || '/home/u610009593/uploads-skuas-crm'
+  ).trim();
+  const fallback = path.join(__dirname, '..', 'storage', 'uploads');
+  const candidates = [preferred, fallback].filter(Boolean);
+  for (const dir of candidates) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      return dir;
+    } catch (_error) {
+      // Try the next uploads root. The returned path must match the /uploads static root when configured.
+    }
+  }
+  return fallback;
+};
 
 const resolveQuotationWhatsappConfig = (settings = {}) => {
   const baseUrl = String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim();
@@ -1085,6 +1103,7 @@ router.post('/quotations/:id/send-whatsapp', async (req, res) => {
       companySettings
     });
 
+    const uploadsDir = resolveQuotationUploadsDir();
     fs.mkdirSync(uploadsDir, { recursive: true });
     const baseName = `${clean(quotation.quotation_number || `quotation-${id}`) || `quotation-${id}`}.pdf`.replace(/[\\/:*?"<>|]+/g, '-');
     const attachmentFileName = `whatsapp-quotation-${Date.now()}-${baseName}`;

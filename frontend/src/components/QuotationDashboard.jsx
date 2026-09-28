@@ -378,7 +378,7 @@ function QuotationDashboardInner() {
     const quotationNumber = String(row.quotation_number || row.quotationNumber || row.quotationNo || row.quotation_no || row.id || 'Quotation').trim();
     const customerName = String(row.customer_name || row.customer || row.customerName || 'Customer').trim() || 'Customer';
     const pdfUrl = `${API_BASE_URL}/api/quotations/${row.id}/pdf`;
-    const rawPhone = String(row.whatsappNumber || row.whatsapp || row.mobile || row.mobileNumber || row.phoneNumber || row.phone || '').trim();
+    const rawPhone = String(row.phone || row.phoneNumber || row.customer_phone || row.customerPhone || row.whatsappNumber || row.whatsapp || row.mobile || row.mobileNumber || '').trim();
     if (!rawPhone) {
       showToast(`No WhatsApp number found for ${customerName}.`);
     }
@@ -396,6 +396,7 @@ function QuotationDashboardInner() {
         },
         contextData: {
           customer_name: customerName,
+          customer_phone: rawPhone,
           quotation_no: quotationNumber,
           quotation_number: quotationNumber,
           quotation_date: formatDate(row.quotation_date || row.date || row.created_at || row.createdAt),
