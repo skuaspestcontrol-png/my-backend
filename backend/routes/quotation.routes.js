@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { query: dbQuery, getConnection } = require('../lib/db');
 const { generateQuotationPdfBuffer } = require('../quotationPdf');
-const { normalizeOptionalIndianMobileNumber } = require('../lib/phone');
+const { normalizeOptionalIndianMobileNumber, normalizeWhatsAppPhoneNumber } = require('../lib/phone');
 const { sendWhatsAppMessage } = require('../services/whatsapp.service');
 const { sendEmailMessage, normalizeEmailSettings } = require('../services/email.service');
 const {
@@ -32,6 +32,27 @@ const toNumber = (v, d = 0) => {
 const clean = (v) => String(v ?? '').trim();
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 const resolveServerOrigin = (_req) => String(process.env.SERVER_ORIGIN || 'https://crm.skuaspestcontrol.com').replace(/\/+$/, '');
+
+const resolveQuotationWhatsappConfig = (settings = {}) => {
+  const baseUrl = String(settings.whatsappApiBaseUrl || settings.apiBaseUrl || '').trim();
+  const accessToken = settings.whatsappAccessToken || process.env.WHATSAPP_ACCESS_TOKEN || '';
+  const phoneNumberId = settings.whatsappInstanceId || settings.whatsappPhoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+  const configuredProviderType = String(settings.whatsappProviderType || settings.providerType || '').trim().toLowerCase();
+  const providerType = configuredProviderType === 'meta'
+    ? 'meta'
+    : configuredProviderType === 'deropo'
+      ? 'deropo'
+      : configuredProviderType === 'custom' && baseUrl && accessToken && !phoneNumberId
+        ? 'deropo'
+        : configuredProviderType || (baseUrl ? 'deropo' : 'meta');
+  return {
+    apiVersion: settings.whatsappApiVersion || process.env.WHATSAPP_API_VERSION || 'v23.0',
+    providerType,
+    baseUrl,
+    phoneNumberId,
+    accessToken
+  };
+};
 
 const readJsonFile = (filePath, fallback) => {
   try {
@@ -1053,7 +1074,8 @@ router.post('/quotations/:id/send-whatsapp', async (req, res) => {
       || ''
     ).trim();
 
-    if (!recipientPhone) return res.status(400).json({ error: 'Valid WhatsApp phone number is required' });
+    const phone = normalizeWhatsAppPhoneNumber(recipientPhone);
+    if (!phone) return res.status(400).json({ error: 'Valid WhatsApp phone number is required' });
 
     const pdfBuffer = await generateQuotationPdfBuffer({
       quotation,
@@ -1075,21 +1097,102 @@ router.post('/quotations/:id/send-whatsapp', async (req, res) => {
       || `Dear ${clean(quotation.customer_name) || 'Customer'},\n\nPlease find quotation ${clean(quotation.quotation_number || quotation.quotationNumber || quotation.id || '') || 'details'} attached for your review.\n\nRegards,\n${clean(companySettings.companyName || 'SKUAS Pest Control') || 'SKUAS Pest Control'}`
     ).trim();
 
-    const sent = await sendWhatsAppMessage({
-      settings,
-      to: recipientPhone,
-      message,
-      attachmentUrl,
-      attachmentName: baseName
+    const waConfig = resolveQuotationWhatsappConfig(settings);
+    const useProviderApi = ['custom', 'deropo'].includes(waConfig.providerType) && Boolean(waConfig.baseUrl);
+
+    if (useProviderApi) {
+      if (waConfig.providerType === 'deropo') {
+        if (!waConfig.baseUrl || !waConfig.accessToken) {
+          return res.status(400).json({
+            error: 'WhatsApp API settings are incomplete. Configure API Base URL and Access Token in WhatsApp Settings.'
+          });
+        }
+      } else if (!waConfig.baseUrl || !waConfig.phoneNumberId || !waConfig.accessToken) {
+        return res.status(400).json({
+          error: 'WhatsApp API settings are incomplete. Configure API Base URL, Instance ID, and Access Token in WhatsApp Settings.'
+        });
+      }
+
+      const sent = await sendWhatsAppMessage({
+        settings,
+        to: phone,
+        message,
+        attachmentUrl,
+        attachmentName: baseName
+      });
+
+      return res.json({
+        success: true,
+        message: 'Quotation sent on WhatsApp successfully',
+        phone,
+        attachmentUrl,
+        provider: sent.provider,
+        whatsappResponse: sent.response
+      });
+    }
+
+    if (!waConfig.phoneNumberId || !waConfig.accessToken) {
+      return res.status(400).json({
+        error: 'WhatsApp API settings are incomplete. Configure Phone Number ID and Access Token in WhatsApp Settings.'
+      });
+    }
+
+    const graphBase = `https://graph.facebook.com/${waConfig.apiVersion}`;
+    const mediaForm = new FormData();
+    mediaForm.append('messaging_product', 'whatsapp');
+    mediaForm.append('type', 'application/pdf');
+    mediaForm.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), baseName);
+
+    const uploadResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/media`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${waConfig.accessToken}`
+      },
+      body: mediaForm
     });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('WhatsApp media upload failed for quotation:', errorText);
+      return res.status(502).json({ error: 'Could not upload quotation PDF to WhatsApp API' });
+    }
+
+    const uploadJson = await uploadResponse.json();
+    const mediaId = uploadJson?.id;
+    if (!mediaId) return res.status(502).json({ error: 'WhatsApp media upload did not return media id' });
+
+    const sendDocResponse = await fetch(`${graphBase}/${waConfig.phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${waConfig.accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: phone,
+        type: 'document',
+        document: {
+          id: mediaId,
+          filename: baseName,
+          caption: message.slice(0, 1024)
+        }
+      })
+    });
+
+    if (!sendDocResponse.ok) {
+      const errorText = await sendDocResponse.text();
+      console.error('WhatsApp document send failed for quotation:', errorText);
+      return res.status(502).json({ error: 'Could not send quotation document to WhatsApp' });
+    }
+
+    const sendDocJson = await sendDocResponse.json();
 
     res.json({
       success: true,
       message: 'Quotation sent on WhatsApp successfully',
-      phone: recipientPhone,
+      phone,
       attachmentUrl,
-      provider: sent.provider,
-      whatsappResponse: sent.response
+      whatsappResponse: sendDocJson
     });
   } catch (error) {
     console.error('Failed to send quotation on WhatsApp:', error.message);

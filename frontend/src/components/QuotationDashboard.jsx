@@ -376,7 +376,7 @@ function QuotationDashboardInner() {
   const openQuotationWhatsAppComposer = (row) => {
     if (!row?.id) return;
     const quotationNumber = String(row.quotation_number || row.quotationNumber || row.quotationNo || row.quotation_no || row.id || 'Quotation').trim();
-    const customerName = String(row.customer || row.customerName || 'Customer').trim() || 'Customer';
+    const customerName = String(row.customer_name || row.customer || row.customerName || 'Customer').trim() || 'Customer';
     const pdfUrl = `${API_BASE_URL}/api/quotations/${row.id}/pdf`;
     const rawPhone = String(row.whatsappNumber || row.whatsapp || row.mobile || row.mobileNumber || row.phoneNumber || row.phone || '').trim();
     if (!rawPhone) {
@@ -399,7 +399,7 @@ function QuotationDashboardInner() {
           quotation_no: quotationNumber,
           quotation_number: quotationNumber,
           quotation_date: formatDate(row.quotation_date || row.date || row.created_at || row.createdAt),
-          quotation_amount: String(row.total || row.amount || '').trim(),
+          quotation_amount: String(row.grand_total || row.total || row.amount || '').trim(),
           company_name: 'SKUAS Pest Control'
         }
       },

@@ -214,13 +214,13 @@ export default function WhatsAppPreviewModal({
   };
 
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.50)', backdropFilter: 'blur(16px)', display: 'grid', placeItems: 'center', zIndex: 7100, padding: '16px' }}>
-      <div style={{ width: 'min(760px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'rgba(255,255,255,0.64)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.30)', boxShadow: '0 28px 70px rgba(15,23,42,0.22)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(3, 7, 18, 0.62)', backdropFilter: 'blur(16px)', display: 'grid', placeItems: 'center', zIndex: 7100, padding: '16px' }}>
+      <div style={{ width: 'min(760px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'var(--surface-modal)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(148, 163, 184, 0.32)', boxShadow: '0 28px 70px rgba(0, 0, 0, 0.35)', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' }}>
         <div style={{ background: 'var(--card-header-bg)', color: '#fff', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.01em' }}>WhatsApp Preview</h3>
           <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}><X size={22} /></button>
         </div>
-        <div style={{ padding: '14px 16px 16px', overflowY: 'auto', display: 'grid', gap: '12px' }}>
+        <div style={{ padding: '14px 16px 16px', overflowY: 'auto', display: 'grid', gap: '12px', background: 'var(--surface-modal)' }}>
           {diagnostic?.text ? (
             <div style={{
               border: `1px solid ${diagnostic.tone === 'success' ? 'rgba(22,163,74,0.18)' : diagnostic.tone === 'danger' ? 'rgba(220,38,38,0.22)' : 'rgba(245,158,11,0.22)'}`,
@@ -308,40 +308,40 @@ export default function WhatsAppPreviewModal({
             </div>
           ) : null}
           <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
-            <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Recipient</div><div style={{ fontSize: '14px', fontWeight: 700 }}>{recipientName || '-'}</div></div>
+            <div><div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 800 }}>Recipient</div><div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{recipientName || '-'}</div></div>
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>WhatsApp Number</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 800 }}>WhatsApp Number</div>
               {allowRecipientEdit ? (
                 <input
                   value={phoneValue}
                   onChange={(event) => setPhoneValue(event.target.value)}
                   placeholder="Enter WhatsApp number"
                   inputMode="tel"
-                  style={{ minHeight: '40px', width: '100%', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px', fontSize: '14px' }}
+                  style={{ minHeight: '40px', width: '100%', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--input-text)', padding: '0 12px', fontSize: '14px' }}
                 />
               ) : (
-                <div style={{ fontSize: '14px', fontWeight: 700 }}>{formatWhatsAppPhoneNumber(recipientPhone || '') || '-'}</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{formatWhatsAppPhoneNumber(recipientPhone || '') || '-'}</div>
               )}
             </div>
           </div>
 
           <div style={{ display: 'grid', gap: '6px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 800, color: '#374151', textTransform: 'uppercase' }}>Message</label>
-            <textarea value={message} onChange={(event) => setMessage(event.target.value)} style={{ minHeight: '180px', borderRadius: '12px', border: '1px solid #d1d5db', padding: '10px 12px', fontSize: '14px', resize: 'vertical' }} />
+            <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase' }}>Message</label>
+            <textarea value={message} onChange={(event) => setMessage(event.target.value)} style={{ minHeight: '180px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--input-text)', padding: '10px 12px', fontSize: '14px', resize: 'vertical' }} />
           </div>
 
           <div style={{ display: 'grid', gap: '6px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 800, color: '#374151', textTransform: 'uppercase' }}>Attachment</label>
+            <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase' }}>Attachment</label>
             {showAttachmentFields ? (
               <>
-                <input value={attachmentUrl} onChange={(event) => setAttachmentUrl(event.target.value)} placeholder="Attachment URL (optional)" style={{ minHeight: '42px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px' }} />
+                <input value={attachmentUrl} onChange={(event) => setAttachmentUrl(event.target.value)} placeholder="Attachment URL (optional)" style={{ minHeight: '42px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--input-text)', padding: '0 12px' }} />
                 {allowManualUpload ? (
                   <input type="file" onChange={(event) => setAttachment(event.target.files?.[0] || null)} />
                 ) : null}
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Template attachment option: {effectivePreviewData?.attachmentOption || 'None'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Template attachment option: {effectivePreviewData?.attachmentOption || 'None'}</div>
               </>
             ) : (
-              <div style={{ border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '10px 12px', background: '#f8fafc', color: '#475569', fontSize: '12px', fontWeight: 600, lineHeight: 1.45 }}>
+              <div style={{ border: '1px dashed rgba(148, 163, 184, 0.38)', borderRadius: '12px', padding: '10px 12px', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 600, lineHeight: 1.45 }}>
                 {attachmentNote || 'A PDF attachment will be added automatically when you send this message.'}
               </div>
             )}
@@ -349,8 +349,8 @@ export default function WhatsAppPreviewModal({
 
           {error ? <div style={{ color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{error}</div> : null}
         </div>
-        <div style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' }}>
-          <button type="button" onClick={onClose} style={{ minHeight: '40px', borderRadius: '12px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 14px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+        <div style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'var(--surface-modal)', backdropFilter: 'blur(10px)' }}>
+          <button type="button" onClick={onClose} style={{ minHeight: '40px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', padding: '0 14px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
           <button type="button" onClick={handleSend} disabled={busy || !isValidWhatsAppPhoneNumber(phoneValue) || !message.trim()} style={{ minHeight: '40px', borderRadius: '12px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 16px', fontWeight: 800, cursor: 'pointer' }}>{busy ? 'Sending...' : sendButtonLabel}</button>
         </div>
       </div>
