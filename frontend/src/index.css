@@ -2906,6 +2906,52 @@ textarea:focus {
   text-align: center !important;
 }
 
+.invoice-table-shell.crm-table-shell,
+.invoice-table-shell.crm-table-shell--clipped {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--table-bg) !important;
+}
+
+.invoice-table-shell .invoice-register-table thead th {
+  min-height: 34px !important;
+  padding: 7px 10px !important;
+  line-height: 1.2 !important;
+}
+
+.invoice-table-shell .invoice-register-table tbody td {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 6px 10px !important;
+  line-height: 1.2 !important;
+}
+
+.invoice-table-shell .invoice-register-table .crm-icon-action-btn,
+.invoice-table-shell .invoice-register-table button {
+  color: var(--text-primary) !important;
+}
+
+.invoice-table-shell .invoice-register-table td[data-label="Action"] button {
+  background: var(--surface-card-elevated) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text-primary) !important;
+}
+
+.invoice-table-pagination {
+  color: var(--text-primary) !important;
+}
+
+.invoice-table-pagination button {
+  background: var(--surface-card-elevated) !important;
+  border-color: var(--border-soft) !important;
+  color: var(--text-primary) !important;
+}
+
+.invoice-table-pagination button:disabled {
+  opacity: 0.45;
+  color: var(--text-muted) !important;
+}
+
 .crm-compact-table.lead-followups-table .lead-followups-customer-stack {
   display: flex;
   align-items: baseline;

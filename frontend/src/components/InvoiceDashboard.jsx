@@ -508,11 +508,11 @@ const shell = {
   summaryValue: { color: '#111827', fontSize: '24px', fontWeight: 800, lineHeight: 1.05 },
   summaryHint: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1.35 },
   summaryAccent: { color: '#d97706' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: '#fff', backgroundClip: 'padding-box' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: 'var(--table-bg)', backgroundClip: 'padding-box', borderRadius: 0 },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#6b7280', padding: '10px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
+  headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: 'var(--table-header-text)', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.2, minHeight: '34px', height: 'auto' },
   row: { borderBottom: '1px solid #eef2f7' },
-  cell: { padding: '10px 10px', fontSize: '8px', fontWeight: 400, color: '#111827', verticalAlign: 'top', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', verticalAlign: 'middle', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   invoiceCell: { color: 'var(--color-primary)', fontWeight: 400, textDecoration: 'underline dotted rgba(159,23,77,0.4)' },
   checkboxWrap: { width: '38px', textAlign: 'center' },
   resizableHeadCell: { position: 'relative', paddingRight: '18px' },
@@ -522,7 +522,7 @@ const shell = {
   menu: { position: 'absolute', right: 16, top: '56px', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', minWidth: '200px', boxShadow: '0 14px 32px rgba(15,23,42,0.12)', zIndex: 30, overflow: 'hidden' },
   menuButton: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', cursor: 'pointer', padding: '10px 12px', fontSize: '12px', fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   rowActionWrap: { position: 'relative', display: 'block', width: '100%', textAlign: 'left' },
-  rowActionButton: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '8px', width: '30px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  rowActionButton: { border: '1px solid var(--border-soft)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '7px', width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   rowActionMenu: { position: 'fixed', minWidth: '168px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 12px 26px rgba(15,23,42,0.14)', zIndex: 3500, overflow: 'hidden' },
   popover: { position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: '#fff', border: '1px solid var(--brand-border-color)', borderRadius: '12px', boxShadow: '0 14px 30px rgba(15,23,42,0.12)', width: '250px', zIndex: 30 },
   popoverHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
@@ -4130,7 +4130,7 @@ export default function InvoiceDashboard() {
         </div>
       </div>
 
-      <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped">
+      <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped invoice-table-shell">
         <table style={tableStyle} className="crm-compact-table invoice-register-table">
           <colgroup>
             <col style={shell.checkboxWrap} />
@@ -4176,7 +4176,7 @@ export default function InvoiceDashboard() {
                     title={`Sort ${column.label} ${invoiceSort.key === column.key && invoiceSort.direction === 'asc' ? 'descending' : 'ascending'}`}
                   >
                     <span>{column.label}</span>
-                    {column.key !== 'action' ? <SortChevronIcon size={12} color="#111827" /> : null}
+                    {column.key !== 'action' ? <SortChevronIcon size={12} color="currentColor" /> : null}
                   </button>
                 </th>
               ))}
@@ -4255,7 +4255,7 @@ export default function InvoiceDashboard() {
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#fff', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
+      <div className="invoice-table-pagination" style={{ padding: '8px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--table-bg)', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
         <div style={shell.paginationInfo}>{firstRecord}-{lastRecord} of {invoices.length} records</div>
         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
           <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', minWidth: '34px', height: '32px', minHeight: '32px', padding: 0 }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>

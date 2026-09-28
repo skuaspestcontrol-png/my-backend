@@ -99,24 +99,24 @@ const styles = {
   page: { display: 'grid', gap: 12, width: '100%', minWidth: 0 },
   topRow: { display: 'grid', gridTemplateColumns: 'repeat(6, minmax(0, 1fr))', gap: 10 },
   statCard: {
-    border: '1px solid rgba(148, 163, 184, 0.18)',
+    border: '1px solid var(--border-soft)',
     borderRadius: 16,
-    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    background: 'var(--surface-card)',
     padding: 14,
     minHeight: 92,
-    boxShadow: '0 10px 26px rgba(15, 23, 42, 0.05)',
+    boxShadow: 'var(--shadow-card)',
     display: 'grid',
     alignContent: 'space-between'
   },
-  statLabel: { margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#64748b' },
-  statValue: { margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: '-0.03em', color: '#111827' },
+  statLabel: { margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' },
+  statValue: { margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--text-primary)' },
   actionBar: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
   actionButton: {
     minHeight: 36,
     borderRadius: 10,
-    border: '1px solid rgba(148, 163, 184, 0.24)',
-    background: '#fff',
-    color: '#111827',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-elevated)',
+    color: 'var(--text-primary)',
     padding: '0 12px',
     display: 'inline-flex',
     alignItems: 'center',
@@ -142,9 +142,9 @@ const styles = {
   mutedButton: {
     minHeight: 36,
     borderRadius: 10,
-    border: '1px solid rgba(148, 163, 184, 0.26)',
-    background: '#fff',
-    color: '#475569',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-elevated)',
+    color: 'var(--text-primary)',
     padding: '0 14px',
     display: 'inline-flex',
     alignItems: 'center',
@@ -158,19 +158,19 @@ const styles = {
     minHeight: 36,
     borderRadius: 999,
     padding: '0 14px',
-    border: '1px solid rgba(148, 163, 184, 0.2)',
-    background: '#fff',
-    color: '#475569',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-elevated)',
+    color: 'var(--text-primary)',
     fontSize: 12,
     fontWeight: 800,
     cursor: 'pointer'
   },
-  tabActive: { background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderColor: 'var(--color-primary-soft)' },
+  tabActive: { background: 'var(--selected-bg)', color: 'var(--text-primary)', borderColor: 'var(--color-primary-soft)' },
   panel: {
-    border: '1px solid rgba(148, 163, 184, 0.18)',
+    border: '1px solid var(--border-soft)',
     borderRadius: 18,
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)',
-    boxShadow: '0 14px 30px rgba(15, 23, 42, 0.05)',
+    background: 'var(--surface-card)',
+    boxShadow: 'var(--shadow-card)',
     overflow: 'hidden'
   },
   panelPad: { padding: 16 },
@@ -178,14 +178,14 @@ const styles = {
   grid3: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 },
   fieldGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 },
   field: { display: 'grid', gap: 5 },
-  label: { fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  label: { fontSize: 11, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' },
   input: {
     width: '100%',
     minHeight: 36,
     borderRadius: 10,
-    border: '1px solid #d1d5db',
-    background: '#fff',
-    color: '#111827',
+    border: '1px solid var(--input-border)',
+    background: 'var(--input-bg)',
+    color: 'var(--input-text)',
     padding: '0 12px',
     boxSizing: 'border-box'
   },
@@ -193,9 +193,9 @@ const styles = {
     width: '100%',
     minHeight: 110,
     borderRadius: 12,
-    border: '1px solid #d1d5db',
-    background: '#fff',
-    color: '#111827',
+    border: '1px solid var(--input-border)',
+    background: 'var(--input-bg)',
+    color: 'var(--input-text)',
     padding: '10px 12px',
     boxSizing: 'border-box',
     resize: 'vertical'
@@ -204,9 +204,9 @@ const styles = {
     width: '100%',
     minHeight: 36,
     borderRadius: 10,
-    border: '1px solid #d1d5db',
-    background: '#fff',
-    color: '#111827',
+    border: '1px solid var(--input-border)',
+    background: 'var(--input-bg)',
+    color: 'var(--input-text)',
     padding: '0 12px',
     boxSizing: 'border-box'
   },
@@ -220,22 +220,22 @@ const styles = {
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
-    color: '#64748b',
-    borderBottom: '1px solid #e5e7eb',
-    background: '#f8fafc'
+    color: 'var(--table-header-text)',
+    borderBottom: '1px solid var(--border-soft)',
+    background: 'var(--table-header-bg)'
   },
   td: {
     padding: '10px 10px',
-    borderBottom: '1px solid #f1f5f9',
+    borderBottom: '1px solid var(--border-soft)',
     fontSize: 12,
-    color: '#1f2937',
+    color: 'var(--text-primary)',
     verticalAlign: 'middle'
   },
-  muted: { color: '#64748b', fontSize: 12, lineHeight: 1.6 },
+  muted: { color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.6 },
   helper: {
-    border: '1px solid rgba(148, 163, 184, 0.16)',
+    border: '1px solid var(--border-soft)',
     borderRadius: 16,
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(248,250,252,0.92) 100%)',
+    background: 'var(--surface-secondary)',
     padding: 14
   }
 };
@@ -873,7 +873,7 @@ export default function WhatsAppMarketing() {
 
       {message ? (
         <div style={styles.helper}>
-          <strong style={{ color: '#111827' }}>Status:</strong> <span style={styles.muted}>{message}</span>
+          <strong style={{ color: 'var(--text-primary)' }}>Status:</strong> <span style={styles.muted}>{message}</span>
         </div>
       ) : null}
 
@@ -1021,11 +1021,11 @@ export default function WhatsAppMarketing() {
               <div style={styles.panelPad}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontSize: 16, fontWeight: 900, color: '#111827' }}>Recipient Preview</div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)' }}>Recipient Preview</div>
                     <p style={styles.muted}>The campaign will be sent only after the count, dedupe, and opt-out checks are visible here.</p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 28, fontWeight: 900, color: '#111827' }}>{dedupedRecipients.uniqueCount}</div>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-primary)' }}>{dedupedRecipients.uniqueCount}</div>
                     <div style={styles.muted}>Unique WhatsApp numbers</div>
                   </div>
                 </div>
@@ -1053,10 +1053,10 @@ export default function WhatsAppMarketing() {
 
             <div style={styles.panel}>
               <div style={styles.panelPad}>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#111827', marginBottom: 10 }}>Preview Message</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 10 }}>Preview Message</div>
                 <div style={styles.helper}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Rendered sample</div>
-                  <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: '#111827', fontSize: 14 }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Rendered sample</div>
+                  <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, color: 'var(--text-primary)', fontSize: 14 }}>
                     {renderTemplate(form.message || quickTemplates[form.campaignType] || '', buildCampaignContext(filteredCustomers[0] || {}, form))}
                   </div>
                 </div>
@@ -1071,7 +1071,7 @@ export default function WhatsAppMarketing() {
           <div style={styles.panelPad}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: 18, fontWeight: 900, color: '#111827' }}>WhatsApp Templates</div>
+                <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>WhatsApp Templates</div>
                 <p style={styles.muted}>Reuse the same template library already used by the centralized WhatsApp module.</p>
               </div>
               <button type="button" style={styles.mutedButton} onClick={() => setActiveTab('Campaigns')}>
@@ -1118,7 +1118,7 @@ export default function WhatsAppMarketing() {
             <div style={styles.panelPad}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: '#111827' }}>Audience Filters</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Audience Filters</div>
                   <p style={styles.muted}>Combine filters to narrow the list, then tick the records you want to send to.</p>
                 </div>
                 <div style={styles.actionBar}>
@@ -1133,7 +1133,7 @@ export default function WhatsAppMarketing() {
               </div>
 
               <div style={{ ...styles.helper, display: 'grid', gap: 10, marginTop: 12 }}>
-                <div style={{ fontSize: 14, fontWeight: 900, color: '#111827' }}>Smart CRM Segmentation</div>
+                <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--text-primary)' }}>Smart CRM Segmentation</div>
                 <div style={{ ...styles.fieldGrid, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                   <label style={styles.field}><span style={styles.label}>Renewal Window</span><select value={filters.renewalStatus === 'expired' ? 'expired' : filters.renewalDays} onChange={(event) => setFilters((prev) => ({ ...prev, renewalDays: event.target.value === 'expired' ? '' : event.target.value, renewalStatus: event.target.value === 'expired' ? 'expired' : '' }))} style={styles.select}><option value="">Any renewal date</option><option value="7">Next 7 days</option><option value="15">Next 15 days</option><option value="30">Next 30 days</option><option value="60">Next 60 days</option><option value="expired">Already expired</option></select></label>
                   <label style={styles.field}><span style={styles.label}>Contract Audience</span><select value={filters.contractAudience} onChange={(event) => setFilters((prev) => ({ ...prev, contractAudience: event.target.value }))} style={styles.select}><option value="">Any contract status</option><option value="active">Active contracts</option><option value="expired">Expired contracts</option><option value="expiring">Expiring soon</option><option value="renewed">Renewed contracts</option><option value="without_active">Without active contract</option></select></label>
@@ -1198,7 +1198,7 @@ export default function WhatsAppMarketing() {
                         <input type="checkbox" checked={selectedIds.includes(customer._marketingId)} onChange={() => toggleSelected(customer._marketingId)} />
                       </td>
                       <td style={styles.td}>
-                        <div style={{ fontWeight: 800, color: '#111827' }}>{customer.marketingDisplayName}</div>
+                        <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{customer.marketingDisplayName}</div>
                         <div style={styles.muted}>{customer.marketingLastCampaignLabel}</div>
                       </td>
                       <td style={styles.td}>{formatWhatsAppPhoneNumber(customer.marketingPhone || '') || '-'}</td>
@@ -1228,7 +1228,7 @@ export default function WhatsAppMarketing() {
           <div style={{ display: 'grid', gap: 12 }}>
             <div style={styles.panel}>
               <div style={styles.panelPad}>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#111827' }}>Selection Summary</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)' }}>Selection Summary</div>
                 <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
                   <div style={styles.helper}><div style={styles.statLabel}>Filtered Customers</div><div style={styles.statValue}>{filteredCustomers.length}</div></div>
                   <div style={styles.helper}><div style={styles.statLabel}>Selected Rows</div><div style={styles.statValue}>{selectedIds.length || filteredCustomers.length}</div></div>
@@ -1240,7 +1240,7 @@ export default function WhatsAppMarketing() {
 
             <div style={styles.panel}>
               <div style={styles.panelPad}>
-                <div style={{ fontSize: 16, fontWeight: 900, color: '#111827' }}>How It Works</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: 'var(--text-primary)' }}>How It Works</div>
                 <div style={styles.muted}>
                   <p>1. Choose a base audience and layer filters on top.</p>
                   <p>2. Select rows manually if you want a custom set.</p>
@@ -1259,7 +1259,7 @@ export default function WhatsAppMarketing() {
             <div style={styles.panelPad}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: '#111827' }}>Campaign Logs</div>
+                  <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Campaign Logs</div>
                   <p style={styles.muted}>Saved campaign history from the marketing module.</p>
                 </div>
                 <button type="button" style={styles.mutedButton} onClick={loadData}>Refresh</button>
@@ -1285,7 +1285,7 @@ export default function WhatsAppMarketing() {
                         <td style={styles.td}><Link to={`/sales/whatsapp-marketing/campaigns/${encodeURIComponent(row.id)}`} style={{ color: 'var(--color-primary-dark)', fontWeight: 800 }}>{row.campaignName || '-'}</Link></td>
                         <td style={styles.td}>{row.campaignType || '-'}</td>
                         <td style={styles.td}>{row.audienceLabel || '-'}</td>
-                        <td style={styles.td}><span style={{ ...styles.badge, background: '#f8fafc', color: '#334155' }}>{getCampaignLabel(row)}</span></td>
+                        <td style={styles.td}><span style={{ ...styles.badge, background: 'var(--surface-elevated)', color: 'var(--text-primary)', border: '1px solid var(--border-soft)' }}>{getCampaignLabel(row)}</span></td>
                         <td style={styles.td}>{row.recipientCount || 0} / {row.uniqueRecipientCount || 0}</td>
                         <td style={styles.td}>{row.sentCount || 0}</td>
                         <td style={styles.td}>{row.failedCount || 0}</td>
@@ -1300,7 +1300,7 @@ export default function WhatsAppMarketing() {
 
           <div style={styles.panel}>
             <div style={styles.panelPad}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#111827' }}>Delivery Logs</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>Delivery Logs</div>
               <p style={styles.muted}>These are the underlying WhatsApp sends created through the centralized sender.</p>
               <div style={{ ...styles.tableWrap, marginTop: 12 }}>
                 <table style={styles.table}>
