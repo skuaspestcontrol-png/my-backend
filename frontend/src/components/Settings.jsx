@@ -410,9 +410,9 @@ const shell = {
   topButton: {
     minHeight: '34px',
     borderRadius: '10px',
-    border: '1px solid rgba(17, 17, 17, 0.2)',
-    background: '#fff',
-    color: 'var(--text)',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     fontSize: '12px',
     fontWeight: 800,
     padding: '0 14px',
@@ -486,7 +486,7 @@ const shell = {
     border: '1px solid transparent'
   },
   panelBody: { padding: '14px 16px', display: 'grid', alignContent: 'start', gap: '10px', flex: 1 },
-  sectionHeading: { margin: 0, color: '#374151', fontSize: '13px', fontWeight: 800, letterSpacing: '0.02em' },
+  sectionHeading: { margin: 0, color: 'var(--text-primary)', fontSize: '13px', fontWeight: 800, letterSpacing: '0.02em' },
   infoBanner: {
     borderRadius: '10px',
     border: '1px solid rgba(252, 231, 243, 0.22)',
@@ -501,32 +501,32 @@ const shell = {
   threeCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '10px 12px' },
   fourCol: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '10px 12px' },
   field: { display: 'grid', gap: '5px' },
-  fieldLabel: { margin: 0, fontSize: '10px', color: '#4b5563', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  fieldLabel: { margin: 0, fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
   input: {
     width: '100%',
     minHeight: '40px',
     borderRadius: '10px',
-    border: '1px solid rgba(15, 23, 42, 0.12)',
-    background: '#fff',
+    border: '1px solid var(--input-border)',
+    background: 'var(--input-bg)',
     padding: '8px 11px',
     fontSize: '13px',
-    color: 'var(--text)'
+    color: 'var(--input-text)'
   },
   textArea: {
     width: '100%',
     minHeight: '58px',
     borderRadius: '10px',
-    border: '1px solid rgba(15, 23, 42, 0.12)',
-    background: '#fff',
+    border: '1px solid var(--input-border)',
+    background: 'var(--input-bg)',
     padding: '8px 11px',
     fontSize: '13px',
-    color: 'var(--text)',
+    color: 'var(--input-text)',
     resize: 'vertical'
   },
   profileCard: {
     borderRadius: '16px',
-    border: '1px dashed rgba(15, 23, 42, 0.16)',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.92) 100%)',
+    border: '1px dashed var(--border-soft)',
+    background: 'var(--surface-card-elevated)',
     padding: '12px',
     display: 'grid',
     gap: '8px'
@@ -540,9 +540,9 @@ const shell = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#fff',
+    background: 'var(--surface-muted)',
     overflow: 'hidden',
-    color: '#6b7280',
+    color: 'var(--text-muted)',
     fontSize: '12px',
     fontWeight: 700
   },
@@ -550,16 +550,16 @@ const shell = {
   tinyButton: {
     minHeight: '36px',
     borderRadius: '9px',
-    border: '1px solid rgba(15, 23, 42, 0.14)',
-    background: '#fff',
-    color: 'var(--color-primary-dark)',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     fontSize: '11px',
     fontWeight: 800,
     padding: '0 12px',
     cursor: 'pointer'
   },
-  tinyButtonGhost: { border: '1px solid rgba(17, 17, 17, 0.2)', background: '#fff', color: 'var(--text)' },
-  hint: { margin: 0, color: '#6b7280', fontSize: '11px', fontWeight: 700 },
+  tinyButtonGhost: { border: '1px solid var(--border-soft)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)' },
+  hint: { margin: 0, color: 'var(--text-muted)', fontSize: '11px', fontWeight: 700 },
   divider: { borderTop: '1px solid var(--border)', margin: '2px 0' },
   inlineActionRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto auto', alignItems: 'end', gap: '10px' },
   testButton: {
@@ -580,10 +580,10 @@ const shell = {
     gap: '8px',
     border: '1px solid var(--border)',
     borderRadius: '12px',
-    background: '#fff',
+    background: 'var(--surface-card-elevated)',
     minHeight: '45px',
     padding: '0 12px',
-    color: '#374151',
+    color: 'var(--text-primary)',
     fontSize: '13px',
     fontWeight: 700
   },
@@ -591,15 +591,15 @@ const shell = {
   bankActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   bankCard: {
     borderRadius: '14px',
-    border: '1px solid rgba(148, 163, 184, 0.18)',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-card-elevated)',
     padding: '14px',
     display: 'grid',
     gap: '12px',
-    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
+    boxShadow: 'var(--shadow-soft)',
     backgroundClip: 'padding-box'
   },
-  bankCardTitle: { margin: 0, fontSize: '20px', fontWeight: 800, color: '#334155' },
+  bankCardTitle: { margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' },
   bankQrPreview: {
     width: '108px',
     height: '108px',
@@ -608,22 +608,22 @@ const shell = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#f8fafc',
+    background: 'var(--surface-muted)',
     overflow: 'hidden',
-    color: '#64748b',
+    color: 'var(--text-muted)',
     fontSize: '12px',
     fontWeight: 700
   },
-  bankTableWrap: { border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '14px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)', overflowX: 'auto', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
+  bankTableWrap: { border: '1px solid var(--border-soft)', borderRadius: '14px', background: 'var(--surface-card-elevated)', overflowX: 'auto', boxShadow: 'var(--shadow-soft)', backgroundClip: 'padding-box' },
   bankTable: { width: '100%', minWidth: '980px', borderCollapse: 'collapse' },
-  bankTh: { textAlign: 'left', padding: '10px 10px', borderBottom: '1px solid var(--border)', fontSize: '12px', color: '#475569', fontWeight: 800, whiteSpace: 'nowrap' },
-  bankTd: { padding: '10px 10px', borderBottom: '1px solid var(--color-border)', fontSize: '13px', color: '#0f172a', verticalAlign: 'top' },
+  bankTh: { textAlign: 'left', padding: '10px 10px', borderBottom: '1px solid var(--border-soft)', fontSize: '12px', color: 'var(--table-header-text)', fontWeight: 800, whiteSpace: 'nowrap', background: 'var(--table-header-bg)' },
+  bankTd: { padding: '10px 10px', borderBottom: '1px solid var(--border-soft)', fontSize: '13px', color: 'var(--text-primary)', verticalAlign: 'top', background: 'var(--table-row-bg)' },
   smallActionBtn: {
     minHeight: '32px',
     borderRadius: '8px',
-    border: '1px solid rgba(159, 23, 77, 0.36)',
-    background: '#fff',
-    color: 'var(--color-primary-dark)',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     fontSize: '12px',
     fontWeight: 800,
     padding: '0 10px',
@@ -1560,10 +1560,10 @@ export default function Settings({ modalMode = false }) {
         <p style={{ ...shell.fieldLabel, margin: 0 }}>Live Preview</p>
         <div
           style={{
-            border: '1px solid #d1d5db',
+            border: '1px solid var(--border-soft)',
             borderRadius: '14px',
             overflow: 'hidden',
-            background: form.brandingAppearance === 'dark' ? '#0f172a' : '#ffffff'
+            background: form.brandingAppearance === 'dark' ? '#0f172a' : 'var(--surface-card)'
           }}
         >
           <div
@@ -1587,7 +1587,7 @@ export default function Settings({ modalMode = false }) {
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', minHeight: '96px' }}>
             <div
               style={{
-                background: form.brandingAppearance === 'dark' ? '#111827' : '#f8fafc',
+                background: form.brandingAppearance === 'dark' ? '#111827' : 'var(--surface-muted)',
                 borderRight: '1px solid rgba(148,163,184,0.25)',
                 padding: '10px',
                 display: 'grid',
@@ -1599,8 +1599,8 @@ export default function Settings({ modalMode = false }) {
               <div style={{ height: '8px', borderRadius: '999px', background: 'rgba(148,163,184,0.25)' }} />
             </div>
             <div style={{ padding: '12px' }}>
-              <div style={{ fontWeight: 800, color: form.brandingAppearance === 'dark' ? '#e5e7eb' : '#111827' }}>Branding Preview</div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: form.brandingAppearance === 'dark' ? '#94a3b8' : '#64748b' }}>
+              <div style={{ fontWeight: 800, color: form.brandingAppearance === 'dark' ? '#e5e7eb' : 'var(--text-primary)' }}>Branding Preview</div>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: form.brandingAppearance === 'dark' ? '#94a3b8' : 'var(--text-secondary)' }}>
                 Pane: {form.brandingAppearance === 'dark' ? 'Dark' : 'Light'} • Accent: {form.brandingAccentColor || '#EF4444'}
               </div>
             </div>
@@ -1622,14 +1622,14 @@ export default function Settings({ modalMode = false }) {
           type="button"
           onClick={() => updateField('brandingAppearance', 'dark')}
           style={{
-            border: form.brandingAppearance === 'dark' ? '2px solid #1f2937' : '1px solid #d1d5db',
-            background: '#fff',
+            border: form.brandingAppearance === 'dark' ? '2px solid var(--color-primary)' : '1px solid var(--border-soft)',
+            background: 'var(--surface-card-elevated)',
             borderRadius: '12px',
             width: '100%',
             minHeight: isCompactLayout ? '74px' : '96px',
             cursor: 'pointer',
             fontWeight: 800,
-            color: '#475569',
+            color: 'var(--text-primary)',
             fontSize: isCompactLayout ? '12px' : '13px',
             whiteSpace: 'nowrap'
           }}
@@ -1640,14 +1640,14 @@ export default function Settings({ modalMode = false }) {
           type="button"
           onClick={() => updateField('brandingAppearance', 'light')}
           style={{
-            border: form.brandingAppearance === 'light' ? '2px solid var(--color-primary)' : '1px solid #d1d5db',
-            background: '#fff',
+            border: form.brandingAppearance === 'light' ? '2px solid var(--color-primary)' : '1px solid var(--border-soft)',
+            background: 'var(--surface-card-elevated)',
             borderRadius: '12px',
             width: '100%',
             minHeight: isCompactLayout ? '74px' : '96px',
             cursor: 'pointer',
             fontWeight: 800,
-            color: '#475569',
+            color: 'var(--text-primary)',
             fontSize: isCompactLayout ? '12px' : '13px',
             whiteSpace: 'nowrap'
           }}
@@ -2925,11 +2925,11 @@ export default function Settings({ modalMode = false }) {
     ? { margin: 0, fontSize: '20px', lineHeight: 1.2, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.01em' }
     : { margin: 0, fontSize: '34px', lineHeight: 1.15, color: 'var(--text)', fontWeight: 800, letterSpacing: '-0.02em' };
   const sectionLeadTitleStyle = modalMode
-    ? { ...shell.hint, marginBottom: '4px', fontSize: '16px', fontWeight: 800, color: '#334155' }
-    : { ...shell.hint, marginBottom: '4px', fontSize: '22px', fontWeight: 800, color: '#334155' };
+    ? { ...shell.hint, marginBottom: '4px', fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }
+    : { ...shell.hint, marginBottom: '4px', fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)' };
   const sectionLeadSubTitleStyle = modalMode
-    ? { ...shell.hint, fontSize: '13px', fontWeight: 700, color: '#475569' }
-    : { ...shell.hint, fontSize: '18px', fontWeight: 700, color: '#475569' };
+    ? { ...shell.hint, fontSize: '13px', fontWeight: 700, color: 'var(--text-secondary)' }
+    : { ...shell.hint, fontSize: '18px', fontWeight: 700, color: 'var(--text-secondary)' };
   const brandingSectionTitleStyle = { margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text)', lineHeight: 1.2 };
   const {
     getColumnWidth,

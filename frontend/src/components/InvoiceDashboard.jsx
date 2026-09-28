@@ -4097,31 +4097,31 @@ export default function InvoiceDashboard() {
         </div>
       ) : null}
 
-      <div style={shell.summaryWrap}>
-        <div style={shell.summaryCard}>
+      <div className="invoice-summary-wrap" style={shell.summaryWrap}>
+        <div className="invoice-summary-card" style={shell.summaryCard}>
           <h3 style={shell.summaryTitle}>Payment Summary</h3>
           <div style={summaryGridStyle}>
-            <div style={summaryMetricStyle}>
+            <div className="invoice-summary-metric" style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Total Outstanding Receivables</span>
               <span style={summaryValueStyle}>{formatINR(summary.totalOutstanding)}</span>
               <span style={shell.summaryHint}>Unpaid balance</span>
             </div>
-            <div style={summaryMetricStyle}>
+            <div className="invoice-summary-metric" style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Due Today</span>
               <span style={{ ...summaryValueStyle, ...shell.summaryAccent }}>{formatINR(summary.dueToday)}</span>
               <span style={shell.summaryHint}>Today receivables</span>
             </div>
-            <div style={summaryMetricStyle}>
+            <div className="invoice-summary-metric" style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Due Within 30 Days</span>
               <span style={summaryValueStyle}>{formatINR(summary.dueWithin30)}</span>
               <span style={shell.summaryHint}>Upcoming dues</span>
             </div>
-            <div style={summaryMetricStyle}>
+            <div className="invoice-summary-metric" style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Overdue Invoice</span>
               <span style={summaryValueStyle}>{formatINR(summary.overdue)}</span>
               <span style={shell.summaryHint}>Past due amount</span>
             </div>
-            <div style={summaryMetricStyle}>
+            <div className="invoice-summary-metric" style={summaryMetricStyle}>
               <span style={shell.summaryLabel}>Average Customer Payment Day</span>
               <span style={summaryValueStyle}>{summary.avgDays} Days</span>
               <span style={shell.summaryHint}>Payment cycle</span>

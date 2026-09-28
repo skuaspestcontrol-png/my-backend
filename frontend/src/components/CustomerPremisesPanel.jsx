@@ -412,7 +412,7 @@ export default function CustomerPremisesPanel({
   };
 
   return (
-    <section style={styles.wrap}>
+    <section className="customer-premises-panel" style={styles.wrap}>
       <div style={styles.head}>
         <div>
           <h3 style={styles.title}>Shipping Addresses</h3>
@@ -429,7 +429,7 @@ export default function CustomerPremisesPanel({
           const active = normalized.isDefault;
           const isPending = String(normalized.premiseId || normalized.premise_id || '').startsWith('TEMP-');
           return (
-            <article key={normalized.premiseId || normalized.premise_id || 'legacy'} style={{ ...styles.card, ...(active ? styles.activeCard : {}) }}>
+            <article className="customer-premises-card" key={normalized.premiseId || normalized.premise_id || 'legacy'} style={{ ...styles.card, ...(active ? styles.activeCard : {}) }}>
               <div style={styles.cardTop}>
                 <div>
                   <p style={styles.cardTitle}><MapPin size={14} /> Shipping Address</p>
@@ -461,7 +461,7 @@ export default function CustomerPremisesPanel({
       {loading ? <p style={styles.text}>Loading premises...</p> : null}
 
       {editingId ? (
-        <div style={styles.form}>
+        <div className="customer-premises-form" style={styles.form}>
           <div style={styles.formGrid}>
             <label style={styles.label}>
               Address Label

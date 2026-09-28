@@ -375,7 +375,7 @@ export default function VendorBillsDashboard() {
   };
 
   return (
-    <section style={shell.page}>
+    <section className="vendor-bills-page" style={shell.page}>
       <div style={shell.topbar}>
         <h1 style={shell.title}>Vendor Bills</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>

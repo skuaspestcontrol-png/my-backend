@@ -1002,7 +1002,7 @@ export default function Attendance() {
   };
 
   return (
-    <div style={shell.page}>
+    <div className="attendance-page" style={shell.page}>
       <div style={shell.topbar}>
         <div style={shell.titleWrap}>
           <h2 style={shell.title}>Attendance</h2>
@@ -1051,27 +1051,27 @@ export default function Attendance() {
 
       <h3 style={shell.sectionTitle}>Month Wise Summary ({monthHeading(month)})</h3>
       <div style={shell.summaryGrid}>
-        <div style={shell.summaryCard}>
+        <div className="attendance-summary-card" style={shell.summaryCard}>
           <span style={shell.summaryLabel}><Users size={13} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Employees Marked</span>
           <span style={shell.summaryValue}>{monthSummary.uniqueEmployees.size}</span>
         </div>
-        <div style={{ ...shell.summaryCard, ...shell.summaryCardPresent }}>
+        <div className="attendance-summary-card" style={{ ...shell.summaryCard, ...shell.summaryCardPresent }}>
           <span style={shell.summaryLabel}>Present Days</span>
           <span style={shell.summaryValue}>{monthSummary.presentDays}</span>
         </div>
-        <div style={{ ...shell.summaryCard, ...shell.summaryCardAbsent }}>
+        <div className="attendance-summary-card" style={{ ...shell.summaryCard, ...shell.summaryCardAbsent }}>
           <span style={shell.summaryLabel}>Absent Days</span>
           <span style={shell.summaryValue}>{monthSummary.absentDays}</span>
         </div>
-        <div style={{ ...shell.summaryCard, ...shell.summaryCardWeeklyOff }}>
+        <div className="attendance-summary-card" style={{ ...shell.summaryCard, ...shell.summaryCardWeeklyOff }}>
           <span style={shell.summaryLabel}>Weekly Off</span>
           <span style={shell.summaryValue}>{monthSummary.weeklyOffDays}</span>
         </div>
-        <div style={{ ...shell.summaryCard, ...shell.summaryCardLeave }}>
+        <div className="attendance-summary-card" style={{ ...shell.summaryCard, ...shell.summaryCardLeave }}>
           <span style={shell.summaryLabel}>Leave Days</span>
           <span style={shell.summaryValue}>{monthSummary.leaveDays}</span>
         </div>
-        <div style={shell.summaryCard}>
+        <div className="attendance-summary-card" style={shell.summaryCard}>
           <span style={shell.summaryLabel}><Clock3 size={13} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Average Hours</span>
           <span style={shell.summaryValue}>{(monthSummary.workedDays ? (monthSummary.totalHours / monthSummary.workedDays) : 0).toFixed(2)}</span>
         </div>
@@ -1208,7 +1208,7 @@ export default function Attendance() {
                   <td style={shell.td}>
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                       <div style={shell.hoursBadgeStack}>
-                        <span style={shell.hoursBadge}>{workingHours.toFixed(2)} hrs</span>
+                        <span className="attendance-hours-badge" style={shell.hoursBadge}>{workingHours.toFixed(2)} hrs</span>
                         {attendanceMetrics.overtimeLabel ? (
                           <span
                             style={{

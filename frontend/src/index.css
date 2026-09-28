@@ -4005,7 +4005,7 @@ html[data-theme="dark"] .dashboard-page .dashboard-target-card [style*="color:"]
 }
 
 html[data-theme="dark"] .settings-page {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
 html[data-theme="dark"] .settings-page [style*="background: #fff"],
@@ -4014,17 +4014,32 @@ html[data-theme="dark"] .settings-page [style*="background: rgb(255, 255, 255)"]
 html[data-theme="dark"] .settings-page [style*="background: rgba(255"],
 html[data-theme="dark"] .settings-page [style*="background: rgba(255, 255"],
 html[data-theme="dark"] .settings-page [style*="background: rgba(255,255"],
+html[data-theme="dark"] .settings-page [style*="background: #fafafa"],
+html[data-theme="dark"] .settings-page [style*="background: #fbfbfd"],
 html[data-theme="dark"] .settings-page [style*="background: #fbfcff"],
+html[data-theme="dark"] .settings-page [style*="background: #f1f5f9"],
 html[data-theme="dark"] .settings-page [style*="background: #f8fafc"],
+html[data-theme="dark"] .settings-page [style*="background: #ecfdf5"],
+html[data-theme="dark"] .settings-page [style*="background: #f0fdf4"],
+html[data-theme="dark"] .settings-page [style*="background: #fef2f2"],
+html[data-theme="dark"] .settings-page [style*="background: #fff7ed"],
+html[data-theme="dark"] .settings-page [style*="background: #fffbeb"],
+html[data-theme="dark"] .settings-page [style*="background: #fff1f2"],
 html[data-theme="dark"] .settings-page [style*="background-color: #fff"],
 html[data-theme="dark"] .settings-page [style*="background-color: #ffffff"],
 html[data-theme="dark"] .settings-page [style*="background-color: rgba(255"],
 html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, rgba(255"],
 html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, rgba(249"],
-html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, rgba(248"] {
+html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, rgba(248"],
+html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, #ffffff"],
+html[data-theme="dark"] .settings-page [style*="background: linear-gradient(180deg, #fff"],
+html[data-theme="dark"] .settings-page [style*="background: rgba(240,253,244"],
+html[data-theme="dark"] .settings-page [style*="background: rgba(254,242,242"],
+html[data-theme="dark"] .settings-page [style*="background: rgba(255,251,235"] {
   background: var(--surface-card) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="dark"] .settings-page .crm-page-header,
@@ -4035,32 +4050,94 @@ html[data-theme="dark"] .settings-page .crm-card-body {
   border-color: var(--border-soft) !important;
 }
 
+html[data-theme="dark"] .settings-page :where(h1, h2, h3, h4, h5, h6, label, p, span, div, td, th) {
+  -webkit-text-fill-color: currentColor;
+}
+
 html[data-theme="dark"] .settings-page [style*="color: #0f172a"],
 html[data-theme="dark"] .settings-page [style*="color: #111827"],
 html[data-theme="dark"] .settings-page [style*="color: #1f2937"],
 html[data-theme="dark"] .settings-page [style*="color: #334155"],
-html[data-theme="dark"] .settings-page [style*="color: #374151"] {
+html[data-theme="dark"] .settings-page [style*="color: #374151"],
+html[data-theme="dark"] .settings-page [style*="color: rgb(15, 23, 42)"],
+html[data-theme="dark"] .settings-page [style*="color: rgb(17, 24, 39)"] {
   color: var(--text-primary) !important;
 }
 
 html[data-theme="dark"] .settings-page [style*="color: #475569"],
 html[data-theme="dark"] .settings-page [style*="color: #4b5563"],
 html[data-theme="dark"] .settings-page [style*="color: #64748b"],
-html[data-theme="dark"] .settings-page [style*="color: #6b7280"] {
+html[data-theme="dark"] .settings-page [style*="color: #6b7280"],
+html[data-theme="dark"] .settings-page [style*="color: rgb(71, 85, 105)"],
+html[data-theme="dark"] .settings-page [style*="color: rgb(100, 116, 139)"] {
   color: var(--text-secondary) !important;
 }
 
-html[data-theme="dark"] .settings-page button:not([style*="background: var(--color-primary)"]):not([style*="background: var(--card-header-bg)"]),
+html[data-theme="dark"] .settings-page table {
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .settings-page :where(thead, th) {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .settings-page :where(tbody, tr, td) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .settings-page tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
+html[data-theme="dark"] .settings-page [style*="borderTop: 1px solid #f1f5f9"],
+html[data-theme="dark"] .settings-page [style*="border-top: 1px solid #f1f5f9"],
+html[data-theme="dark"] .settings-page [style*="borderBottom: 1px solid #f1f5f9"],
+html[data-theme="dark"] .settings-page [style*="border-bottom: 1px solid #f1f5f9"],
+html[data-theme="dark"] .settings-page [style*="border: 1px solid #d1d5db"],
+html[data-theme="dark"] .settings-page [style*="border: 1px solid #e5e7eb"],
+html[data-theme="dark"] .settings-page [style*="border: 1px solid #f1f5f9"] {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .settings-page button:not([style*="background: var(--color-primary)"]):not([style*="background: var(--card-header-bg)"]):not([style*="background: #1d4ed8"]),
+html[data-theme="dark"] .settings-page a[style*="background"]:not([style*="background: var(--color-primary)"]):not([style*="background: #1d4ed8"]),
 html[data-theme="dark"] .settings-page select,
 html[data-theme="dark"] .settings-page input,
 html[data-theme="dark"] .settings-page textarea {
   background: var(--input-bg) !important;
   color: var(--input-text) !important;
   border-color: var(--input-border) !important;
+  box-shadow: none !important;
+  -webkit-text-fill-color: var(--input-text);
 }
 
-html[data-theme="dark"] .settings-page button[style*="background: var(--color-primary)"] {
+html[data-theme="dark"] .settings-page input::placeholder,
+html[data-theme="dark"] .settings-page textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 1;
+}
+
+html[data-theme="dark"] .settings-page input[type="checkbox"] {
+  accent-color: var(--color-primary);
+  -webkit-text-fill-color: initial;
+}
+
+html[data-theme="dark"] .settings-page button[style*="background: var(--color-primary)"],
+html[data-theme="dark"] .settings-page button[style*="background: #1d4ed8"],
+html[data-theme="dark"] .settings-page a[style*="background: var(--color-primary)"],
+html[data-theme="dark"] .settings-page a[style*="background: #1d4ed8"] {
   color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+}
+
+html[data-theme="dark"] .settings-page svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
 }
 
 html[data-theme="dark"] .items-dashboard-page {
@@ -4107,38 +4184,28 @@ html[data-theme="dark"] .items-dashboard-page button:not([style*="background: va
 }
 
 html[data-theme="dark"] .hr-dashboard-page {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
-html[data-theme="dark"] .hr-dashboard-page [style*="background: #fff"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background: #ffffff"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background: rgb(255, 255, 255)"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background: #f8fafc"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background-color: #fff"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background-color: #ffffff"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background: linear-gradient(180deg, rgba(255"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background: linear-gradient(180deg, rgba(250"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background: linear-gradient(180deg, rgba(249"],
-html[data-theme="dark"] .hr-dashboard-page [style*="background: linear-gradient(180deg, rgba(248"] {
-  background: var(--surface) !important;
+html[data-theme="dark"] .hr-dashboard-page
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"], [style*="background: #f8fafc"], [style*="background: #fbfbfd"], [style*="background: #fafafa"], [style*="background-color: #fff"], [style*="background-color: #ffffff"], [style*="background: linear-gradient(180deg, rgba(255"], [style*="background: linear-gradient(180deg, rgba(250"], [style*="background: linear-gradient(180deg, rgba(249"], [style*="background: linear-gradient(180deg, rgba(248"]) {
+  background: var(--surface-card) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
   box-shadow: none !important;
+  background-clip: border-box !important;
 }
 
-html[data-theme="dark"] .hr-dashboard-page [style*="color: #0f172a"],
-html[data-theme="dark"] .hr-dashboard-page [style*="color: #111827"],
-html[data-theme="dark"] .hr-dashboard-page [style*="color: #1f2937"],
-html[data-theme="dark"] .hr-dashboard-page [style*="color: #334155"],
-html[data-theme="dark"] .hr-dashboard-page [style*="color: #374151"] {
+html[data-theme="dark"] .hr-dashboard-page
+  :where([style*="color: #0f172a"], [style*="color: #111827"], [style*="color: #1f2937"], [style*="color: #334155"], [style*="color: #374151"], [style*="color: rgb(15, 23, 42)"], [style*="color: rgb(17, 24, 39)"], [style*="color: rgb(51, 65, 85)"]) {
   color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
 }
 
-html[data-theme="dark"] .hr-dashboard-page [style*="color: #475569"],
-html[data-theme="dark"] .hr-dashboard-page [style*="color: #64748b"],
-html[data-theme="dark"] .hr-dashboard-page [style*="color: #6b7280"],
-html[data-theme="dark"] .hr-dashboard-page [style*="color: rgb(100, 116, 139)"] {
+html[data-theme="dark"] .hr-dashboard-page
+  :where([style*="color: #475569"], [style*="color: #64748b"], [style*="color: #6b7280"], [style*="color: #94a3b8"], [style*="color: rgb(71, 85, 105)"], [style*="color: rgb(100, 116, 139)"], [style*="color: rgb(107, 114, 128)"]) {
   color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
 }
 
 html[data-theme="dark"] .hr-dashboard-page input,
@@ -4146,10 +4213,20 @@ html[data-theme="dark"] .hr-dashboard-page select,
 html[data-theme="dark"] .hr-dashboard-page textarea {
   background: var(--input-bg) !important;
   color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
   border-color: var(--input-border) !important;
 }
 
-html[data-theme="dark"] .hr-dashboard-page table th {
+html[data-theme="dark"] .hr-dashboard-page :where(input::placeholder, textarea::placeholder) {
+  color: var(--input-placeholder) !important;
+  -webkit-text-fill-color: var(--input-placeholder) !important;
+}
+
+html[data-theme="dark"] .hr-dashboard-page :where(table, thead, tbody, tr, th, td) {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .hr-dashboard-page table thead :where(th, td) {
   background: var(--table-header-bg) !important;
   color: var(--table-header-text) !important;
   border-color: var(--border-soft) !important;
@@ -4161,14 +4238,100 @@ html[data-theme="dark"] .hr-dashboard-page table td {
   border-color: var(--border-soft) !important;
 }
 
+html[data-theme="dark"] .hr-dashboard-page table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
 html[data-theme="dark"] .hr-dashboard-page button:not([style*="background: var(--color-primary)"]) {
-  background: var(--surface-secondary) !important;
+  background: var(--surface-elevated) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="dark"] .hr-dashboard-page button[style*="background: var(--color-primary)"] {
   color: #ffffff !important;
+}
+
+html[data-theme="dark"] .hr-dashboard-page :where(svg, button svg) {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .attendance-page {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .attendance-page
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"], [style*="background: #f8fafc"], [style*="background: #fbfbfd"], [style*="background: #fafafa"], [style*="background-color: #fff"], [style*="background-color: #ffffff"], [style*="background: linear-gradient(180deg, rgba(255"], [style*="background: linear-gradient(180deg, rgba(250"], [style*="background: linear-gradient(180deg, rgba(249"]) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+  background-clip: border-box !important;
+}
+
+html[data-theme="dark"] .attendance-page .attendance-summary-card {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .attendance-page .attendance-summary-card :where(span, p, div, svg),
+html[data-theme="dark"] .attendance-page .attendance-hours-badge {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .attendance-page
+  :where([style*="color: #0f172a"], [style*="color: #111827"], [style*="color: #334155"], [style*="color: #475569"], [style*="color: rgb(15, 23, 42)"], [style*="color: rgb(17, 24, 39)"], [style*="color: rgb(51, 65, 85)"]) {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .attendance-page
+  :where([style*="color: #64748b"], [style*="color: #6b7280"], [style*="color: #94a3b8"], [style*="color: rgb(100, 116, 139)"], [style*="color: rgb(107, 114, 128)"]) {
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .attendance-page :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] .attendance-page :where(table, thead, tbody, tr, th, td) {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .attendance-page table thead :where(th, td) {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+}
+
+html[data-theme="dark"] .attendance-page table tbody td {
+  background: var(--table-row-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .attendance-page table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
+html[data-theme="dark"] .attendance-page :where(button:not([style*="background: var(--color-primary)"])) {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .attendance-page :where(svg, button svg) {
+  color: currentColor !important;
+  stroke: currentColor !important;
 }
 
 html[data-theme="dark"] .employee-master-page,
@@ -4260,38 +4423,28 @@ html[data-theme="dark"] .employee-master-modal button[style*="background: var(--
 }
 
 html[data-theme="dark"] .payroll-page {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
-html[data-theme="dark"] .payroll-page [style*="background: #fff"],
-html[data-theme="dark"] .payroll-page [style*="background: #ffffff"],
-html[data-theme="dark"] .payroll-page [style*="background: rgb(255, 255, 255)"],
-html[data-theme="dark"] .payroll-page [style*="background: #f8fafc"],
-html[data-theme="dark"] .payroll-page [style*="background-color: #fff"],
-html[data-theme="dark"] .payroll-page [style*="background-color: #ffffff"],
-html[data-theme="dark"] .payroll-page [style*="background: linear-gradient(180deg, rgba(255"],
-html[data-theme="dark"] .payroll-page [style*="background: linear-gradient(180deg, rgba(250"],
-html[data-theme="dark"] .payroll-page [style*="background: linear-gradient(180deg, rgba(249"],
-html[data-theme="dark"] .payroll-page [style*="background: linear-gradient(180deg, rgba(248"] {
-  background: var(--surface) !important;
+html[data-theme="dark"] .payroll-page
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"], [style*="background: #f8fafc"], [style*="background: #fbfbfd"], [style*="background: #fafafa"], [style*="background-color: #fff"], [style*="background-color: #ffffff"], [style*="background: linear-gradient(180deg, rgba(255"], [style*="background: linear-gradient(180deg, rgba(250"], [style*="background: linear-gradient(180deg, rgba(249"], [style*="background: linear-gradient(180deg, rgba(248"]) {
+  background: var(--surface-card) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
   box-shadow: none !important;
+  background-clip: border-box !important;
 }
 
-html[data-theme="dark"] .payroll-page [style*="color: #0f172a"],
-html[data-theme="dark"] .payroll-page [style*="color: #111827"],
-html[data-theme="dark"] .payroll-page [style*="color: #1f2937"],
-html[data-theme="dark"] .payroll-page [style*="color: #334155"],
-html[data-theme="dark"] .payroll-page [style*="color: #374151"] {
+html[data-theme="dark"] .payroll-page
+  :where([style*="color: #0f172a"], [style*="color: #111827"], [style*="color: #1f2937"], [style*="color: #334155"], [style*="color: #374151"], [style*="color: rgb(15, 23, 42)"], [style*="color: rgb(17, 24, 39)"], [style*="color: rgb(51, 65, 85)"]) {
   color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
 }
 
-html[data-theme="dark"] .payroll-page [style*="color: #475569"],
-html[data-theme="dark"] .payroll-page [style*="color: #64748b"],
-html[data-theme="dark"] .payroll-page [style*="color: #6b7280"],
-html[data-theme="dark"] .payroll-page [style*="color: rgb(100, 116, 139)"] {
+html[data-theme="dark"] .payroll-page
+  :where([style*="color: #475569"], [style*="color: #64748b"], [style*="color: #6b7280"], [style*="color: #94a3b8"], [style*="color: rgb(71, 85, 105)"], [style*="color: rgb(100, 116, 139)"], [style*="color: rgb(107, 114, 128)"]) {
   color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
 }
 
 html[data-theme="dark"] .payroll-page input,
@@ -4299,15 +4452,21 @@ html[data-theme="dark"] .payroll-page select,
 html[data-theme="dark"] .payroll-page textarea {
   background: var(--input-bg) !important;
   color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
   border-color: var(--input-border) !important;
 }
 
 html[data-theme="dark"] .payroll-page input::placeholder,
 html[data-theme="dark"] .payroll-page textarea::placeholder {
   color: var(--input-placeholder) !important;
+  -webkit-text-fill-color: var(--input-placeholder) !important;
 }
 
-html[data-theme="dark"] .payroll-page table th {
+html[data-theme="dark"] .payroll-page :where(table, thead, tbody, tr, th, td) {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .payroll-page table thead :where(th, td) {
   background: var(--table-header-bg) !important;
   color: var(--table-header-text) !important;
   border-color: var(--border-soft) !important;
@@ -4319,14 +4478,24 @@ html[data-theme="dark"] .payroll-page table td {
   border-color: var(--border-soft) !important;
 }
 
+html[data-theme="dark"] .payroll-page table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
 html[data-theme="dark"] .payroll-page button:not([style*="background: var(--color-primary)"]) {
-  background: var(--surface-secondary) !important;
+  background: var(--surface-elevated) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="dark"] .payroll-page button[style*="background: var(--color-primary)"] {
   color: #ffffff !important;
+}
+
+html[data-theme="dark"] .payroll-page :where(svg, button svg) {
+  color: currentColor !important;
+  stroke: currentColor !important;
 }
 
 html[data-theme="dark"] .stock-management-page {
@@ -4464,6 +4633,70 @@ html[data-theme="dark"] .customer-dashboard-page :where([aria-label="More option
   stroke: currentColor !important;
 }
 
+html[data-theme="dark"] .customer-modal-surface {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: 0 28px 80px rgba(2, 6, 23, 0.55) !important;
+}
+
+html[data-theme="dark"] .customer-modal-surface .crm-modal-surface-body,
+html[data-theme="dark"] .customer-modal-surface .crm-modal-surface-footer {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .customer-modal-address-card,
+html[data-theme="dark"] .customer-premises-panel,
+html[data-theme="dark"] .customer-premises-card,
+html[data-theme="dark"] .customer-premises-form {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .customer-modal-surface :where(h1, h2, h3, h4, p, span, label, strong),
+html[data-theme="dark"] .customer-premises-panel :where(h1, h2, h3, h4, p, span, label, strong) {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .customer-modal-surface :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
+html[data-theme="dark"] .customer-premises-panel :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] .customer-modal-surface :where(input:disabled, select:disabled, textarea:disabled) {
+  background: var(--surface-elevated) !important;
+  color: var(--text-muted) !important;
+  -webkit-text-fill-color: var(--text-muted) !important;
+  opacity: 1 !important;
+}
+
+html[data-theme="dark"] .customer-premises-panel :where(button:not([style*="background: var(--color-primary)"]), .customer-premises-card [style*="background: #fff"]) {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .customer-premises-panel svg,
+html[data-theme="dark"] .customer-modal-surface svg {
+  color: var(--icon-primary) !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .customer-premises-panel [style*="background: #f1f5f9"],
+html[data-theme="dark"] .customer-premises-panel [style*="background: #fff7ed"],
+html[data-theme="dark"] .customer-premises-panel [style*="background: var(--color-primary-light)"] {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-soft) !important;
+}
+
 html[data-theme="dark"] .vendor-dashboard-page {
   color: var(--text-primary) !important;
 }
@@ -4561,6 +4794,120 @@ html[data-theme="dark"] .vendor-modal-surface .crm-modal-surface-footer button:l
   color: #ffffff !important;
 }
 
+html[data-theme="dark"] .vendor-bills-page {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"], [style*="background: #fbfbfd"], [style*="background: #fafafa"], [style*="background: #f8fafc"], [style*="background: linear-gradient(180deg, rgba(255"], [style*="background-color: #fff"], [style*="background-color: #ffffff"]) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page
+  :where([style*="color: #111827"], [style*="color: #1f2937"], [style*="color: #334155"], [style*="color: #3f3f46"], [style*="color: #475569"], [style*="color: rgb(17, 24, 39)"], [style*="color: rgb(31, 41, 55)"], [style*="color: rgb(51, 65, 85)"]) {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page
+  :where([style*="color: #64748b"], [style*="color: #6b7280"], [style*="color: #94a3b8"], [style*="color: rgb(100, 116, 139)"], [style*="color: rgb(107, 114, 128)"]) {
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page :where(table, thead, tbody, tr, th, td) {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page table thead :where(th, td) {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page table tbody td {
+  background: var(--table-row-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page :where(button:not([style*="background: var(--color-primary)"])) {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .vendor-bills-page :where(button, svg) {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"], [style*="background: #fff5f5"], [style*="background: var(--color-primary-light)"], [style*="background-color: #fff"], [style*="background-color: #ffffff"]) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page
+  :where([style*="color: #111827"], [style*="color: #334155"], [style*="color: #475569"], [style*="color: rgb(17, 24, 39)"], [style*="color: rgb(51, 65, 85)"]) {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page
+  :where([style*="color: #6B7280"], [style*="color: #6b7280"], [style*="color: #64748b"], [style*="color: rgb(107, 114, 128)"]) {
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page :where(table, thead, tbody, tr, th, td, .responsive-table) {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page table thead :where(th, td) {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page table tbody td {
+  background: var(--table-row-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page button {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .vendor-payment-page :where(svg, button svg) {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
 html[data-theme="dark"] .contract-dashboard-page > [style*="background"],
 html[data-theme="dark"] .contract-dashboard-page > div:first-child,
 html[data-theme="dark"] .contract-dashboard-page > div:first-child > div {
@@ -4608,6 +4955,109 @@ html[data-theme="dark"] .contract-dashboard-page :where([aria-label="Customize f
 html[data-theme="dark"] .contract-dashboard-page :where([aria-label="Customize fields"], [data-contract-customize="true"] button) svg {
   color: currentColor !important;
   stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .invoice-dashboard-page .invoice-summary-wrap,
+html[data-theme="dark"] .invoice-dashboard-page .invoice-summary-card {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .invoice-dashboard-page .invoice-summary-metric {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .invoice-dashboard-page .invoice-summary-card :where(h1, h2, h3, h4, p, span, strong, label),
+html[data-theme="dark"] .invoice-dashboard-page .invoice-summary-metric :where(h1, h2, h3, h4, p, span, strong, label) {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page {
+  color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"], [style*="background: linear-gradient(180deg, #ffffff"], [style*="background: linear-gradient(180deg, rgba(255"], [style*="background: linear-gradient(180deg, rgba(249"], [style*="background: linear-gradient(180deg, rgba(248"], [style*="background-color: #fff"], [style*="background-color: #ffffff"]) {
+  background: var(--surface-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page
+  :where([style*="background: #f8fafc"], [style*="background: #f9fafb"], [style*="background: #f1f5f9"], [style*="background-color: #f8fafc"], [style*="background-color: #f9fafb"], [style*="background-color: #f1f5f9"]) {
+  background: var(--surface-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page
+  :where([style*="color: #111827"], [style*="color: #1f2937"], [style*="color: #334155"], [style*="color: #475569"], [style*="color: rgb(17, 24, 39)"], [style*="color: rgb(31, 41, 55)"], [style*="color: rgb(51, 65, 85)"]) {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page
+  :where([style*="color: #64748b"], [style*="color: #6b7280"], [style*="color: #94a3b8"], [style*="color: rgb(100, 116, 139)"], [style*="color: rgb(107, 114, 128)"], [style*="color: rgb(148, 163, 184)"]) {
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+  border-color: var(--input-border) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page :where(input::placeholder, textarea::placeholder) {
+  color: var(--input-placeholder) !important;
+  -webkit-text-fill-color: var(--input-placeholder) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page :where(button, a[style*="background"]) {
+  background: var(--surface-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page button[style*="background: var(--color-primary)"] {
+  background: var(--color-primary) !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page :where(button, a) svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page table {
+  background: var(--table-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page table thead :where(th, td) {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page table tbody td {
+  background: var(--table-row-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .whatsapp-marketing-page table tbody tr:nth-child(even) td {
+  background: var(--table-row-alt) !important;
 }
 
 /* Final CRM dark theme consistency pass for lead, contract, invoice, quotation, and payment views. */

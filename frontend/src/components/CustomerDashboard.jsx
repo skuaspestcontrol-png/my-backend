@@ -3412,7 +3412,7 @@ export default function CustomerDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle}>
-          <form className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit}>
+          <form className="crm-modal-surface customer-modal-surface" style={modalStyle} onSubmit={handleSubmit}>
             <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalHeaderTitle}>{editingId ? 'Edit Customer' : 'New Customer'}</h3>
               <button type="button" style={shell.modalCloseButton} onClick={closeModal} aria-label="Close">
@@ -3599,7 +3599,7 @@ export default function CustomerDashboard() {
 
               <label style={shell.label}>Billing Address</label>
               <div style={addressSplitStyle}>
-                <div style={shell.addressCard}>
+                <div className="customer-modal-address-card" style={shell.addressCard}>
                   <div style={shell.addressHead}>
                     <h4 style={shell.addressTitle}>Billing Address</h4>
                   </div>
@@ -3639,7 +3639,7 @@ export default function CustomerDashboard() {
                   </div>
                 </div>
 
-                <div style={shell.addressCard}>
+                <div className="customer-modal-address-card" style={shell.addressCard}>
                   <div style={shell.addressHead}>
                     <h4 style={shell.addressTitle}>Shipping Address</h4>
                     <button

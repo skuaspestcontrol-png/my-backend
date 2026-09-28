@@ -311,7 +311,7 @@ export default function VendorPaymentDashboard() {
   };
 
   return (
-    <section style={shell.page}>
+    <section className="vendor-payment-page" style={shell.page}>
       <div style={shell.hero}>
         <h2 style={shell.title}>Vendor Payment Dashboard</h2>
         <p style={shell.sub}>{status}</p>
