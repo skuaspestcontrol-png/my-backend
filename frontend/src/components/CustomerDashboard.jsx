@@ -432,24 +432,24 @@ const shell = {
   popoverBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
-  modal: { background: '#fff', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.24)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' },
+  modal: { background: 'var(--surface-card)', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
   modalHeader: { minHeight: '56px', boxSizing: 'border-box', padding: '0 22px', borderBottom: '1px solid transparent', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--card-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
   modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
   modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
-  modalBody: { padding: '20px 24px', display: 'grid', gridTemplateColumns: '160px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center', overflowY: 'auto', background: '#fff' },
+  modalBody: { padding: '20px 24px', display: 'grid', gridTemplateColumns: '160px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center', overflowY: 'auto', background: 'var(--surface-card)', color: 'var(--text-primary)' },
   addressSplit: { gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px', marginTop: '6px' },
-  addressCard: { border: '1px solid var(--color-border)', borderRadius: '12px', padding: '12px', background: '#fff' },
-  addressTitle: { margin: 0, fontSize: '16px', fontWeight: 700, color: '#111827', lineHeight: 1.2 },
+  addressCard: { border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)' },
+  addressTitle: { margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 },
   addressHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' },
-  addressCopy: { fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600, cursor: 'pointer', textDecoration: 'none', border: 'none', background: 'transparent', padding: 0, lineHeight: 1.2 },
+  addressCopy: { fontSize: '12px', color: 'var(--text-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'none', border: '1px solid var(--border)', background: 'var(--surface-card)', borderRadius: '8px', padding: '6px 8px', lineHeight: 1.2 },
   addressGrid: { display: 'grid', gridTemplateColumns: '130px minmax(0, 1fr)', rowGap: '10px', columnGap: '10px', alignItems: 'center' },
-  label: { fontSize: '12px', color: 'var(--color-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.02em' },
-  input: { border: '1px solid #D1D5DB', borderRadius: '11px', padding: '0 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '40px' },
-  textarea: { border: '1px solid #D1D5DB', borderRadius: '11px', padding: '10px 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '80px', resize: 'vertical' },
+  label: { fontSize: '12px', color: 'var(--text-primary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.02em' },
+  input: { border: '1px solid var(--border)', borderRadius: '11px', padding: '0 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '40px', background: 'var(--input-bg)', color: 'var(--input-text)', boxSizing: 'border-box' },
+  textarea: { border: '1px solid var(--border)', borderRadius: '11px', padding: '10px 12px', fontSize: '14px', outline: 'none', width: '100%', minHeight: '80px', resize: 'vertical', background: 'var(--input-bg)', color: 'var(--input-text)', boxSizing: 'border-box' },
   amountRow: { display: 'grid', gridTemplateColumns: '56px 1fr', gap: 0 },
-  currencyTag: { border: '1px solid #D1D5DB', borderRight: 'none', borderRadius: '8px 0 0 8px', padding: '6px 8px', fontSize: '12px', color: '#334155', background: '#f8fafc' },
-  amountInput: { border: '1px solid #D1D5DB', borderRadius: '0 8px 8px 0', padding: '6px 8px', fontSize: '12px', outline: 'none', width: '100%' },
-  inlineChecks: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: '#111827' },
+  currencyTag: { border: '1px solid var(--border)', borderRight: 'none', borderRadius: '8px 0 0 8px', padding: '6px 8px', fontSize: '12px', color: 'var(--text-primary)', background: 'var(--surface-card-elevated)' },
+  amountInput: { border: '1px solid var(--border)', borderRadius: '0 8px 8px 0', padding: '6px 8px', fontSize: '12px', outline: 'none', width: '100%', background: 'var(--input-bg)', color: 'var(--input-text)' },
+  inlineChecks: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', color: 'var(--text-primary)' },
   inlineDuplicateWarning: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -466,8 +466,8 @@ const shell = {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
-  modalFooter: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid rgba(148, 163, 184, 0.18)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' },
-  cancelButton: { minHeight: '40px', border: '1px solid #d1d5db', background: '#fff', color: '#111827', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' },
+  modalFooter: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)' },
+  cancelButton: { minHeight: '40px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' },
   saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' },
   historyOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.52)', zIndex: 3000, display: 'grid', placeItems: 'center', padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
   historyModal: { width: 'min(100%, 1260px)', maxHeight: '94vh', background: '#fff', borderRadius: '12px', border: '1px solid var(--color-primary-soft)', boxShadow: '0 20px 44px rgba(15,23,42,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
@@ -2653,7 +2653,7 @@ export default function CustomerDashboard() {
       flexWrap: 'wrap',
       position: 'sticky',
       bottom: 0,
-      background: '#fff',
+      background: 'var(--surface-card-elevated)',
       paddingBottom: 'calc(12px + env(safe-area-inset-bottom))'
     }
     : shell.modalFooter;
@@ -2779,7 +2779,7 @@ export default function CustomerDashboard() {
             </button>
           </div>
           {state.showSuggestions ? (
-            <div style={{ marginTop: '6px', border: '1px solid #e5e7eb', borderRadius: '10px', background: '#fff', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)', maxHeight: '220px', overflowY: 'auto' }}>
+            <div style={{ marginTop: '6px', border: '1px solid var(--border)', borderRadius: '10px', background: 'var(--surface-card-elevated)', boxShadow: '0 10px 24px rgba(2, 6, 23, 0.32)', maxHeight: '220px', overflowY: 'auto' }}>
               {(state.suggestions || []).map((place) => {
                 const name = place.displayName?.text || place.displayName || place.formattedAddress || '';
                 const address = place.formattedAddress || '';
@@ -2792,10 +2792,10 @@ export default function CustomerDashboard() {
                       applyCustomerAddressSuggestion(section, place, form[searchKey]);
                       setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
                     }}
-                    style={{ width: '100%', textAlign: 'left', border: 'none', borderBottom: '1px solid #f1f5f9', background: '#fff', cursor: 'pointer', padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}
+                    style={{ width: '100%', textAlign: 'left', border: 'none', borderBottom: '1px solid var(--border-soft)', background: 'transparent', cursor: 'pointer', padding: '8px 10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}
                   >
-                    <div style={{ width: '100%', textAlign: 'left', fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{name}</div>
-                    <div style={{ width: '100%', textAlign: 'left', fontSize: '11px', color: '#64748b' }}>{address}</div>
+                    <div style={{ width: '100%', textAlign: 'left', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{name}</div>
+                    <div style={{ width: '100%', textAlign: 'left', fontSize: '11px', color: 'var(--text-secondary)' }}>{address}</div>
                   </button>
                 );
               })}
@@ -3537,7 +3537,7 @@ export default function CustomerDashboard() {
                   inputMode="numeric"
                   onChange={(event) => setForm((prev) => ({ ...prev, whatsappNumber: toTenDigitNumber(event.target.value) }))}
                 />
-                <label style={{ fontSize: '11px', color: '#334155' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text-primary)', fontWeight: 700 }}>
                   <input
                     type="checkbox"
                     checked={form.whatsappSameAsMobile}

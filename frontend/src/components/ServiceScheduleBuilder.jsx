@@ -8,15 +8,16 @@ import {
 
 const styles = {
   block: {
-    border: '1px solid var(--color-border)',
+    border: '1px solid var(--border)',
     borderRadius: '8px',
-    background: '#fff',
+    background: 'var(--surface-card)',
     overflow: 'hidden',
-    display: 'grid'
+    display: 'grid',
+    color: 'var(--text-primary)'
   },
   head: {
     padding: '6px 10px',
-    borderBottom: '1px solid var(--color-border)',
+    borderBottom: '1px solid var(--border)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -24,7 +25,7 @@ const styles = {
     flexWrap: 'wrap'
   },
   titleWrap: { display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' },
-  title: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' },
+  title: { margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' },
   countBadge: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -38,19 +39,19 @@ const styles = {
     fontWeight: 800,
     lineHeight: 1
   },
-  hint: { margin: 0, fontSize: '9px', color: '#64748b', lineHeight: 1.25 },
+  hint: { margin: 0, fontSize: '9px', color: 'var(--text-muted)', lineHeight: 1.25 },
   tableWrap: {
     maxHeight: '240px',
     overflow: 'auto',
-    borderTop: '1px solid var(--color-border)',
-    background: '#fff'
+    borderTop: '1px solid var(--border)',
+    background: 'var(--surface-card)'
   },
   table: { width: '100%', minWidth: '760px', borderCollapse: 'collapse', tableLayout: 'fixed' },
   th: {
-    borderBottom: '1px solid #d9e1ea',
-    borderRight: '1px solid #d9e1ea',
-    background: '#f8fafc',
-    color: '#55657a',
+    borderBottom: '1px solid var(--border)',
+    borderRight: '1px solid var(--border)',
+    background: 'var(--table-header-bg)',
+    color: 'var(--text-muted)',
     fontSize: '11px',
     fontWeight: 800,
     textTransform: 'uppercase',
@@ -66,25 +67,25 @@ const styles = {
     verticalAlign: 'middle'
   },
   td: {
-    borderBottom: '1px solid #d9e1ea',
-    borderRight: '1px solid #d9e1ea',
-    color: '#334155',
+    borderBottom: '1px solid var(--border-soft)',
+    borderRight: '1px solid var(--border-soft)',
+    color: 'var(--text-primary)',
     fontSize: '10px',
     padding: '1px 8px',
     verticalAlign: 'middle'
   },
-  numberCell: { width: '34px', textAlign: 'center', color: '#475569', fontWeight: 700, fontSize: '11px', paddingTop: '1px', paddingBottom: '1px' },
-  dateCell: { fontSize: '11px', fontWeight: 400, color: '#334155', lineHeight: 1.1, whiteSpace: 'nowrap' },
-  preferredCell: { fontSize: '11px', fontWeight: 400, color: '#475569', lineHeight: 1.1, whiteSpace: 'nowrap' },
-  timeCell: { fontSize: '11px', fontWeight: 400, color: '#334155', lineHeight: 1.1, whiteSpace: 'nowrap' },
+  numberCell: { width: '34px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 700, fontSize: '11px', paddingTop: '1px', paddingBottom: '1px' },
+  dateCell: { fontSize: '11px', fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' },
+  preferredCell: { fontSize: '11px', fontWeight: 400, color: 'var(--text-muted)', lineHeight: 1.1, whiteSpace: 'nowrap' },
+  timeCell: { fontSize: '11px', fontWeight: 400, color: 'var(--text-primary)', lineHeight: 1.1, whiteSpace: 'nowrap' },
   timeInput: {
     width: '100%',
     minHeight: '20px',
     height: '20px',
     borderRadius: '4px',
-    border: '1px solid #d1d5db',
-    background: '#fff',
-    color: '#334155',
+    border: '1px solid var(--border)',
+    background: 'var(--input-bg)',
+    color: 'var(--input-text)',
     fontSize: '11px',
     fontWeight: 400,
     padding: '0 8px',
@@ -95,21 +96,21 @@ const styles = {
     minHeight: '20px',
     height: '20px',
     borderRadius: '4px',
-    border: '1px solid #d1d5db',
-    background: '#fff',
-    color: '#475569',
+    border: '1px solid var(--border)',
+    background: 'var(--input-bg)',
+    color: 'var(--input-text)',
     fontSize: '11px',
     fontWeight: 400,
     padding: '0 8px',
     boxSizing: 'border-box'
   },
   emptyState: {
-    borderTop: '1px solid var(--color-border)',
+    borderTop: '1px solid var(--border)',
     padding: '10px',
-    color: '#64748b',
+    color: 'var(--text-muted)',
     fontSize: '10px',
     lineHeight: 1.5,
-    background: '#fff'
+    background: 'var(--surface-card)'
   }
 };
 
