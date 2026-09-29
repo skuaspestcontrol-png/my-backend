@@ -66,7 +66,7 @@ const shell = {
     backdropFilter: 'none'
   },
   topbar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' },
-  title: { margin: 0, fontSize: '28px', letterSpacing: '-0.02em', color: '#0f172a', fontWeight: 800, lineHeight: 1.1 },
+  title: { margin: 0, fontSize: '28px', letterSpacing: '-0.02em', color: 'var(--text-primary)', fontWeight: 800, lineHeight: 1.1 },
   addBtn: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -84,15 +84,15 @@ const shell = {
     letterSpacing: '0.05em',
     textTransform: 'uppercase'
   },
-  tableWrap: { background: '#fff', borderRadius: '18px', border: '1px solid var(--border)', overflow: 'hidden' },
+  tableWrap: { background: 'var(--table-bg)', borderRadius: '18px', border: '1px solid var(--border)', overflow: 'hidden' },
   table: { width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' },
   th: {
     textAlign: 'left',
     fontSize: '11px',
     fontWeight: 700,
-    color: '#64748b',
+    color: 'var(--text-muted)',
     padding: '7px 5px',
-    borderBottom: '1px solid var(--color-border)',
+    borderBottom: '1px solid var(--border)',
     textTransform: 'uppercase',
     letterSpacing: '0.03em',
     whiteSpace: 'normal',
@@ -104,28 +104,29 @@ const shell = {
   },
   td: {
     padding: '7px 5px',
-    borderBottom: '1px solid #eef2f7',
+    borderBottom: '1px solid var(--border-soft)',
     fontSize: '10px',
-    color: '#334155',
+    color: 'var(--text-secondary)',
     verticalAlign: 'middle',
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
-  detailRow: { background: 'rgba(248,250,252,0.85)' },
-  detailCell: { padding: '8px 10px 12px', borderBottom: '1px solid #eef2f7' },
+  detailRow: { background: 'var(--surface-card)' },
+  detailCell: { padding: '8px 10px 12px', borderBottom: '1px solid var(--border-soft)' },
   detailPanel: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 8px' },
-  detailItem: { display: 'grid', gap: '2px', padding: '6px 8px', borderRadius: '8px', background: '#fff', border: '1px solid rgba(159, 23, 77, 0.10)' },
-  detailLabel: { margin: 0, fontSize: '9px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#64748b' },
-  detailValue: { margin: 0, fontSize: '11px', fontWeight: 700, color: '#0f172a', lineHeight: 1.25 },
+  detailItem: { display: 'grid', gap: '2px', padding: '6px 8px', borderRadius: '8px', background: 'var(--surface-card-elevated)', border: '1px solid var(--border)' },
+  detailLabel: { margin: 0, fontSize: '9px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)' },
+  detailValue: { margin: 0, fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.25 },
   rowActionBtn: {
     width: '34px',
     height: '34px',
     minHeight: '34px',
     padding: 0,
     borderRadius: '10px',
-    border: '1px solid var(--color-border)',
-    background: '#fff',
+    border: '1px solid var(--border)',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -147,8 +148,8 @@ const shell = {
     width: 'min(1040px, 100%)',
     maxHeight: '92vh',
     overflow: 'hidden',
-    background: 'rgba(255,255,255,0.9)',
-    border: '1px solid rgba(159, 23, 77, 0.24)',
+    background: 'var(--surface-card)',
+    border: '1px solid var(--border)',
     borderRadius: '16px',
     boxShadow: 'var(--shadow)',
     display: 'flex',
@@ -172,24 +173,24 @@ const shell = {
     borderBottom: '1px solid transparent'
   },
   modalBody: { padding: '20px 24px', overflowY: 'auto', display: 'grid', gap: '14px' },
-  section: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '14px' },
-  sectionTitle: { margin: '0 0 10px 0', fontSize: '13px', fontWeight: 800, color: 'var(--color-primary-dark)', textTransform: 'uppercase', letterSpacing: '0.03em' },
+  section: { border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--surface-card-elevated)', padding: '14px' },
+  sectionTitle: { margin: '0 0 10px 0', fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.03em' },
   grid2: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px 18px' },
   grid3: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '12px 18px' },
   field: { display: 'grid', gap: '6px' },
   fieldSpan2: { gridColumn: 'span 2' },
   fieldSpan3: { gridColumn: 'span 3' },
-  label: { fontSize: '12px', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--color-muted)', lineHeight: 1.25 },
-  input: { width: '100%', minHeight: '40px', borderRadius: '11px', border: '1px solid rgba(159, 23, 77, 0.24)', background: '#fff', padding: '0 12px', fontSize: '14px', color: '#0f172a' },
-  textArea: { width: '100%', minHeight: '80px', borderRadius: '11px', border: '1px solid rgba(159, 23, 77, 0.24)', background: '#fff', padding: '10px 12px', fontSize: '14px', color: '#0f172a', resize: 'vertical' },
+  label: { fontSize: '12px', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--text-secondary)', lineHeight: 1.25 },
+  input: { width: '100%', minHeight: '40px', borderRadius: '11px', border: '1px solid var(--border)', background: 'var(--input-bg)', padding: '0 12px', fontSize: '14px', color: 'var(--input-text)' },
+  textArea: { width: '100%', minHeight: '80px', borderRadius: '11px', border: '1px solid var(--border)', background: 'var(--input-bg)', padding: '10px 12px', fontSize: '14px', color: 'var(--input-text)', resize: 'vertical' },
   checkRow: { display: 'flex', alignItems: 'center', gap: '10px 16px', rowGap: '10px', flexWrap: 'wrap', paddingTop: '4px', marginBottom: '10px' },
-  checkItem: { display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '13px', fontWeight: 700, color: '#0f172a', lineHeight: 1.3 },
+  checkItem: { display: 'inline-flex', alignItems: 'center', gap: '9px', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 },
   uploadBtn: {
     minHeight: '38px',
     borderRadius: '9px',
     border: '1px solid rgba(16,185,129,0.48)',
     background: 'rgba(16,185,129,0.08)',
-    color: '#15803d',
+    color: 'var(--text-primary)',
     cursor: 'pointer',
     fontWeight: 800,
     fontSize: '12px',
@@ -198,10 +199,10 @@ const shell = {
     alignItems: 'center',
     gap: '6px'
   },
-  helper: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 700 },
-  footer: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid rgba(148, 163, 184, 0.18)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)', position: 'sticky', bottom: 0 },
+  helper: { margin: 0, fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 },
+  footer: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)', position: 'sticky', bottom: 0 },
   footerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
-  cancelBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid #D1D5DB', background: '#fff', color: '#334155', cursor: 'pointer', fontSize: '13px', fontWeight: 700, padding: '0 14px' },
+  cancelBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '13px', fontWeight: 700, padding: '0 14px' },
   saveBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.32)', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 800, padding: '0 16px' }
 };
 
@@ -877,9 +878,9 @@ export default function EmployeeMaster() {
                       type="button"
                       onClick={() => toggleEmployeeDetails(employee._id || employee.empCode)}
                       style={{
-                        border: '1px solid rgba(159, 23, 77, 0.18)',
-                        background: expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? 'rgba(159, 23, 77, 0.08)' : '#fff',
-                        color: 'var(--color-primary-dark)',
+                        border: '1px solid var(--border)',
+                        background: expandedEmployeeIds.has(String(employee._id || employee.empCode || '').trim()) ? 'rgba(139, 92, 246, 0.18)' : 'var(--surface-card-elevated)',
+                        color: 'var(--text-primary)',
                         borderRadius: '999px',
                         minHeight: '24px',
                         padding: '0 8px',
@@ -1285,7 +1286,7 @@ export default function EmployeeMaster() {
             </div>
 
             <div className="crm-modal-surface-footer" style={shell.footer}>
-              <span style={{ ...shell.helper, color: status.toLowerCase().includes('failed') ? '#dc2626' : 'var(--color-primary-dark)' }}>{status || 'Fill employee details and submit.'}</span>
+              <span style={{ ...shell.helper, color: status.toLowerCase().includes('failed') ? '#ef4444' : 'var(--text-secondary)' }}>{status || 'Fill employee details and submit.'}</span>
               <div style={shell.footerActions}>
                 <button type="button" style={shell.cancelBtn} onClick={closeModal}>Cancel</button>
                 <button type="submit" style={shell.saveBtn} disabled={isSaving}>

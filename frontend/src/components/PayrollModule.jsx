@@ -74,7 +74,7 @@ const statusBadgeStyle = (statusRaw) => {
   if (status === 'paid') return { background: 'rgba(22,163,74,0.16)', color: '#166534', border: '1px solid rgba(22,163,74,0.32)' };
   if (status === 'hold') return { background: 'rgba(234,179,8,0.15)', color: '#92400e', border: '1px solid rgba(217,119,6,0.32)' };
   if (status === 'generated') return { background: 'rgba(159, 23, 77, 0.16)', color: 'var(--color-primary-dark)', border: '1px solid rgba(159, 23, 77, 0.32)' };
-  return { background: 'rgba(100,116,139,0.14)', color: '#334155', border: '1px solid rgba(100,116,139,0.22)' };
+  return { background: 'rgba(100,116,139,0.14)', color: 'var(--text-secondary)', border: '1px solid rgba(100,116,139,0.22)' };
 };
 
 const payrollHistoryColumns = [
@@ -149,9 +149,9 @@ const shell = {
   tabStrip: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
   tabStripMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
   tab: {
-    border: '1px solid rgba(159, 23, 77, 0.24)',
-    background: '#fff',
-    color: '#0f172a',
+    border: '1px solid var(--border)',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     borderRadius: '999px',
     minHeight: '34px',
     padding: '0 12px',
@@ -166,25 +166,25 @@ const shell = {
     fontSize: '11px'
   },
   panel: {
-    border: '1px solid rgba(148, 163, 184, 0.18)',
+    border: '1px solid var(--border)',
     borderRadius: '16px',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,252,0.98) 100%)',
-    boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
+    background: 'var(--surface-card)',
+    boxShadow: 'var(--shadow)',
     backgroundClip: 'padding-box',
     padding: '14px',
     display: 'grid',
     gap: '12px'
   },
-  panelTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', gap: '8px', alignItems: 'center' },
-  sub: { margin: 0, fontSize: '12px', color: '#475569' },
+  panelTitle: { margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', display: 'inline-flex', gap: '8px', alignItems: 'center' },
+  sub: { margin: 0, fontSize: '12px', color: 'var(--text-secondary)' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '10px' },
-  card: { border: '1px solid rgba(148, 163, 184, 0.16)', borderRadius: '12px', padding: '12px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
-  cardLabel: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  cardValue: { margin: '6px 0 0 0', fontSize: '20px', color: '#0f172a', fontWeight: 800 },
+  card: { border: '1px solid var(--border)', borderRadius: '12px', padding: '12px', background: 'var(--surface-card-elevated)', boxShadow: '0 10px 24px rgba(2, 6, 23, 0.2)', backgroundClip: 'padding-box' },
+  cardLabel: { margin: 0, fontSize: '11px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  cardValue: { margin: '6px 0 0 0', fontSize: '20px', color: 'var(--text-primary)', fontWeight: 800 },
   row: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' },
   field: { display: 'grid', gap: '5px' },
-  label: { margin: 0, fontSize: '10px', color: '#334155', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  input: { width: '100%', minHeight: '34px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '7px 9px', fontSize: '12px', background: '#fff' },
+  label: { margin: 0, fontSize: '10px', color: 'var(--text-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  input: { width: '100%', minHeight: '34px', borderRadius: '8px', border: '1px solid var(--border)', padding: '7px 9px', fontSize: '12px', background: 'var(--input-bg)', color: 'var(--input-text)' },
   actionRow: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
   btn: {
     border: '1px solid rgba(159, 23, 77, 0.32)',
@@ -199,9 +199,9 @@ const shell = {
     cursor: 'pointer'
   },
   btnLight: {
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    color: '#0f172a',
+    border: '1px solid var(--border)',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     borderRadius: '8px',
     minHeight: '26px',
     padding: '0 8px',
@@ -236,36 +236,36 @@ const shell = {
     alignItems: 'center',
     justifyContent: 'center'
   },
-  tableWrap: { border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '14px', overflowX: 'auto', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
+  tableWrap: { border: '1px solid var(--border)', borderRadius: '14px', overflowX: 'auto', background: 'var(--table-bg)', boxShadow: '0 12px 28px rgba(2, 6, 23, 0.2)', backgroundClip: 'padding-box' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '920px' },
-  th: { textAlign: 'left', padding: '6px 7px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.25, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', minHeight: '38px', height: 'auto' },
-  td: { padding: '6px 7px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#334155', fontWeight: 600, verticalAlign: 'top', lineHeight: 1.25 },
+  th: { textAlign: 'left', padding: '6px 7px', borderBottom: '1px solid var(--border)', background: 'var(--table-header-bg)', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.25, whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', minHeight: '38px', height: 'auto' },
+  td: { padding: '6px 7px', borderBottom: '1px solid var(--border-soft)', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600, verticalAlign: 'top', lineHeight: 1.25 },
   badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', padding: '3px 7px', fontSize: '10px', fontWeight: 700 },
-  footer: { margin: 0, fontSize: '12px', color: '#475569', fontWeight: 700 },
+  footer: { margin: 0, fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 90, padding: '16px' },
-  modal: { width: 'min(620px, 100%)', background: '#fff', borderRadius: '14px', border: '1px solid rgba(159, 23, 77, 0.2)', padding: '14px', display: 'grid', gap: '10px' },
+  modal: { width: 'min(620px, 100%)', background: 'var(--surface-card)', borderRadius: '14px', border: '1px solid var(--border)', padding: '14px', display: 'grid', gap: '10px', color: 'var(--text-primary)' },
   modalStack: { display: 'grid', gap: '10px' },
   modalActions: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
   modalActionButton: { minHeight: '32px', padding: '0 10px', fontSize: '11px' },
-  modalFrame: { width: '100%', height: '72vh', border: '1px solid #D1D5DB', borderRadius: '10px', background: '#fff' },
-  modalCard: { width: 'min(980px, 100%)', background: '#fff', borderRadius: '14px', border: '1px solid rgba(159, 23, 77, 0.2)', padding: '14px', display: 'grid', gap: '10px' },
+  modalFrame: { width: '100%', height: '72vh', border: '1px solid var(--border)', borderRadius: '10px', background: 'var(--surface-card)' },
+  modalCard: { width: 'min(980px, 100%)', background: 'var(--surface-card)', borderRadius: '14px', border: '1px solid var(--border)', padding: '14px', display: 'grid', gap: '10px', color: 'var(--text-primary)' },
   chartRow: { display: 'grid', gap: '7px' },
   chartBarWrap: { height: '10px', borderRadius: '999px', background: 'var(--color-border)', overflow: 'hidden' },
   chartBar: { height: '100%', background: 'var(--color-primary)' },
   compactGrid: { display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(240px, 0.85fr)', gap: '10px', alignItems: 'start' },
   miniStack: { display: 'grid', gap: '8px' },
-  miniCard: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '10px' },
-  miniCardLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  miniCardValue: { margin: '4px 0 0 0', fontSize: '16px', color: '#0f172a', fontWeight: 800 },
+  miniCard: { border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--surface-card-elevated)', padding: '10px' },
+  miniCardLabel: { margin: 0, fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  miniCardValue: { margin: '4px 0 0 0', fontSize: '16px', color: 'var(--text-primary)', fontWeight: 800 },
   employeeChecklist: { display: 'grid', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' },
-  employeeRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '8px 10px', background: '#fff' },
+  employeeRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', border: '1px solid var(--border)', borderRadius: '10px', padding: '8px 10px', background: 'var(--surface-card-elevated)' },
   employeeMeta: { display: 'grid', gap: '2px', minWidth: 0 },
-  employeeName: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  employeeSub: { margin: 0, fontSize: '10px', fontWeight: 700, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  employeeName: { margin: 0, fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  employeeSub: { margin: 0, fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   pillButton: {
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    color: '#0f172a',
+    border: '1px solid var(--border)',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     borderRadius: '8px',
     minHeight: '30px',
     padding: '0 10px',
@@ -275,14 +275,14 @@ const shell = {
     cursor: 'pointer'
   },
   historyCardList: { display: 'grid', gap: '10px' },
-  historyCard: { border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff', padding: '12px', display: 'grid', gap: '10px' },
+  historyCard: { border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--surface-card-elevated)', padding: '12px', display: 'grid', gap: '10px' },
   historyHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' },
-  historyTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
-  historySub: { margin: '2px 0 0 0', fontSize: '11px', fontWeight: 700, color: '#64748b' },
+  historyTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' },
+  historySub: { margin: '2px 0 0 0', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' },
   historyMetaGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
-  historyMetric: { border: '1px solid #eef2f7', borderRadius: '10px', padding: '8px 10px', background: '#f8fafc' },
-  historyMetricLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  historyMetricValue: { margin: '3px 0 0 0', fontSize: '12px', fontWeight: 800, color: '#0f172a' },
+  historyMetric: { border: '1px solid var(--border-soft)', borderRadius: '10px', padding: '8px 10px', background: 'var(--surface-card)' },
+  historyMetricLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  historyMetricValue: { margin: '3px 0 0 0', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)' },
   historyActionWrap: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' },
   historyActionButton: {
     minHeight: '30px',
@@ -294,14 +294,14 @@ const shell = {
     textOverflow: 'ellipsis'
   },
   slipCardList: { display: 'grid', gap: '10px' },
-  slipCard: { border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fff', padding: '12px', display: 'grid', gap: '10px' },
+  slipCard: { border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--surface-card-elevated)', padding: '12px', display: 'grid', gap: '10px' },
   slipCardHeader: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' },
-  slipCardTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
-  slipCardSub: { margin: '2px 0 0 0', fontSize: '11px', fontWeight: 700, color: '#64748b' },
+  slipCardTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' },
+  slipCardSub: { margin: '2px 0 0 0', fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' },
   slipMetricGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
-  slipMetric: { border: '1px solid #eef2f7', borderRadius: '10px', padding: '8px 10px', background: '#f8fafc' },
-  slipMetricLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  slipMetricValue: { margin: '3px 0 0 0', fontSize: '12px', fontWeight: 800, color: '#0f172a' },
+  slipMetric: { border: '1px solid var(--border-soft)', borderRadius: '10px', padding: '8px 10px', background: 'var(--surface-card)' },
+  slipMetricLabel: { margin: 0, fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  slipMetricValue: { margin: '3px 0 0 0', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)' },
   slipActionWrap: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' },
   slipActionButton: {
     minHeight: '30px',
@@ -314,14 +314,14 @@ const shell = {
   },
   dashboardCardList: { display: 'grid', gap: '10px' },
   dashboardCardRow: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' },
-  dashboardCard: { border: '1px solid rgba(159, 23, 77, 0.2)', borderRadius: '12px', padding: '11px', background: '#fff' },
-  dashboardCardLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  dashboardCardValue: { margin: '6px 0 0 0', fontSize: '17px', color: '#0f172a', fontWeight: 800, lineHeight: 1.2 },
+  dashboardCard: { border: '1px solid var(--border)', borderRadius: '12px', padding: '11px', background: 'var(--surface-card-elevated)' },
+  dashboardCardLabel: { margin: 0, fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  dashboardCardValue: { margin: '6px 0 0 0', fontSize: '17px', color: 'var(--text-primary)', fontWeight: 800, lineHeight: 1.2 },
   dashboardChartStack: { display: 'grid', gap: '10px' },
-  dashboardChartCard: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '12px' },
-  dashboardChartCardMobile: { border: '1px solid rgba(159, 23, 77, 0.16)', borderRadius: '12px', background: '#fff', padding: '10px' },
-  dashboardChartLabel: { margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 },
-  dashboardChartLabelMobile: { margin: 0, fontSize: '10px', color: '#334155', fontWeight: 700 },
+  dashboardChartCard: { border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--surface-card-elevated)', padding: '12px' },
+  dashboardChartCardMobile: { border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--surface-card-elevated)', padding: '10px' },
+  dashboardChartLabel: { margin: 0, fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 },
+  dashboardChartLabelMobile: { margin: 0, fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 700 },
   chartBarWrapMobile: { height: '8px', borderRadius: '999px', background: 'var(--color-border)', overflow: 'hidden' },
   dashboardChartStackCompact: { display: 'grid', gap: '8px' }
   ,
@@ -332,23 +332,23 @@ const shell = {
   filterBadge: {
     minHeight: '34px',
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
+    border: '1px solid var(--border)',
     padding: '7px 9px',
     display: 'flex',
     alignItems: 'center',
-    background: '#fff',
-    color: '#0f172a',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     fontSize: '12px',
     fontWeight: 700
   },
   filterButton: { minHeight: '34px', padding: '0 12px', fontSize: '11px' }
   ,
   setupSection: { display: 'grid', gap: '8px' },
-  setupSectionTitle: { margin: '2px 0 0 0', fontSize: '12px', fontWeight: 800, color: '#0f172a' },
-  setupHint: { margin: 0, fontSize: '11px', color: '#64748b', lineHeight: 1.45 },
+  setupSectionTitle: { margin: '2px 0 0 0', fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)' },
+  setupHint: { margin: 0, fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.45 },
   setupActionRow: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
   setupButton: { minHeight: '32px', padding: '0 10px', fontSize: '11px' },
-  setupTableWrap: { border: '1px solid var(--color-primary-soft)', borderRadius: '10px', overflowX: 'auto', background: '#fff', marginTop: '2px' }
+  setupTableWrap: { border: '1px solid var(--border)', borderRadius: '10px', overflowX: 'auto', background: 'var(--table-bg)', marginTop: '2px' }
 };
 
 const salaryFormDefaults = {
@@ -1441,7 +1441,7 @@ export default function PayrollModule() {
                 const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
                 return (
                   <div key={entry.key}>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
                     <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
                   </div>
                 );
@@ -1456,7 +1456,7 @@ export default function PayrollModule() {
                 const width = `${Math.max(4, (Number(entry.total || 0) / max) * 100)}%`;
                 return (
                   <div key={entry.key}>
-                    <p style={{ margin: 0, fontSize: '11px', color: '#334155', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
+                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 }}>{entry.key} - INR {money(entry.total)}</p>
                     <div style={shell.chartBarWrap}><div style={{ ...shell.chartBar, width }} /></div>
                   </div>
                 );
@@ -1630,7 +1630,7 @@ export default function PayrollModule() {
         <div style={shell.miniStack}>
           <div style={shell.miniCard}>
             <p style={shell.miniCardLabel}>Quick Summary</p>
-            <div style={{ marginTop: '8px', display: 'grid', gap: '6px', fontSize: '12px', color: '#334155', lineHeight: 1.45 }}>
+            <div style={{ marginTop: '8px', display: 'grid', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
               <div>Processing: <strong>{selectedGenerateEmployees.length > 0 ? 'Selected employees only' : 'All employees'}</strong></div>
               <div>Late Grace: <strong>{meta?.config?.lateMarkGraceMinutes || 15} min</strong></div>
               <div>Shift: <strong>{meta?.config?.workStartTime || '09:30'} - {meta?.config?.workEndTime || '17:30'}</strong></div>
@@ -1739,12 +1739,12 @@ export default function PayrollModule() {
               {pagedPayrollItems.map((entry) => (
                 <tr key={entry._id}>
                   <td style={historyBodyCellStyle('employee')}>
-                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{entry.employeeName}</div>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{entry.employeeName}</div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode} • {entry.department || '-'}</div>
                   </td>
                   <td style={historyBodyCellStyle('month', 'center')}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
                   <td style={historyBodyCellStyle('attendance', 'center')}>
-                    <div style={{ fontWeight: 800, color: '#0f172a' }}>WD {entry?.attendanceSummary?.totalWorkingDays || 0}</div>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>WD {entry?.attendanceSummary?.totalWorkingDays || 0}</div>
                     <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>P {entry?.attendanceSummary?.presentDays || 0} • PL {entry?.attendanceSummary?.paidLeaveDays || 0} • UL {entry?.attendanceSummary?.unpaidLeaveDays || 0}</div>
                   </td>
                   <td style={historyBodyCellStyle('gross', 'center')}>INR {money(entry.grossSalary)}</td>
@@ -1960,7 +1960,7 @@ export default function PayrollModule() {
               {pagedPayrollItems.map((entry) => (
                 <tr key={entry._id}>
                   <td style={slipBodyCellStyle('employee')}>
-                    <div style={{ fontWeight: 800, color: '#0f172a' }}>{entry.employeeName}</div>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{entry.employeeName}</div>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>{entry.employeeCode}</div>
                   </td>
                   <td style={slipBodyCellStyle('month', 'center')}>{monthOptions.find((item) => Number(item.value) === Number(entry.month))?.label || entry.month} {entry.year}</td>
@@ -2001,7 +2001,7 @@ export default function PayrollModule() {
           <div style={shell.row}>
             <div style={shell.field}><p style={shell.label}>Month</p><select style={shell.input} value={month} onChange={(event) => setMonth(Number(event.target.value))}>{monthOptions.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></div>
             <div style={shell.field}><p style={shell.label}>Year</p><input type="number" style={shell.input} value={year} onChange={(event) => setYear(Number(event.target.value || defaultYear))} /></div>
-            <div style={shell.field}><p style={shell.label}>Role Access</p><div style={{ ...shell.input, display: 'flex', alignItems: 'center', fontWeight: 700, color: '#0f172a' }}>{role.canManage ? 'Admin/HR (Full Control)' : role.canMarkPaid ? 'Accountant (Payment Control)' : 'Employee/Technician (Own Salary Slip View)'}</div></div>
+            <div style={shell.field}><p style={shell.label}>Role Access</p><div style={{ ...shell.input, display: 'flex', alignItems: 'center', fontWeight: 700, color: 'var(--text-primary)' }}>{role.canManage ? 'Admin/HR (Full Control)' : role.canMarkPaid ? 'Accountant (Payment Control)' : 'Employee/Technician (Own Salary Slip View)'}</div></div>
             <div style={{ ...shell.field, justifyContent: 'end' }}>
               <p style={shell.label}>Actions</p>
               <div style={shell.actionRow}>

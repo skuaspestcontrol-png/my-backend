@@ -636,7 +636,7 @@ const shell = {
   paymentTd: { padding: '8px 12px', borderBottom: '1px solid var(--border-soft)' },
   paymentInput: { border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', outline: 'none', width: '100%', minHeight: '36px', boxSizing: 'border-box', background: 'var(--input-bg)', color: 'var(--input-text)' },
   splitPaymentRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' },
-  splitPaymentBtn: { border: 'none', background: 'transparent', color: 'var(--color-primary)', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: 0 },
+  splitPaymentBtn: { border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: '13px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: 0 },
   paymentTotals: { marginLeft: 'auto', minWidth: '300px', display: 'grid', gap: '6px' },
   paymentTotalRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-primary)', fontSize: '16px', fontWeight: 500 },
   paymentBalanceRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: '16px', fontWeight: 700 },

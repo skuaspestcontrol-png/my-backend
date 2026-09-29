@@ -31,20 +31,20 @@ const shell = {
   subtitle: { margin: 0, fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.92)' },
   panel: {
     borderRadius: '16px',
-    border: '1px solid rgba(148, 163, 184, 0.18)',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)',
-    boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
+    border: '1px solid var(--border)',
+    background: 'var(--surface-card)',
+    boxShadow: 'var(--shadow)',
     padding: '14px',
     display: 'grid',
     gap: '10px',
     backgroundClip: 'padding-box'
   },
-  panelTitle: { margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '7px' },
-  panelSub: { margin: 0, fontSize: '12px', color: '#475569' },
+  panelTitle: { margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '7px' },
+  panelSub: { margin: 0, fontSize: '12px', color: 'var(--text-secondary)' },
   filters: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px' },
   field: { display: 'grid', gap: '4px' },
-  label: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  input: { width: '100%', minHeight: '35px', borderRadius: '9px', border: '1px solid #D1D5DB', padding: '8px 10px', fontSize: '13px', background: '#fff' },
+  label: { margin: 0, fontSize: '11px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  input: { width: '100%', minHeight: '35px', borderRadius: '9px', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '13px', background: 'var(--input-bg)', color: 'var(--input-text)' },
   btn: {
     border: '1px solid rgba(159, 23, 77, 0.36)',
     borderRadius: '9px',
@@ -58,20 +58,20 @@ const shell = {
     cursor: 'pointer'
   },
   btnLight: {
-    border: '1px solid #D1D5DB',
+    border: '1px solid var(--border)',
     borderRadius: '9px',
     minHeight: '35px',
     padding: '0 11px',
     fontSize: '12px',
     fontWeight: 700,
-    background: '#fff',
-    color: '#0f172a',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
     cursor: 'pointer'
   },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' },
-  statCard: { borderRadius: '13px', border: '1px solid rgba(148, 163, 184, 0.18)', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', padding: '10px', display: 'grid', gap: '6px', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
-  statLabel: { margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  statValue: { margin: 0, fontSize: '24px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.03em' },
+  statCard: { borderRadius: '13px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', padding: '10px', display: 'grid', gap: '6px', boxShadow: '0 10px 24px rgba(2, 6, 23, 0.2)', backgroundClip: 'padding-box' },
+  statLabel: { margin: 0, fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  statValue: { margin: 0, fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em' },
   split2: { display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: '10px' },
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: '10px' },
   list: { margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: '8px' },
@@ -80,26 +80,26 @@ const shell = {
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: '8px',
-    border: '1px solid rgba(148, 163, 184, 0.16)',
+    border: '1px solid var(--border)',
     borderRadius: '10px',
     padding: '8px 10px',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)',
-    boxShadow: '0 8px 20px rgba(15, 23, 42, 0.04)',
+    background: 'var(--surface-card-elevated)',
+    boxShadow: '0 8px 20px rgba(2, 6, 23, 0.16)',
     backgroundClip: 'padding-box'
   },
   badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', border: '1px solid rgba(159, 23, 77, 0.25)', padding: '3px 8px', fontSize: '11px', fontWeight: 700 },
   kanbanBoard: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(220px, 1fr))', gap: '10px', overflowX: 'auto', paddingBottom: '4px' },
-  kanbanCol: { minHeight: '240px', borderRadius: '13px', border: '1px solid rgba(148, 163, 184, 0.18)', background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.95) 100%)', padding: '8px', display: 'grid', gap: '8px', alignContent: 'start', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
-  kanbanHead: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  card: { borderRadius: '10px', border: '1px solid rgba(148, 163, 184, 0.18)', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', padding: '8px', display: 'grid', gap: '6px', cursor: 'pointer', boxShadow: '0 8px 18px rgba(15, 23, 42, 0.04)', backgroundClip: 'padding-box' },
-  tiny: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 600 },
-  cardTitle: { margin: 0, fontSize: '13px', color: '#0f172a', fontWeight: 800 },
-  tableWrap: { borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.18)', overflowX: 'auto', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
+  kanbanCol: { minHeight: '240px', borderRadius: '13px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', padding: '8px', display: 'grid', gap: '8px', alignContent: 'start', boxShadow: '0 10px 24px rgba(2, 6, 23, 0.2)', backgroundClip: 'padding-box' },
+  kanbanHead: { margin: 0, fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  card: { borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', padding: '8px', display: 'grid', gap: '6px', cursor: 'pointer', boxShadow: '0 8px 18px rgba(2, 6, 23, 0.18)', backgroundClip: 'padding-box' },
+  tiny: { margin: 0, fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 },
+  cardTitle: { margin: 0, fontSize: '13px', color: 'var(--text-primary)', fontWeight: 800 },
+  tableWrap: { borderRadius: '12px', border: '1px solid var(--border)', overflowX: 'auto', background: 'var(--table-bg)', boxShadow: '0 12px 28px rgba(2, 6, 23, 0.2)', backgroundClip: 'padding-box' },
   table: { width: '100%', minWidth: '760px', borderCollapse: 'collapse' },
-  th: { textAlign: 'left', padding: '8px 9px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
-  td: { padding: '8px 9px', borderBottom: '1px solid #eef2f7', fontSize: '12px', color: '#334155', fontWeight: 600, verticalAlign: 'top' },
+  th: { textAlign: 'left', padding: '8px 9px', borderBottom: '1px solid var(--border)', background: 'var(--table-header-bg)', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
+  td: { padding: '8px 9px', borderBottom: '1px solid var(--border-soft)', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, verticalAlign: 'top' },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.46)', display: 'grid', placeItems: 'center', zIndex: 99, padding: '14px' },
-  modal: { width: 'min(860px, 100%)', maxHeight: '92vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid rgba(148, 163, 184, 0.18)', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', padding: '14px', display: 'grid', gap: '10px', boxShadow: '0 18px 40px rgba(15, 23, 42, 0.08)', backgroundClip: 'padding-box' },
+  modal: { width: 'min(860px, 100%)', maxHeight: '92vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--surface-card)', padding: '14px', display: 'grid', gap: '10px', boxShadow: 'var(--shadow)', backgroundClip: 'padding-box', color: 'var(--text-primary)' },
   modalGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px' }
 };
 
@@ -258,8 +258,8 @@ function MiniBarChart({ rows = [], nameKey = 'name', valueKey = 'value', color =
         return (
           <div key={`${row[nameKey]}-${value}`} style={{ display: 'grid', gap: '4px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12px' }}>
-              <span style={{ color: '#0f172a', fontWeight: 700 }}>{row[nameKey]}</span>
-              <span style={{ color: '#334155', fontWeight: 700 }}>{value}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{row[nameKey]}</span>
+              <span style={{ color: 'var(--text-secondary)', fontWeight: 700 }}>{value}</span>
             </div>
             <div style={{ height: '8px', background: 'var(--color-border)', borderRadius: '999px', overflow: 'hidden' }}>
               <div style={{ width: `${percent}%`, height: '100%', background: color || 'var(--color-primary)' }} />
@@ -280,7 +280,7 @@ function InsightList({ title, rows = [], valuePrefix = '' }) {
         {rows.map((row) => (
           <li key={`${row.employeeId}-${row.employeeName}`} style={shell.listRow}>
             <div>
-              <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>{row.employeeName}</p>
+              <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{row.employeeName}</p>
               {row.date ? <p style={shell.tiny}>Date: {row.date}</p> : null}
             </div>
             <span style={{ ...shell.badge, color: 'var(--color-primary-dark)', borderColor: 'rgba(159, 23, 77, 0.26)' }}>{valuePrefix}{money(row.value || 0)}</span>
