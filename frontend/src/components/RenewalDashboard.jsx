@@ -106,7 +106,7 @@ const shell = {
   subtitle: { margin: '4px 0 0', color: '#64748b', fontSize: 13, fontWeight: 650 },
   actions: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' },
   primaryBtn: { minHeight: 34, height: 34, border: 'none', borderRadius: 9, padding: '0 12px', background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
-  ghostBtn: { minHeight: 34, height: 34, border: '1px solid #d1d5db', borderRadius: 9, padding: '0 12px', background: '#fff', color: '#1f2937', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
+  ghostBtn: { minHeight: 34, height: 34, border: '1px solid var(--border)', borderRadius: 9, padding: '0 12px', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
   dangerBtn: { minHeight: 34, border: '1px solid #fecaca', borderRadius: 9, padding: '0 12px', background: '#fff1f2', color: '#b91c1c', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: '#fff', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.04)' },
   panelPad: { padding: 12 },
@@ -128,14 +128,15 @@ const shell = {
   th: { textAlign: 'left', padding: '8px 7px', fontSize: 11, color: '#64748b', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', letterSpacing: '0.03em', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
   td: { padding: '7px', fontSize: 11.5, color: '#1f2937', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
   rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5, flexWrap: 'nowrap' },
-  iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
   miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 70px 90px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 },
   modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
-  modal: { width: 'min(760px, 96vw)', maxHeight: '92vh', background: '#fff', borderRadius: 16, border: '1px solid var(--color-border)', boxShadow: '0 24px 70px rgba(15,23,42,0.22)', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-  modalHead: { minHeight: 60, padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 22, fontWeight: 800 },
-  modalBody: { padding: 18, display: 'grid', gap: 12, overflowY: 'auto' },
+  modal: { width: 'min(760px, 96vw)', maxHeight: '92vh', background: 'var(--surface-card)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: '0 24px 70px rgba(2,6,23,0.34)', overflow: 'hidden', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
+  modalHead: { minHeight: 64, height: 64, boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid transparent', background: 'var(--card-header-bg)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 24, fontWeight: 800 },
+  modalBody: { padding: 18, display: 'grid', gap: 12, overflowY: 'auto', background: 'var(--surface-card)', color: 'var(--text-primary)' },
+  modalCloseBtn: { width: 40, height: 40, minWidth: 40, minHeight: 40, padding: 0, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 22, lineHeight: 1 },
   mobileCard: { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: '#fff' },
   mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: '#475569' },
   mobileCustomerStack: { display: 'grid', gap: 2, alignItems: 'start', minWidth: 0 },
@@ -1359,7 +1360,7 @@ export default function RenewalDashboard() {
     return (
       <div style={shell.modalOverlay}>
         <div style={shell.modal}>
-          <div style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><button style={shell.iconBtn} onClick={closeModal} title="Close" aria-label="Close">×</button></div>
+          <div style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><button style={shell.modalCloseBtn} onClick={closeModal} title="Close" aria-label="Close">×</button></div>
           <div style={shell.modalBody}>
             {modal.type === 'view' && (
               <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>

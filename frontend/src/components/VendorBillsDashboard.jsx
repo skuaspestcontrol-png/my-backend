@@ -87,10 +87,10 @@ const shell = {
   th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
   td: { padding: '12px 10px', fontSize: '14px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-soft)' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
-  modal: { background: 'var(--surface-card)', width: 'min(100%, 1180px)', borderRadius: '24px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
-  modalHeader: { minHeight: '56px', boxSizing: 'border-box', padding: '0 22px', borderBottom: '1px solid transparent', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--card-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  modal: { background: 'var(--surface-card)', width: 'min(100%, 1180px)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
+  modalHeader: { minHeight: '64px', height: '64px', boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid transparent', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--card-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
   headerTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
-  closeBtn: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  closeBtn: { border: 'none', background: 'transparent', color: '#fff', width: '40px', minWidth: '40px', height: '40px', minHeight: '40px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   formBody: { padding: '18px 22px', overflowY: 'auto', overflowX: 'hidden', display: 'grid', gridAutoRows: 'max-content', alignContent: 'start', gap: '16px', flex: 1, minHeight: 0 },
   row2: { display: 'grid', gridTemplateColumns: '170px minmax(0, 1fr)', columnGap: '14px', rowGap: '10px', alignItems: 'center' },
   row4: { display: 'grid', gridTemplateColumns: '140px minmax(0, 1fr) 110px minmax(0, 1fr)', columnGap: '14px', rowGap: '12px', alignItems: 'center' },
@@ -110,9 +110,9 @@ const shell = {
   paymentBlock: { borderTop: '1px solid var(--border)', paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' },
   paymentToggle: { display: 'inline-flex', alignItems: 'center', gap: '10px', fontSize: '15px', color: 'var(--text-primary)', fontWeight: 700 },
   splitRow: { display: 'grid', gridTemplateColumns: '1fr 120px', gap: '8px' },
-  modalFooter: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)' },
-  cancelButton: { border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '18px', padding: '10px 18px', fontSize: '16px', fontWeight: 700, cursor: 'pointer' },
-  saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '18px', padding: '10px 20px', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }
+  modalFooter: { height: '76px', minHeight: '76px', boxSizing: 'border-box', padding: '0 28px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)' },
+  cancelButton: { border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '10px', minHeight: '42px', height: '42px', padding: '0 22px', fontSize: '15px', fontWeight: 800, cursor: 'pointer' },
+  saveButton: { border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '10px', minHeight: '42px', height: '42px', padding: '0 22px', fontSize: '15px', fontWeight: 800, cursor: 'pointer' }
 };
 
 const toNum = (v) => Number(v || 0);

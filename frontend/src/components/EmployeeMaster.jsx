@@ -159,9 +159,10 @@ const shell = {
   modalHeader: {
     background: 'var(--card-header-bg)',
     color: '#fff',
-    minHeight: '56px',
+    minHeight: '64px',
+    height: '64px',
     boxSizing: 'border-box',
-    padding: '0 22px',
+    padding: '0 28px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -200,10 +201,10 @@ const shell = {
     gap: '6px'
   },
   helper: { margin: 0, fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 },
-  footer: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)', position: 'sticky', bottom: 0 },
+  footer: { height: '76px', minHeight: '76px', boxSizing: 'border-box', padding: '0 28px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)', position: 'sticky', bottom: 0 },
   footerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
-  cancelBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '13px', fontWeight: 700, padding: '0 14px' },
-  saveBtn: { minHeight: '40px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.32)', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 800, padding: '0 16px' }
+  cancelBtn: { minHeight: '42px', height: '42px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '15px', fontWeight: 800, padding: '0 22px' },
+  saveBtn: { minHeight: '42px', height: '42px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.32)', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '15px', fontWeight: 800, padding: '0 22px' }
 };
 
 const employeeColumns = [

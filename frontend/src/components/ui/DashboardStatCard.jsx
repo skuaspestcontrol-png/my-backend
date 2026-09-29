@@ -10,6 +10,7 @@ export default function DashboardStatCard({ title, value, icon, tone = 'var(--co
           <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', ...titleStyle }}>{title}</span>
           {hasIcon ? (
             <span
+              className="crm-kpi-icon"
               style={{
                 color: tone,
                 width: 32,

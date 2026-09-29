@@ -530,9 +530,9 @@ const shell = {
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-primary)' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
   modal: { background: 'var(--surface-card)', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: 'auto', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
-  modalHeader: { minHeight: '56px', boxSizing: 'border-box', padding: '0 22px', borderBottom: '1px solid transparent', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--card-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  modalHeader: { minHeight: '64px', height: '64px', boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid transparent', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--card-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
   modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
-  modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '40px', minWidth: '40px', height: '40px', minHeight: '40px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   formBody: { padding: '20px 24px', overflowY: 'auto', overflowX: 'hidden', display: 'grid', gridAutoRows: 'max-content', alignContent: 'start', gap: '14px', flex: 1, minHeight: 0 },
   customerRow: { display: 'grid', gridTemplateColumns: '150px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center' },
   addressSplit: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px' },
@@ -641,9 +641,9 @@ const shell = {
   paymentTotalRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-primary)', fontSize: '16px', fontWeight: 500 },
   paymentBalanceRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#ef4444', fontSize: '16px', fontWeight: 700 },
   paymentWarn: { color: '#dc2626', fontSize: '12px', fontWeight: 700 },
-  modalFooter: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)' },
-  cancelButton: { minHeight: '40px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' },
-  saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' }
+  modalFooter: { height: '76px', minHeight: '76px', boxSizing: 'border-box', padding: '0 28px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)' },
+  cancelButton: { minHeight: '42px', height: '42px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '10px', padding: '0 22px', fontSize: '15px', fontWeight: 800, cursor: 'pointer' },
+  saveButton: { minHeight: '42px', height: '42px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '10px', padding: '0 22px', fontSize: '15px', fontWeight: 800, cursor: 'pointer' }
 };
 
 const formatINR = (value) => {

@@ -731,25 +731,49 @@ button {
 
 .crm-modal-surface {
   border: 1px solid var(--border-soft) !important;
+  border-radius: 16px !important;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28) !important;
   overflow: hidden !important;
   background: var(--modal-bg) !important;
   background-clip: padding-box;
+  color: var(--text-primary) !important;
 }
 
 .crm-modal-surface-header {
-  min-height: 54px !important;
-  padding: 12px 18px !important;
+  min-height: 64px !important;
+  height: 64px !important;
+  box-sizing: border-box !important;
+  padding: 0 28px !important;
   gap: 10px !important;
   border-bottom: 1px solid transparent !important;
   border-top-left-radius: inherit;
   border-top-right-radius: inherit;
   background: var(--card-header-bg) !important;
   color: #fff !important;
-  font-size: 18px !important;
-  font-weight: 700 !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
   letter-spacing: -0.01em !important;
-  line-height: 1.15 !important;
+  line-height: 1.2 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.crm-modal-surface-header :where(h1, h2, h3, h4, p) {
+  margin: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+}
+
+.crm-modal-surface-header button {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
 }
 
 .crm-modal-surface-body {
@@ -766,7 +790,10 @@ button {
   justify-content: flex-end !important;
   gap: 10px !important;
   flex-wrap: wrap !important;
-  padding: 10px 20px !important;
+  height: 76px !important;
+  min-height: 76px !important;
+  box-sizing: border-box !important;
+  padding: 0 28px !important;
 }
 
 .crm-form-grid {
@@ -863,14 +890,15 @@ html[data-theme="dark"] .crm-modal textarea {
 .crm-modal-footer button,
 .crm-modal-surface-footer .crm-btn,
 .crm-modal-surface-footer button {
-  min-height: 40px;
+  min-height: 42px !important;
+  height: 42px !important;
   min-width: max-content;
   width: auto;
-  padding: 0 18px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.1;
+  padding: 0 22px !important;
+  border-radius: 10px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  line-height: 1.1 !important;
   box-shadow: none;
 }
 
@@ -2485,6 +2513,24 @@ textarea:focus {
   background: var(--color-primary-light);
   color: var(--color-primary);
   border-radius: var(--radius-lg);
+}
+
+.crm-kpi-icon {
+  color: var(--icon-primary) !important;
+  background: var(--surface-card-elevated) !important;
+  border: 1px solid var(--border-soft);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.crm-kpi-icon svg {
+  color: currentColor !important;
+  stroke: currentColor !important;
+}
+
+html[data-theme="dark"] .crm-kpi-icon {
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
 .badge-primary,

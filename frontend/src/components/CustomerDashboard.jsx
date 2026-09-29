@@ -433,9 +433,9 @@ const shell = {
   popoverItem: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto', backdropFilter: 'blur(12px)' },
   modal: { background: 'var(--surface-card)', width: 'min(100%, 1040px)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
-  modalHeader: { minHeight: '56px', boxSizing: 'border-box', padding: '0 22px', borderBottom: '1px solid transparent', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--card-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
+  modalHeader: { minHeight: '64px', height: '64px', boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid transparent', fontSize: '24px', lineHeight: 1.2, fontWeight: 800, color: '#fff', background: 'var(--card-header-bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
   modalHeaderTitle: { margin: 0, fontSize: 'inherit', fontWeight: 800, color: '#fff' },
-  modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '36px', height: '36px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  modalCloseButton: { border: 'none', background: 'transparent', color: '#fff', width: '40px', minWidth: '40px', height: '40px', minHeight: '40px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   modalBody: { padding: '20px 24px', display: 'grid', gridTemplateColumns: '160px minmax(0, 1fr)', columnGap: '16px', rowGap: '12px', alignItems: 'center', overflowY: 'auto', background: 'var(--surface-card)', color: 'var(--text-primary)' },
   addressSplit: { gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: '16px', marginTop: '6px' },
   addressCard: { border: '1px solid var(--border)', borderRadius: '10px', padding: '12px', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)' },
@@ -466,9 +466,9 @@ const shell = {
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
-  modalFooter: { height: '64px', minHeight: '64px', boxSizing: 'border-box', padding: '0 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)' },
-  cancelButton: { minHeight: '40px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' },
-  saveButton: { minHeight: '40px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '12px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer' },
+  modalFooter: { height: '76px', minHeight: '76px', boxSizing: 'border-box', padding: '0 28px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)' },
+  cancelButton: { minHeight: '42px', height: '42px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '10px', padding: '0 22px', fontSize: '15px', fontWeight: 800, cursor: 'pointer' },
+  saveButton: { minHeight: '42px', height: '42px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '10px', padding: '0 22px', fontSize: '15px', fontWeight: 800, cursor: 'pointer' },
   historyOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.52)', zIndex: 3000, display: 'grid', placeItems: 'center', padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
   historyModal: { width: 'min(100%, 1260px)', maxHeight: '94vh', background: '#fff', borderRadius: '12px', border: '1px solid var(--color-primary-soft)', boxShadow: '0 20px 44px rgba(15,23,42,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
   historyHeader: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' },
@@ -3742,11 +3742,11 @@ export default function CustomerDashboard() {
       {duplicateConflict ? createPortal(
         <div style={duplicateConflictOverlayStyle}>
           <div className="crm-modal-surface" style={duplicateConflictModalStyle}>
-            <div className="crm-modal-surface-header" style={{ ...duplicateConflictHeaderStyle, background: '#fff', borderBottom: '1px solid var(--color-border)' }}>
+            <div className="crm-modal-surface-header" style={duplicateConflictHeaderStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <AlertTriangle size={16} color="var(--color-text-secondary)" />
-                  <h3 style={{ ...shell.modalHeaderTitle, color: 'var(--color-text-primary)', fontSize: '16px', lineHeight: 1.2 }}>Exact Duplicate Detected</h3>
+                  <h3 style={{ ...shell.modalHeaderTitle, fontSize: '16px', lineHeight: 1.2 }}>Exact Duplicate Detected</h3>
                 </div>
               </div>
               <button type="button" style={shell.modalCloseButton} onClick={() => setDuplicateConflict(null)} aria-label="Close duplicate warning">

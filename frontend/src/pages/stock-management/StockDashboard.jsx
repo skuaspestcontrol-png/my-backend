@@ -33,9 +33,9 @@ const summaryCards = [
 ];
 
 const chartWrap = { width: '100%', height: 300 };
-const neutralColor = '#111827';
-const successColor = '#16A34A';
-const dangerColor = '#DC2626';
+const neutralColor = 'var(--chart-target-bar)';
+const successColor = 'var(--chart-achieved-positive)';
+const dangerColor = 'var(--chart-achieved-negative)';
 
 export default function StockDashboard() {
   const navigate = useNavigate();
