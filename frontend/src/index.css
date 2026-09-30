@@ -40,8 +40,10 @@
   --input-placeholder: #94a3b8;
   --input-border: rgba(148, 163, 184, 0.34);
   --table-bg: #ffffff;
-  --table-header-bg: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  --table-header-text: #475569;
+  --table-header-bg: linear-gradient(180deg, var(--skuas-header) 0%, var(--skuas-header-secondary) 100%);
+  --table-header-text: #ffffff;
+  --table-footer-bg: linear-gradient(180deg, var(--skuas-header) 0%, var(--skuas-header-secondary) 100%);
+  --table-footer-text: #ffffff;
   --table-row-bg: rgba(255,255,255,0.98);
   --table-row-alt: #f8fafc;
   --table-row-hover: rgba(248, 250, 252, 0.98);
@@ -146,6 +148,8 @@ html[data-theme="dark"] {
   --table-bg: #151a33;
   --table-header-bg: linear-gradient(180deg, #202849 0%, #1b2240 100%);
   --table-header-text: #e5e7eb;
+  --table-footer-bg: var(--surface-secondary);
+  --table-footer-text: var(--text-primary);
   --table-row-bg: rgba(21, 26, 51, 0.98);
   --table-row-alt: rgba(27, 34, 64, 0.96);
   --table-row-hover: rgba(37, 26, 77, 0.62);
@@ -2218,6 +2222,16 @@ table th {
   white-space: nowrap;
 }
 
+table thead th {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+}
+
+table thead th svg {
+  color: var(--table-header-text) !important;
+  stroke: currentColor !important;
+}
+
 table td {
   font-family: var(--font-sans) !important;
   font-size: 13px !important;
@@ -2267,6 +2281,18 @@ tbody tr:hover {
 tbody tr.selected,
 tbody tr[aria-selected="true"] {
   background: var(--selected-bg);
+}
+
+.main-content tfoot,
+.main-content tfoot tr,
+.main-content tfoot td,
+.main-content .crm-table-footer,
+.main-content .table-footer,
+.main-content .pagination,
+.main-content .invoice-table-pagination {
+  background: var(--table-footer-bg) !important;
+  color: var(--table-footer-text) !important;
+  border-color: var(--border) !important;
 }
 
 .responsive-table,

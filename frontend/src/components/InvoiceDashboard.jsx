@@ -495,7 +495,7 @@ const shell = {
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
-  paginationInfo: { fontSize: '12px', color: '#475569', fontWeight: 700 },
+  paginationInfo: { fontSize: '12px', color: 'var(--table-footer-text)', fontWeight: 700 },
   customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', width: '34px', height: '34px', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
   buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: '#6b7280', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
   buttonGhost: { border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '12px', width: '48px', height: '48px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
@@ -4257,7 +4257,7 @@ export default function InvoiceDashboard() {
           </tbody>
         </table>
       </div>
-      <div className="invoice-table-pagination" style={{ padding: '8px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--table-bg)', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
+      <div className="invoice-table-pagination" style={{ padding: '8px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
         <div style={shell.paginationInfo}>{firstRecord}-{lastRecord} of {invoices.length} records</div>
         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
           <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', minWidth: '34px', height: '32px', minHeight: '32px', padding: 0 }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>

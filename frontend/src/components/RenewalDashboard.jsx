@@ -146,8 +146,8 @@ const shell = {
   searchBox: { width: 'min(100%, 420px)', justifySelf: 'center' },
   searchWrap: { position: 'relative', display: 'block', alignItems: 'center', minWidth: 0, width: '100%', maxWidth: '100%', justifySelf: 'center' },
   searchIcon: { position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' },
-  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: '#fff' },
-  paginationInfo: { color: '#64748b', fontSize: 12, fontWeight: 700 },
+  pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)' },
+  paginationInfo: { color: 'var(--table-footer-text)', fontSize: 12, fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: 8 },
   paginationBtn: { width: 34, minWidth: 34, minHeight: 32, height: 32, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }

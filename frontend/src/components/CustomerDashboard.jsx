@@ -519,13 +519,14 @@ const shell = {
     gap: '12px',
     padding: '8px 16px',
     borderTop: '1px solid var(--border)',
-    background: 'var(--surface-card-elevated)',
+    background: 'var(--table-footer-bg)',
+    color: 'var(--table-footer-text)',
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
     backgroundClip: 'padding-box',
     boxShadow: 'inset 1px 0 0 var(--border), inset -1px 0 0 var(--border), inset 0 -1px 0 var(--border)'
   },
-  paginationText: { fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 },
+  paginationText: { fontSize: '12px', color: 'var(--table-footer-text)', fontWeight: 600 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
   paginationButton: { border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '4px', width: '34px', minWidth: '34px', minHeight: '32px', padding: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 };

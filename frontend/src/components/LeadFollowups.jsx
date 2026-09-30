@@ -78,8 +78,8 @@ const shell = {
   leadTd: { paddingLeft: '8px', paddingRight: '8px' },
   empty: { minHeight: '96px', display: 'grid', placeItems: 'center', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 700 },
   actionBtn: { border: '1px solid var(--color-border)', background: 'var(--color-white)', color: 'var(--color-primary)', borderRadius: '10px', height: '34px', minWidth: '92px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer' },
-  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'var(--color-white)' },
-  paginationInfo: { color: 'var(--color-muted)', fontSize: '12px', fontWeight: 700 },
+  pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)' },
+  paginationInfo: { color: 'var(--table-footer-text)', fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
   paginationBtn: { width: '34px', minWidth: '34px', minHeight: '32px', height: '32px', border: '1px solid var(--color-border)', borderRadius: '8px', background: 'var(--color-white)', color: 'var(--color-primary)', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }

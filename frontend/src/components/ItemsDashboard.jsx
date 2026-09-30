@@ -423,11 +423,11 @@ const shell = {
     alignItems: 'center',
     gap: '8px',
     fontSize: '12px',
-    color: 'var(--text-secondary)',
-    background: 'var(--surface-card-elevated)',
+    color: 'var(--table-footer-text)',
+    background: 'var(--table-footer-bg)',
     backgroundClip: 'padding-box'
   },
-  paginationInfo: { fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 },
+  paginationInfo: { fontSize: '12px', color: 'var(--table-footer-text)', fontWeight: 700 },
   pageButton: {
     border: '1px solid var(--border)',
     background: 'var(--surface-card-elevated)',
