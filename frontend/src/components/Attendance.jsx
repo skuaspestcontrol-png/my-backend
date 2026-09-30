@@ -83,6 +83,15 @@ const getEditableTimeValue = (value) => {
   return isValidTime(raw) ? formatAttendanceDisplayTime(raw) : raw;
 };
 
+const sanitizeManualTimeInput = (value) => {
+  const digitsAndColon = String(value || '').replace(/[^\d:]/g, '');
+  const [hoursPart = '', ...minuteParts] = digitsAndColon.split(':');
+  if (minuteParts.length > 0) {
+    return `${hoursPart.slice(0, 2)}:${minuteParts.join('').slice(0, 2)}`;
+  }
+  return hoursPart.slice(0, 4);
+};
+
 const normalizeManualTimeInput = (value) => {
   const raw = String(value || '').trim();
   if (!raw || raw === '--') return '';
@@ -154,8 +163,8 @@ const resolveStatusForLeaveType = (leaveType, fallbackStatus = 'absent') => {
 const attendanceColumnWidths = {
   employee: 220,
   status: 120,
-  checkIn: 136,
-  checkOut: 136,
+  checkIn: 156,
+  checkOut: 156,
   workingHours: 120,
   leaveType: 150,
   location: 140,
@@ -165,8 +174,8 @@ const attendanceColumnWidths = {
 const attendanceColumnBounds = {
   employee: { min: 180, max: 320 },
   status: { min: 100, max: 160 },
-  checkIn: { min: 124, max: 170 },
-  checkOut: { min: 124, max: 170 },
+  checkIn: { min: 148, max: 190 },
+  checkOut: { min: 148, max: 190 },
   workingHours: { min: 100, max: 150 },
   leaveType: { min: 130, max: 220 },
   location: { min: 120, max: 220 },
@@ -333,6 +342,7 @@ const shell = {
   },
   timeTextInput: {
     minWidth: 0,
+    flex: '1 1 auto',
     width: '100%',
     height: '28px',
     border: 'none',
@@ -343,7 +353,8 @@ const shell = {
     fontWeight: 700,
     lineHeight: 1,
     padding: 0,
-    textAlign: 'center'
+    textAlign: 'center',
+    whiteSpace: 'nowrap'
   },
   timePickerShell: {
     position: 'relative',
@@ -356,8 +367,8 @@ const shell = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: '8px',
-    padding: '0 10px',
+    gap: '6px',
+    padding: '0 12px',
     boxSizing: 'border-box',
     overflow: 'visible'
   },
@@ -659,6 +670,7 @@ export default function Attendance() {
   const [records, setRecords] = useState(() => cachedAttendanceData?.records || {});
   const [monthRecords, setMonthRecords] = useState(() => cachedAttendanceData?.monthRecords || []);
   const [statusMessage, setStatusMessage] = useState('');
+  const [editingTimeKey, setEditingTimeKey] = useState('');
   const [auditModal, setAuditModal] = useState({ open: false, loading: false, employeeName: '', items: [] });
   const loadRequestRef = useRef(null);
   const {
@@ -1023,17 +1035,26 @@ export default function Attendance() {
   };
 
   const handleTimeBlur = (employeeId, field, value) => {
+    setEditingTimeKey('');
     const current = records[employeeId] || { employeeId, date, status: 'present', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '', source: '' };
     const normalizedTime = normalizeManualTimeInput(value);
     if (normalizedTime === null) {
-      setStatusMessage('Enter time as 09:30, 0930, 9:30 AM, 530 PM, or 17:30.');
-      updateRecordField(employeeId, field, current[field] || '');
+      setStatusMessage('Enter time as 09:30, 0930, 530, or 17:30.');
+      updateRecordField(employeeId, field, '');
       return;
     }
     saveRecord(employeeId, {
       ...current,
       [field]: normalizedTime
     });
+  };
+
+  const handleManualTimeChange = (employeeId, field, value) => {
+    updateRecordField(employeeId, field, sanitizeManualTimeInput(value));
+  };
+
+  const handleManualTimeFocus = (employeeId, field) => {
+    setEditingTimeKey(`${employeeId}:${field}`);
   };
 
   const handleDateChange = (nextDate) => {
@@ -1213,6 +1234,8 @@ export default function Attendance() {
               const timeDisabled = status !== 'present';
               const checkInPickerValue = normalizeManualTimeInput(record.checkIn) || '';
               const checkOutPickerValue = normalizeManualTimeInput(record.checkOut) || '';
+              const checkInEditKey = `${employeeId}:checkIn`;
+              const checkOutEditKey = `${employeeId}:checkOut`;
               return (
                 <tr key={employeeId}>
                   <td style={shell.td}>
@@ -1258,12 +1281,13 @@ export default function Attendance() {
                       <input
                         type="text"
                         inputMode="numeric"
-                        value={getEditableTimeValue(record.checkIn)}
+                        value={editingTimeKey === checkInEditKey ? sanitizeManualTimeInput(record.checkIn) : getEditableTimeValue(record.checkIn)}
                         disabled={timeDisabled}
                         placeholder="09:30 AM"
                         aria-label="Check in time"
                         style={{ ...shell.timeTextInput, cursor: timeDisabled ? 'default' : 'text' }}
-                        onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
+                        onFocus={() => handleManualTimeFocus(employeeId, 'checkIn')}
+                        onChange={(event) => handleManualTimeChange(employeeId, 'checkIn', event.target.value)}
                         onBlur={(event) => handleTimeBlur(employeeId, 'checkIn', event.target.value)}
                       />
                       <Clock3 size={15} strokeWidth={2.4} style={shell.timeIcon} />
@@ -1283,12 +1307,13 @@ export default function Attendance() {
                       <input
                         type="text"
                         inputMode="numeric"
-                        value={getEditableTimeValue(record.checkOut)}
+                        value={editingTimeKey === checkOutEditKey ? sanitizeManualTimeInput(record.checkOut) : getEditableTimeValue(record.checkOut)}
                         disabled={timeDisabled}
                         placeholder="05:30 PM"
                         aria-label="Check out time"
                         style={{ ...shell.timeTextInput, cursor: timeDisabled ? 'default' : 'text' }}
-                        onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
+                        onFocus={() => handleManualTimeFocus(employeeId, 'checkOut')}
+                        onChange={(event) => handleManualTimeChange(employeeId, 'checkOut', event.target.value)}
                         onBlur={(event) => handleTimeBlur(employeeId, 'checkOut', event.target.value)}
                       />
                       <Clock3 size={15} strokeWidth={2.4} style={shell.timeIcon} />
