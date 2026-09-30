@@ -102,8 +102,8 @@ const resolveStatusForLeaveType = (leaveType, fallbackStatus = 'absent') => {
 const attendanceColumnWidths = {
   employee: 220,
   status: 120,
-  checkIn: 110,
-  checkOut: 110,
+  checkIn: 136,
+  checkOut: 136,
   workingHours: 120,
   leaveType: 150,
   location: 140,
@@ -113,8 +113,8 @@ const attendanceColumnWidths = {
 const attendanceColumnBounds = {
   employee: { min: 180, max: 320 },
   status: { min: 100, max: 160 },
-  checkIn: { min: 96, max: 140 },
-  checkOut: { min: 96, max: 140 },
+  checkIn: { min: 124, max: 170 },
+  checkOut: { min: 124, max: 170 },
   workingHours: { min: 100, max: 150 },
   leaveType: { min: 130, max: 220 },
   location: { min: 120, max: 220 },
@@ -289,15 +289,23 @@ const shell = {
     background: '#fff',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    gap: '8px',
+    padding: '0 10px',
     boxSizing: 'border-box',
-    overflow: 'hidden'
+    overflow: 'visible'
   },
   timeDisplay: {
     color: '#0f172a',
-    fontSize: '12px',
+    fontSize: '13px',
     fontWeight: 700,
     whiteSpace: 'nowrap',
+    pointerEvents: 'none',
+    lineHeight: 1
+  },
+  timeIcon: {
+    flex: '0 0 auto',
+    color: '#0f172a',
     pointerEvents: 'none'
   },
   hoursBadge: {
@@ -1182,11 +1190,12 @@ export default function Attendance() {
                   <td style={shell.td}>
                     <div style={shell.timePickerShell}>
                       <span style={shell.timeDisplay}>{formatAttendanceDisplayTime(record.checkIn)}</span>
+                      <Clock3 size={15} strokeWidth={2.4} style={shell.timeIcon} />
                       <input
                         type="time"
                         value={record.checkIn || ''}
                         disabled={timeDisabled}
-                        style={{ ...shell.timeInput, opacity: timeDisabled ? 0 : 1 }}
+                        style={{ ...shell.timeInput, cursor: timeDisabled ? 'default' : 'pointer' }}
                         onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
                         onBlur={(event) => handleTimeBlur(employeeId, 'checkIn', event.target.value)}
                       />
@@ -1195,11 +1204,12 @@ export default function Attendance() {
                   <td style={shell.td}>
                     <div style={shell.timePickerShell}>
                       <span style={shell.timeDisplay}>{formatAttendanceDisplayTime(record.checkOut)}</span>
+                      <Clock3 size={15} strokeWidth={2.4} style={shell.timeIcon} />
                       <input
                         type="time"
                         value={record.checkOut || ''}
                         disabled={timeDisabled}
-                        style={{ ...shell.timeInput, opacity: timeDisabled ? 0 : 1 }}
+                        style={{ ...shell.timeInput, cursor: timeDisabled ? 'default' : 'pointer' }}
                         onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
                         onBlur={(event) => handleTimeBlur(employeeId, 'checkOut', event.target.value)}
                       />
