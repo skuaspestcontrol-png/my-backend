@@ -165,7 +165,7 @@ test('invoice MySQL insert columns, placeholders and values stay aligned', () =>
   assert.deepEqual(values, expectedValues);
 });
 
-test('payroll late deduction is based on morning punch-in only', () => {
+test('payroll timing does not deduct present-day salary hours', () => {
   const { summarizeAttendanceForPayroll, calcPayrollItem } = payroll.__test__;
   const base = {
     employeeId: 'emp1',
@@ -222,16 +222,16 @@ test('payroll late deduction is based on morning punch-in only', () => {
   assert.equal(withinGraceEarlyOut.dailyBreakdown[0].workingHours, 5.33);
 
   const lateArrival = summarizeOne('10:00', '17:30');
-  assert.equal(lateArrival.shortHoursDeductionHours, 0.5);
+  assert.equal(lateArrival.shortHoursDeductionHours, 0);
   assert.equal(lateArrival.lateMarks, 1);
   assert.equal(lateArrival.dailyBreakdown[0].lateMinutes, 30);
-  assert.equal(lateArrival.dailyBreakdown[0].shortHours, 0.5);
+  assert.equal(lateArrival.dailyBreakdown[0].shortHours, 0);
 
   const lateArrivalEarlyOut = summarizeOne('10:00', '15:00');
-  assert.equal(lateArrivalEarlyOut.shortHoursDeductionHours, 0.5);
+  assert.equal(lateArrivalEarlyOut.shortHoursDeductionHours, 0);
   assert.equal(lateArrivalEarlyOut.lateMarks, 1);
   assert.equal(lateArrivalEarlyOut.dailyBreakdown[0].workingHours, 5);
-  assert.equal(lateArrivalEarlyOut.dailyBreakdown[0].shortHours, 0.5);
+  assert.equal(lateArrivalEarlyOut.dailyBreakdown[0].shortHours, 0);
 
   const payrollItem = calcPayrollItem({
     employee: { _id: 'emp1', empCode: 'EMP1', firstName: 'Test', lastName: 'Employee' },
@@ -249,6 +249,24 @@ test('payroll late deduction is based on morning punch-in only', () => {
     manualOverride: {},
   });
   assert.equal(payrollItem.deductions.shortHoursDeduction, 0);
+
+  const latePayrollItem = calcPayrollItem({
+    employee: { _id: 'emp1', empCode: 'EMP1', firstName: 'Test', lastName: 'Employee' },
+    structure: {
+      employeeId: 'emp1',
+      salaryType: 'monthly',
+      basicSalary: 30000,
+      allowances: {},
+      deductions: { late: 0, latePerMark: 0 },
+    },
+    attendanceSummary: lateArrival,
+    advances: [],
+    month: 9,
+    year: 2026,
+    manualOverride: {},
+  });
+  assert.equal(latePayrollItem.deductions.shortHoursDeduction, 0);
+  assert.equal(latePayrollItem.deductions.total, 0);
 });
 
 // Execute the actual application middleware, excluding dotenv, DB imports, migrations,
