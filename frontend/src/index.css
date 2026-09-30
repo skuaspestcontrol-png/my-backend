@@ -44,6 +44,18 @@
   --table-header-text: #ffffff;
   --table-footer-bg: linear-gradient(180deg, var(--skuas-header) 0%, var(--skuas-header-secondary) 100%);
   --table-footer-text: #ffffff;
+  --payroll-badge-paid-bg: rgba(22, 163, 74, 0.16);
+  --payroll-badge-paid-text: #166534;
+  --payroll-badge-paid-border: rgba(22, 163, 74, 0.32);
+  --payroll-badge-hold-bg: rgba(234, 179, 8, 0.15);
+  --payroll-badge-hold-text: #92400e;
+  --payroll-badge-hold-border: rgba(217, 119, 6, 0.32);
+  --payroll-badge-generated-bg: rgba(159, 23, 77, 0.16);
+  --payroll-badge-generated-text: var(--color-primary-dark);
+  --payroll-badge-generated-border: rgba(159, 23, 77, 0.32);
+  --payroll-badge-neutral-bg: rgba(100, 116, 139, 0.14);
+  --payroll-badge-neutral-text: var(--text-secondary);
+  --payroll-badge-neutral-border: rgba(100, 116, 139, 0.22);
   --table-row-bg: rgba(255,255,255,0.98);
   --table-row-alt: #f8fafc;
   --table-row-hover: rgba(248, 250, 252, 0.98);
@@ -150,11 +162,23 @@ html[data-theme="dark"] {
   --table-header-text: #e5e7eb;
   --table-footer-bg: var(--surface-secondary);
   --table-footer-text: var(--text-primary);
+  --payroll-badge-paid-bg: rgba(34, 197, 94, 0.18);
+  --payroll-badge-paid-text: #bbf7d0;
+  --payroll-badge-paid-border: rgba(74, 222, 128, 0.36);
+  --payroll-badge-hold-bg: rgba(245, 158, 11, 0.18);
+  --payroll-badge-hold-text: #fde68a;
+  --payroll-badge-hold-border: rgba(251, 191, 36, 0.36);
+  --payroll-badge-generated-bg: rgba(217, 70, 239, 0.18);
+  --payroll-badge-generated-text: #f5d0fe;
+  --payroll-badge-generated-border: rgba(232, 121, 249, 0.38);
+  --payroll-badge-neutral-bg: rgba(148, 163, 184, 0.18);
+  --payroll-badge-neutral-text: #e5e7eb;
+  --payroll-badge-neutral-border: rgba(203, 213, 225, 0.30);
   --table-row-bg: rgba(21, 26, 51, 0.98);
   --table-row-alt: rgba(27, 34, 64, 0.96);
   --table-row-hover: rgba(37, 26, 77, 0.62);
   --hover-bg: rgba(37, 26, 77, 0.62);
-  --selected-bg: rgba(124, 58, 237, 0.24);
+  --selected-bg: rgba(255, 255, 255, 0.10);
   --modal-bg: #151a33;
   --modal-section-bg: #1b2240;
   --dropdown-bg: #171d38;
@@ -2374,6 +2398,12 @@ h6 .lucide {
   }
 }
 
+html[data-theme="dark"] ::selection {
+  background: rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+}
+
 @media (max-width: 767px) {
   :root {
     --icon-size-nav: 17px;
@@ -4127,7 +4157,7 @@ html[data-theme="dark"] .settings-page {
 }
 
 html[data-theme="dark"] .settings-page ::selection {
-  background: rgba(124, 58, 237, 0.55);
+  background: rgba(255, 255, 255, 0.24);
   color: #ffffff;
   -webkit-text-fill-color: #ffffff;
 }
@@ -4620,6 +4650,16 @@ html[data-theme="dark"] .payroll-page table td {
   background: var(--table-row-bg) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-soft) !important;
+}
+
+html[data-theme="dark"] .payroll-page table td
+  :where([style*="color: #475569"], [style*="color: #64748b"], [style*="color: #6b7280"], [style*="color: #94a3b8"], [style*="color: rgb(71, 85, 105)"], [style*="color: rgb(100, 116, 139)"], [style*="color: rgb(107, 114, 128)"]) {
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+}
+
+html[data-theme="dark"] .payroll-page :where([style*="--payroll-badge"], span[style*="payroll-badge"]) {
+  -webkit-text-fill-color: currentColor !important;
 }
 
 html[data-theme="dark"] .payroll-page table tbody tr:nth-child(even) td {

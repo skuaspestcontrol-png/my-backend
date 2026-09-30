@@ -71,10 +71,10 @@ const getEmployeeDisplayName = (entry = {}) => {
 
 const statusBadgeStyle = (statusRaw) => {
   const status = String(statusRaw || '').toLowerCase();
-  if (status === 'paid') return { background: 'rgba(22,163,74,0.16)', color: '#166534', border: '1px solid rgba(22,163,74,0.32)' };
-  if (status === 'hold') return { background: 'rgba(234,179,8,0.15)', color: '#92400e', border: '1px solid rgba(217,119,6,0.32)' };
-  if (status === 'generated') return { background: 'rgba(159, 23, 77, 0.16)', color: 'var(--color-primary-dark)', border: '1px solid rgba(159, 23, 77, 0.32)' };
-  return { background: 'rgba(100,116,139,0.14)', color: 'var(--text-secondary)', border: '1px solid rgba(100,116,139,0.22)' };
+  if (status === 'paid') return { background: 'var(--payroll-badge-paid-bg)', color: 'var(--payroll-badge-paid-text)', border: '1px solid var(--payroll-badge-paid-border)' };
+  if (status === 'hold') return { background: 'var(--payroll-badge-hold-bg)', color: 'var(--payroll-badge-hold-text)', border: '1px solid var(--payroll-badge-hold-border)' };
+  if (status === 'generated') return { background: 'var(--payroll-badge-generated-bg)', color: 'var(--payroll-badge-generated-text)', border: '1px solid var(--payroll-badge-generated-border)' };
+  return { background: 'var(--payroll-badge-neutral-bg)', color: 'var(--payroll-badge-neutral-text)', border: '1px solid var(--payroll-badge-neutral-border)' };
 };
 
 const payrollHistoryColumns = [
