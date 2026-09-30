@@ -1637,7 +1637,7 @@ export default function PayrollModule() {
               <div>OT Cutoff: <strong>{meta?.config?.lateOvertimeCutoffMinutes || 30} min</strong></div>
               <div>OT Rate: <strong>{meta?.config?.overtimeMultiplier || 2}x hourly</strong></div>
               <div>Salary Basis: <strong>Calendar days in month</strong></div>
-              <div style={{ color: '#64748b', fontSize: '11px', lineHeight: 1.35 }}>Sunday work is paid at the normal hourly rate. Monthly salary uses the selected month’s calendar days.</div>
+              <div style={{ color: '#64748b', fontSize: '11px', lineHeight: 1.35 }}>Weekly-off work is paid as additional day equivalents for monthly salary; OT is calculated separately.</div>
               <div>Mode: <strong>{role.canGenerate ? 'Ready to generate' : 'Read only'}</strong></div>
             </div>
           </div>
@@ -1888,7 +1888,7 @@ export default function PayrollModule() {
     <div style={shell.panel}>
       <h3 style={shell.panelTitle}><FileText size={16} /> Salary Slips</h3>
       <p style={shell.sub}>Open, download, email, or WhatsApp salary slips for the selected month/year. Use the filters above for the current salary cycle.</p>
-      <p style={{ ...shell.sub, marginTop: '-2px', color: '#64748b' }}>Policy note: Monthly salary is divided by calendar days in the month, and Sunday work is paid at the normal hourly rate.</p>
+      <p style={{ ...shell.sub, marginTop: '-2px', color: '#64748b' }}>Policy note: Monthly salary is divided by calendar days in the month. Weekly-off work is paid as additional day equivalents, with OT shown separately.</p>
       <div style={shell.actionRow}>
         <button type="button" style={shell.btnLight} onClick={() => exportReport('monthly', 'json')}>Monthly Summary</button>
         <button type="button" style={shell.btnLight} onClick={() => exportReport('employee-wise', 'json')}>Employee-wise</button>

@@ -46,6 +46,10 @@ const payrollExportColumns = {
     ['month', 'Month'],
     ['year', 'Year'],
     ['basicSalary', 'Basic Salary'],
+    ['weeklyOffWorkEarningLabel', 'Work Earning Type'],
+    ['weeklyOffWorkEarning', 'Work Earning Amount'],
+    ['overtimeHours', 'OT Hours'],
+    ['overtimeEarning', 'OT Earning'],
     ['allowancesTotal', 'Allowances'],
     ['deductionsTotal', 'Deductions'],
     ['netSalary', 'Net Salary'],
@@ -58,6 +62,10 @@ const payrollExportColumns = {
     ['month', 'Month'],
     ['year', 'Year'],
     ['basicSalary', 'Basic Salary'],
+    ['weeklyOffWorkEarningLabel', 'Work Earning Type'],
+    ['weeklyOffWorkEarning', 'Work Earning Amount'],
+    ['overtimeHours', 'OT Hours'],
+    ['overtimeEarning', 'OT Earning'],
     ['allowancesTotal', 'Allowances'],
     ['deductionsTotal', 'Deductions'],
     ['netSalary', 'Net Salary'],
@@ -120,6 +128,7 @@ const uploadSearchDirs = [
 
 const allowedSalaryType = new Set(['monthly', 'daily', 'hourly']);
 const allowedPayrollStatus = new Set(['Draft', 'Generated', 'Paid', 'Hold']);
+const editablePayrollStatus = new Set(['Draft', 'Hold']);
 const allowedPaymentMode = new Set(['Cash', 'Bank transfer', 'UPI', 'Cheque']);
 
 const defaultPayrollConfig = {
@@ -131,6 +140,33 @@ const defaultPayrollConfig = {
   workStartTime: '09:30',
   workEndTime: '17:30'
 };
+
+const isEditablePayrollRecord = (record = {}) => {
+  const status = normalizeText(record.payrollStatus || record.payroll_status || 'Generated');
+  const locked = !!record.isLocked || !!record.is_locked;
+  return editablePayrollStatus.has(status) && !locked;
+};
+
+const buildAttendanceSummaryOptions = ({
+  employeeId,
+  month,
+  year,
+  attendance,
+  holidays,
+  config = {}
+}) => ({
+  employeeId,
+  month,
+  year,
+  attendance,
+  holidays,
+  weeklyOffDay: config.weeklyOffDay,
+  lateMarkGraceMinutes: config.lateMarkGraceMinutes,
+  workStartTime: config.workStartTime,
+  workEndTime: config.workEndTime,
+  standardDailyHours: config.standardDailyHours,
+  lateOvertimeCutoffMinutes: config.lateOvertimeCutoffMinutes
+});
 
 const roleToPermissions = (rawRole) => {
   const role = normalizeRole(rawRole || 'employee');
@@ -471,6 +507,26 @@ const normalizePayrollRecord = (raw = {}) => {
   const month = Math.min(12, Math.max(1, toNumber(raw.month, 0)));
   const year = Math.max(2000, toNumber(raw.year, new Date().getFullYear()));
   const payrollKey = normalizeText(raw.payrollKey || raw.payroll_key || raw._id || `${year}-${pad2(month)}-${raw.employeeId || 'EMP'}`);
+  const attendanceSummary = raw.attendanceSummary || raw.attendance_summary || {};
+  const hasNewWeeklyOffFields = raw.weeklyOffWorkEarning !== undefined
+    || raw.weekly_off_work_earning !== undefined
+    || (
+      attendanceSummary
+      && typeof attendanceSummary === 'object'
+      && (
+        attendanceSummary.weeklyOffPayableDays !== undefined
+        || attendanceSummary.weeklyOffWorkedDays !== undefined
+        || attendanceSummary.weeklyOffWorkedHours !== undefined
+      )
+    );
+  const hasLegacySundayWorkEarning = raw.sundayWorkEarning !== undefined || raw.sunday_work_earning !== undefined;
+  const usesLegacySundayWorkEarning = !!raw.usesLegacySundayWorkEarning || (hasLegacySundayWorkEarning && !hasNewWeeklyOffFields);
+  const weeklyOffWorkEarningLabel = normalizeText(
+    raw.weeklyOffWorkEarningLabel
+    || raw.weekly_off_work_earning_label
+    || raw.weeklyOffWorkLabel
+    || ''
+  ) || (usesLegacySundayWorkEarning ? 'Sunday Work Earning' : 'Weekly-Off Work Earning');
   const baseRecord = {
     _id: normalizeText(raw._id || payrollKey),
     payrollKey,
@@ -505,12 +561,15 @@ const normalizePayrollRecord = (raw = {}) => {
     overtimeRate: round2(toNumber(raw.overtimeRate ?? raw.overtime_rate, 0)),
     overtimeEarning: round2(toNumber(raw.overtimeEarning ?? raw.overtime_earning, 0)),
     sundayWorkEarning: round2(toNumber(raw.sundayWorkEarning ?? raw.sunday_work_earning, 0)),
-    attendanceSummary: raw.attendanceSummary || raw.attendance_summary || {},
+    weeklyOffWorkEarning: round2(toNumber(raw.weeklyOffWorkEarning ?? raw.weekly_off_work_earning ?? raw.sundayWorkEarning ?? raw.sunday_work_earning, 0)),
+    attendanceSummary,
     allowances: raw.allowances || {},
     deductions: raw.deductions || {},
     advanceBreakdown: raw.advanceBreakdown || raw.advance_breakdown || [],
     salaryInWords: normalizeText(raw.salaryInWords || raw.salary_in_words || ''),
     slipPath: normalizeText(raw.slipPath || raw.slip_path || ''),
+    weeklyOffWorkEarningLabel,
+    usesLegacySundayWorkEarning,
     createdAt: raw.createdAt || raw.created_at || new Date().toISOString(),
     updatedAt: raw.updatedAt || raw.updated_at || new Date().toISOString()
   };
@@ -521,13 +580,15 @@ const reconcilePayrollTotals = (record = {}) => {
   const basicSalary = round2(Math.max(0, toNumber(record.basicSalary, 0)));
   const summary = record.attendanceSummary || {};
   const daysInMonth = Math.max(1, toNumber(summary.daysInMonth, 30));
-  const standardDailyHours = Math.max(1, toNumber(defaultPayrollConfig.standardDailyHours, 8));
+  const standardDailyHours = Math.max(1, toNumber(summary.standardDailyHours, defaultPayrollConfig.standardDailyHours));
   const hourlyRate = toNumber(record.overtimeRate, 0) || ((basicSalary / daysInMonth / standardDailyHours) * defaultPayrollConfig.overtimeMultiplier);
   const derivedOvertimeEarning = toNumber(summary.overtimeHours ?? record.overtimeHours, 0) * hourlyRate;
   const sundayHourlyRate = basicSalary / daysInMonth / standardDailyHours;
-  const derivedSundayWorkEarning = toNumber(summary.sundayNormalEarningHours, 0) * sundayHourlyRate;
+  const derivedWeeklyOffDayEarning = toNumber(summary.weeklyOffPayableDays ?? summary.weeklyOffWorkPayableDays, 0) * (basicSalary / daysInMonth);
+  const derivedSundayWorkEarning = derivedWeeklyOffDayEarning || (toNumber(summary.sundayNormalEarningHours, 0) * sundayHourlyRate);
   const overtimeEarning = round2(Math.max(0, toNumber(record.overtimeEarning, 0) || derivedOvertimeEarning));
-  const sundayWorkEarning = round2(Math.max(0, toNumber(record.sundayWorkEarning, 0) || derivedSundayWorkEarning));
+  const weeklyOffWorkEarning = round2(Math.max(0, toNumber(record.weeklyOffWorkEarning, 0) || toNumber(record.sundayWorkEarning, 0) || derivedSundayWorkEarning));
+  const sundayWorkEarning = weeklyOffWorkEarning;
   const allowanceValues = Object.entries(record.allowances || {})
     .filter(([key]) => key !== 'total')
     .reduce((sum, [, value]) => sum + Math.max(0, toNumber(value, 0)), 0);
@@ -545,7 +606,7 @@ const reconcilePayrollTotals = (record = {}) => {
   const totalAllowances = round2(Math.max(0, storedAllowances || allowanceValues + customAllowanceValues));
   const totalDeductions = round2(Math.max(0, storedDeductions || deductionValues + customDeductionValues));
 
-  const grossSalary = round2(basicSalary + totalAllowances + overtimeEarning + sundayWorkEarning);
+  const grossSalary = round2(basicSalary + totalAllowances + overtimeEarning + weeklyOffWorkEarning);
   const computedNetSalary = round2(grossSalary - totalDeductions);
   const manualAdjustmentAmount = round2(toNumber(record.manualAdjustmentAmount, 0));
   const manualOverrideEnabled = !!record.manualOverrideEnabled;
@@ -558,6 +619,10 @@ const reconcilePayrollTotals = (record = {}) => {
     ...record,
     totalAllowances,
     totalDeductions,
+    weeklyOffWorkEarning,
+    sundayWorkEarning,
+    weeklyOffWorkEarningLabel: normalizeText(record.weeklyOffWorkEarningLabel) || (record.usesLegacySundayWorkEarning ? 'Sunday Work Earning' : 'Weekly-Off Work Earning'),
+    usesLegacySundayWorkEarning: !!record.usesLegacySundayWorkEarning,
     grossSalary,
     computedNetSalary,
     netSalary,
@@ -715,6 +780,10 @@ const summarizeAttendanceForPayroll = ({
   let sundayOvertimeHours = 0;
   let sundayNormalHours = 0;
   let sundayNormalEarningHours = 0;
+  let weeklyOffPresentDays = 0;
+  let weeklyOffWorkedDays = 0;
+  let weeklyOffPayableDays = 0;
+  let weeklyOffWorkedHours = 0;
   let shortHoursDeductionHours = 0;
   let paidHours = 0;
   const dailyBreakdown = [];
@@ -759,12 +828,25 @@ const summarizeAttendanceForPayroll = ({
         ? minutesToHours(checkOutMins - checkInMins)
         : 0;
       const rawHours = Math.max(0, toNumber(att.workingHours ?? att.hoursWorked ?? calculatedHours, 0));
+      const weeklyOffDayEquivalent = rawHours >= standardDailyHours
+        ? 1
+        : (rawHours >= (standardDailyHours / 2) ? 0.5 : 0);
+      const lateMinutes = (checkInMins !== null && shiftStartMins !== null) ? Math.max(0, checkInMins - shiftStartMins) : 0;
+      const overtimeStartMins = shiftEndMins !== null ? shiftEndMins + lateMinutes : null;
+      const overtimeForDay = overtimeStartMins !== null
+        ? Math.max(0, minutesToHours((checkOutMins ?? 0) - overtimeStartMins))
+        : 0;
       if (dateObj.getDay() === 0 && status === 'present') sundayPresentDays += 1;
+      if (status === 'present') weeklyOffPresentDays += 1;
       if (rawHours > 0) {
         weeklyOffDays += 1;
+        weeklyOffWorkedDays += 1;
+        weeklyOffPayableDays += weeklyOffDayEquivalent;
+        weeklyOffWorkedHours += rawHours;
         sundayOvertimeHours += rawHours;
         sundayNormalHours += rawHours;
         sundayNormalEarningHours += rawHours;
+        overtimeHours += overtimeForDay;
         paidHours += round2(rawHours);
         dailyBreakdown.push({
           date: key,
@@ -772,11 +854,13 @@ const summarizeAttendanceForPayroll = ({
           checkIn: normalizeText(att.checkIn || ''),
           checkOut: normalizeText(att.checkOut || ''),
           workingHours: round2(rawHours),
-          lateMinutes: 0,
-          overtimeHours: 0,
+          lateMinutes: round2(lateMinutes),
+          overtimeHours: round2(overtimeForDay),
           sundayHours: round2(rawHours),
+          weeklyOffHours: round2(rawHours),
+          weeklyOffDayEquivalent: round2(weeklyOffDayEquivalent),
           shortHours: 0,
-          overtimeEligible: false,
+          overtimeEligible: overtimeForDay > 0,
           rule: 'weekly-off-normal'
         });
         return;
@@ -883,6 +967,7 @@ const summarizeAttendanceForPayroll = ({
     month,
     year,
     daysInMonth,
+    standardDailyHours: round2(standardDailyHours),
     totalWorkingDays,
     presentDays: round2(presentDays),
     paidLeaveDays: round2(paidLeaveDays),
@@ -890,6 +975,10 @@ const summarizeAttendanceForPayroll = ({
     halfDays: round2(halfDays),
     weeklyOffDays: round2(weeklyOffDays),
     sundayPresentDays: round2(sundayPresentDays),
+    weeklyOffPresentDays: round2(weeklyOffPresentDays),
+    weeklyOffWorkedDays: round2(weeklyOffWorkedDays),
+    weeklyOffPayableDays: round2(weeklyOffPayableDays),
+    weeklyOffWorkedHours: round2(weeklyOffWorkedHours),
     paidHolidayDays: round2(paidHolidayDays),
     unpaidHolidayDays: round2(unpaidHolidayDays),
     lateMarks: round2(lateMarks),
@@ -950,22 +1039,24 @@ const calcPayrollItem = ({
     + customAllowances.reduce((sum, entry) => sum + toNumber(entry.amount, 0), 0);
   const overtimeHours = toNumber(attendanceSummary.overtimeHours, 0);
   const calendarDaysInMonth = Math.max(1, toNumber(attendanceSummary.daysInMonth, 30));
+  const summaryStandardDailyHours = Math.max(1, toNumber(attendanceSummary.standardDailyHours, defaultPayrollConfig.standardDailyHours));
   const monthlyPerDaySalary = round2(baseSalary / calendarDaysInMonth);
-  const derivedHourlyRate = defaultPayrollConfig.standardDailyHours > 0
-    ? round2(monthlyPerDaySalary / defaultPayrollConfig.standardDailyHours)
+  const derivedHourlyRate = summaryStandardDailyHours > 0
+    ? round2(monthlyPerDaySalary / summaryStandardDailyHours)
     : 0;
   const overtimeRate = Math.max(0, toNumber(structure?.overtimeRate, derivedHourlyRate * defaultPayrollConfig.overtimeMultiplier));
   const overtimeEarning = round2(overtimeHours * overtimeRate);
   const shortHoursDeductionHours = Math.max(0, toNumber(attendanceSummary.shortHoursDeductionHours, 0));
-  const sundayNormalHours = Math.max(0, toNumber(attendanceSummary.sundayNormalEarningHours, 0));
+  const weeklyOffPayableDays = Math.max(0, toNumber(attendanceSummary.weeklyOffPayableDays ?? attendanceSummary.weeklyOffWorkPayableDays, 0));
   const sundayWorkEarning = salaryType === 'monthly'
-    ? round2(sundayNormalHours * derivedHourlyRate)
+    ? round2(weeklyOffPayableDays * monthlyPerDaySalary)
     : 0;
+  const weeklyOffWorkEarning = sundayWorkEarning;
 
   let baseEarned = baseSalary;
   const perDaySalary = salaryType === 'monthly' ? monthlyPerDaySalary : round2(dailyRate || monthlyPerDaySalary);
-  const perHourSalary = defaultPayrollConfig.standardDailyHours > 0
-    ? round2(perDaySalary / defaultPayrollConfig.standardDailyHours)
+  const perHourSalary = summaryStandardDailyHours > 0
+    ? round2(perDaySalary / summaryStandardDailyHours)
     : 0;
   const halfDayDeductionDays = round2(attendanceSummary.halfDays * 0.5);
   const leaveDeductionDays = round2(attendanceSummary.unpaidLeaveDays + halfDayDeductionDays);
@@ -976,7 +1067,7 @@ const calcPayrollItem = ({
     const paidDays = attendanceSummary.presentDays + attendanceSummary.paidLeaveDays + attendanceSummary.weeklyOffDays + attendanceSummary.paidHolidayDays + (attendanceSummary.halfDays * 0.5);
     baseEarned = round2((dailyRate || perDaySalary) * paidDays);
     leaveDeduction = 0;
-    shortHoursDeduction = round2(shortHoursDeductionHours * (dailyRate > 0 && defaultPayrollConfig.standardDailyHours > 0 ? (dailyRate / defaultPayrollConfig.standardDailyHours) : perHourSalary));
+    shortHoursDeduction = round2(shortHoursDeductionHours * (dailyRate > 0 && summaryStandardDailyHours > 0 ? (dailyRate / summaryStandardDailyHours) : perHourSalary));
   }
   if (salaryType === 'hourly') {
     const payableHours = Math.max(0, toNumber(attendanceSummary.paidHours, 0));
@@ -1045,7 +1136,10 @@ const calcPayrollItem = ({
     overtimeHours,
     overtimeRate,
     overtimeEarning,
+    weeklyOffWorkEarning,
     sundayWorkEarning,
+    weeklyOffWorkEarningLabel: 'Weekly-Off Work Earning',
+    usesLegacySundayWorkEarning: false,
     attendanceSummary,
     allowances: { ...allowances, total: round2(allowanceTotal) },
     customAllowances,
@@ -1149,7 +1243,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     [
       ['Working Days', summary.totalWorkingDays],
       ['Present', summary.presentDays],
-      ['Sunday Present', summary.sundayPresentDays],
+      ['Weekly-Off Worked', summary.weeklyOffWorkedDays ?? summary.weeklyOffPresentDays ?? summary.sundayPresentDays],
       ['Paid Leave', summary.paidLeaveDays]
     ],
     [
@@ -1160,9 +1254,9 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     ],
     [
       ['Paid Holiday', summary.paidHolidayDays],
+      ['Weekly-Off Payable', summary.weeklyOffPayableDays ?? 0],
       ['Overtime Hours', round2(item.overtimeHours || summary.overtimeHours || 0)],
-      ['Short-Hour Deduction', `INR ${amount(item.deductions?.shortHoursDeduction || 0)}`],
-      ['', '']
+      ['Short-Hour Deduction', `INR ${amount(item.deductions?.shortHoursDeduction || 0)}`]
     ]
   ];
   attendanceRows.forEach((row, rowIndex) => row.forEach(([label, value], columnIndex) => {
@@ -1180,15 +1274,19 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
     : 0;
   const overtimeEarning = Number(item.overtimeEarning || 0)
     || round2(overtimeHours * (overtimeRate || fallbackOvertimeRate));
-  const sundayWorkEarning = Number(item.sundayWorkEarning || 0)
-    || round2(Number(summary.sundayNormalEarningHours || 0) * (Number(item.basicSalary || 0) / Number(summary.daysInMonth || 30) / defaultPayrollConfig.standardDailyHours));
+  const weeklyOffWorkEarningLabel = normalizeText(item.weeklyOffWorkEarningLabel)
+    || (item.usesLegacySundayWorkEarning ? 'Sunday Work Earning' : 'Weekly-Off Work Earning');
+  const weeklyOffWorkEarning = item.usesLegacySundayWorkEarning
+    ? Number(item.sundayWorkEarning || 0)
+    : (Number(item.weeklyOffWorkEarning || 0)
+      || round2(Number(summary.weeklyOffPayableDays || 0) * (Number(item.basicSalary || 0) / Number(summary.daysInMonth || 30))));
   doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('Earnings', 42, earningsTopY);
   doc.font('Helvetica-Bold').text('Deductions', 310, earningsTopY);
 
   const earningsRows = [
     ['Basic Salary', item.basicSalary],
     ['Overtime Earnings', overtimeEarning],
-    ...(sundayWorkEarning > 0 ? [['Sunday Work', sundayWorkEarning]] : []),
+    ...(weeklyOffWorkEarning > 0 ? [[weeklyOffWorkEarningLabel, weeklyOffWorkEarning]] : []),
     ['HRA', item.allowances.hra],
     ['Conveyance', item.allowances.conveyance],
     ['Mobile Allowance', item.allowances.mobile],
@@ -1249,7 +1347,7 @@ const buildSalarySlipPdfBuffer = ({ item, company, branding }) => new Promise(as
   doc.roundedRect(42, policyBoxY, 511, policyBoxHeight, 8).fillAndStroke('#f8fafc', '#d0d7e2');
   doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#0f172a').text('Policy note', 54, policyBoxY + 9);
   doc.font('Helvetica').fontSize(8.5).fillColor('#475569').text(
-    'Monthly salary uses calendar days in the selected month. Sunday work is paid at the normal hourly rate.',
+    'Monthly salary uses calendar days in the selected month. Weekly-off work is paid as additional day equivalents; OT is calculated separately.',
     118,
     policyBoxY + 9,
     { width: 420 }
@@ -1612,8 +1710,10 @@ function registerPayrollModule({
         }));
         payrollCache.items = normalizedPayrollItems;
 
-        // Persist reconciled totals so old rows do not become stale again after reload.
+        // Draft/Hold rows may keep legacy reconciliation behavior. Finalized/locked
+        // rows must remain immutable when payroll history is viewed or loaded.
         for (const item of normalizedPayrollItems) {
+          if (!isEditablePayrollRecord(item)) continue;
           const source = (Array.isArray(recordRows) ? recordRows : []).find((row) => (
             normalizeText(row.payroll_key) === normalizeText(item.payrollKey)
           ));
@@ -2588,16 +2688,14 @@ function registerPayrollModule({
       basicSalary: toNumber(employee.salaryPerMonth ?? employee.salary, 0),
       effectiveDate: `${year}-${pad2(month)}-01`
     });
-    const summary = summarizeAttendanceForPayroll({
+    const summary = summarizeAttendanceForPayroll(buildAttendanceSummaryOptions({
       employeeId,
       month,
       year,
       attendance,
       holidays,
-      weeklyOffDay: config.weeklyOffDay,
-      lateMarkGraceMinutes: config.lateMarkGraceMinutes,
-      workStartTime: config.workStartTime
-    });
+      config
+    }));
     const result = calcPayrollItem({
       employee,
       structure,
@@ -2667,16 +2765,14 @@ function registerPayrollModule({
           basicSalary: toNumber(employee.salaryPerMonth ?? employee.salary, 0),
           effectiveDate: `${year}-${pad2(month)}-01`
         });
-        const attendanceSummary = summarizeAttendanceForPayroll({
+        const attendanceSummary = summarizeAttendanceForPayroll(buildAttendanceSummaryOptions({
           employeeId,
           month,
           year,
           attendance,
           holidays,
-          weeklyOffDay: config.weeklyOffDay,
-          lateMarkGraceMinutes: config.lateMarkGraceMinutes,
-          workStartTime: config.workStartTime
-        });
+          config
+        }));
 
         const nextItem = calcPayrollItem({
           employee,
@@ -3467,6 +3563,9 @@ module.exports = {
   registerPayrollModule,
   __test__: {
     summarizeAttendanceForPayroll,
-    calcPayrollItem
+    calcPayrollItem,
+    normalizePayrollRecord,
+    isEditablePayrollRecord,
+    buildAttendanceSummaryOptions
   }
 };
