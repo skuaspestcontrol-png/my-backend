@@ -71,10 +71,62 @@ const formatAttendanceDisplayTime = (value) => {
   const [hoursText, minutesText] = raw.split(':');
   const hours = Number(hoursText);
   const minutes = Number(minutesText);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return raw;
+  if (!/^\d{1,2}$/.test(hoursText || '') || !/^\d{2}$/.test(minutesText || '') || !Number.isFinite(hours) || !Number.isFinite(minutes)) return raw;
   const period = hours >= 12 ? 'PM' : 'AM';
   const displayHours = hours % 12 || 12;
   return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
+};
+
+const getEditableTimeValue = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  return isValidTime(raw) ? formatAttendanceDisplayTime(raw) : raw;
+};
+
+const normalizeManualTimeInput = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '--') return '';
+
+  const normalized = raw
+    .toUpperCase()
+    .replace(/\s+/g, '')
+    .replace(/\./g, '');
+  const periodMatch = normalized.match(/(AM|PM)$/);
+  const period = periodMatch?.[1] || '';
+  const timeText = period ? normalized.slice(0, -period.length) : normalized;
+
+  let hoursText = '';
+  let minutesText = '';
+  if (timeText.includes(':')) {
+    const [hoursPart, minutesPart = ''] = timeText.split(':');
+    hoursText = hoursPart;
+    minutesText = minutesPart;
+  } else if (/^\d{1,4}$/.test(timeText)) {
+    if (timeText.length <= 2) {
+      hoursText = timeText;
+      minutesText = '00';
+    } else {
+      hoursText = timeText.slice(0, -2);
+      minutesText = timeText.slice(-2);
+    }
+  } else {
+    return null;
+  }
+
+  if (!/^\d{1,2}$/.test(hoursText) || !/^\d{1,2}$/.test(minutesText)) return null;
+
+  let hours = Number(hoursText);
+  const minutes = Number(minutesText);
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes) || minutes < 0 || minutes > 59) return null;
+
+  if (period) {
+    if (hours < 1 || hours > 12) return null;
+    if (period === 'AM') hours = hours === 12 ? 0 : hours;
+    if (period === 'PM') hours = hours === 12 ? 12 : hours + 12;
+  }
+
+  if (hours < 0 || hours > 23) return null;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 };
 
 const resolveStatusForLeaveType = (leaveType, fallbackStatus = 'absent') => {
@@ -264,20 +316,34 @@ const shell = {
   },
   timeInput: {
     position: 'absolute',
-    inset: 0,
+    inset: '0 0 0 auto',
     minHeight: '30px',
     height: '30px',
-    width: '100%',
+    width: '34px',
     borderRadius: '8px',
     border: '1px solid #D1D5DB',
     background: '#fff',
-    padding: '0 8px',
+    padding: 0,
     fontSize: '12px',
     color: '#0f172a',
     lineHeight: 1,
     boxSizing: 'border-box',
     opacity: 0,
     cursor: 'pointer'
+  },
+  timeTextInput: {
+    minWidth: 0,
+    width: '100%',
+    height: '28px',
+    border: 'none',
+    outline: 'none',
+    background: 'transparent',
+    color: '#0f172a',
+    fontSize: '13px',
+    fontWeight: 700,
+    lineHeight: 1,
+    padding: 0,
+    textAlign: 'center'
   },
   timePickerShell: {
     position: 'relative',
@@ -294,14 +360,6 @@ const shell = {
     padding: '0 10px',
     boxSizing: 'border-box',
     overflow: 'visible'
-  },
-  timeDisplay: {
-    color: '#0f172a',
-    fontSize: '13px',
-    fontWeight: 700,
-    whiteSpace: 'nowrap',
-    pointerEvents: 'none',
-    lineHeight: 1
   },
   timeIcon: {
     flex: '0 0 auto',
@@ -966,9 +1024,15 @@ export default function Attendance() {
 
   const handleTimeBlur = (employeeId, field, value) => {
     const current = records[employeeId] || { employeeId, date, status: 'present', checkIn: '', checkOut: '', leaveType: '', leaveReason: '', notes: '', source: '' };
+    const normalizedTime = normalizeManualTimeInput(value);
+    if (normalizedTime === null) {
+      setStatusMessage('Enter time as 09:30, 0930, 9:30 AM, 530 PM, or 17:30.');
+      updateRecordField(employeeId, field, current[field] || '');
+      return;
+    }
     saveRecord(employeeId, {
       ...current,
-      [field]: value
+      [field]: normalizedTime
     });
   };
 
@@ -1147,6 +1211,8 @@ export default function Attendance() {
             {employeeRows.map(({ employee, employeeId, record, workingHours, attendanceMetrics }) => {
               const status = record.status || 'absent';
               const timeDisabled = status !== 'present';
+              const checkInPickerValue = normalizeManualTimeInput(record.checkIn) || '';
+              const checkOutPickerValue = normalizeManualTimeInput(record.checkOut) || '';
               return (
                 <tr key={employeeId}>
                   <td style={shell.td}>
@@ -1189,12 +1255,23 @@ export default function Attendance() {
                   </td>
                   <td style={shell.td}>
                     <div style={shell.timePickerShell}>
-                      <span style={shell.timeDisplay}>{formatAttendanceDisplayTime(record.checkIn)}</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={getEditableTimeValue(record.checkIn)}
+                        disabled={timeDisabled}
+                        placeholder="09:30 AM"
+                        aria-label="Check in time"
+                        style={{ ...shell.timeTextInput, cursor: timeDisabled ? 'default' : 'text' }}
+                        onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
+                        onBlur={(event) => handleTimeBlur(employeeId, 'checkIn', event.target.value)}
+                      />
                       <Clock3 size={15} strokeWidth={2.4} style={shell.timeIcon} />
                       <input
                         type="time"
-                        value={record.checkIn || ''}
+                        value={checkInPickerValue}
                         disabled={timeDisabled}
+                        aria-label="Open check in time picker"
                         style={{ ...shell.timeInput, cursor: timeDisabled ? 'default' : 'pointer' }}
                         onChange={(event) => updateRecordField(employeeId, 'checkIn', event.target.value)}
                         onBlur={(event) => handleTimeBlur(employeeId, 'checkIn', event.target.value)}
@@ -1203,12 +1280,23 @@ export default function Attendance() {
                   </td>
                   <td style={shell.td}>
                     <div style={shell.timePickerShell}>
-                      <span style={shell.timeDisplay}>{formatAttendanceDisplayTime(record.checkOut)}</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={getEditableTimeValue(record.checkOut)}
+                        disabled={timeDisabled}
+                        placeholder="05:30 PM"
+                        aria-label="Check out time"
+                        style={{ ...shell.timeTextInput, cursor: timeDisabled ? 'default' : 'text' }}
+                        onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
+                        onBlur={(event) => handleTimeBlur(employeeId, 'checkOut', event.target.value)}
+                      />
                       <Clock3 size={15} strokeWidth={2.4} style={shell.timeIcon} />
                       <input
                         type="time"
-                        value={record.checkOut || ''}
+                        value={checkOutPickerValue}
                         disabled={timeDisabled}
+                        aria-label="Open check out time picker"
                         style={{ ...shell.timeInput, cursor: timeDisabled ? 'default' : 'pointer' }}
                         onChange={(event) => updateRecordField(employeeId, 'checkOut', event.target.value)}
                         onBlur={(event) => handleTimeBlur(employeeId, 'checkOut', event.target.value)}
