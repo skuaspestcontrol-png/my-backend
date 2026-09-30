@@ -3,6 +3,8 @@ import axios from 'axios';
 import {
   Activity,
   CalendarCheck,
+  Check,
+  Pencil,
   RefreshCw,
   Users,
   Wallet
@@ -67,6 +69,30 @@ const shell = {
     background: 'var(--surface-card-elevated)',
     color: 'var(--text-primary)',
     cursor: 'pointer'
+  },
+  iconActionBtn: {
+    width: '36px',
+    minWidth: '36px',
+    height: '36px',
+    minHeight: '36px',
+    borderRadius: '10px',
+    border: '1px solid var(--border)',
+    background: 'var(--surface-card-elevated)',
+    color: 'var(--text-primary)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 0,
+    cursor: 'pointer'
+  },
+  iconActionBtnActive: {
+    border: '1px solid rgba(159, 23, 77, 0.42)',
+    background: 'var(--color-primary)',
+    color: '#fff'
+  },
+  iconActionBtnDisabled: {
+    opacity: 0.55,
+    cursor: 'not-allowed'
   },
   statGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' },
   statCard: { borderRadius: '13px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', padding: '10px', display: 'grid', gap: '6px', boxShadow: '0 10px 24px rgba(2, 6, 23, 0.2)', backgroundClip: 'padding-box' },
@@ -320,6 +346,7 @@ export default function HRDashboard() {
   const [leaveEntitlementYear, setLeaveEntitlementYear] = useState(new Date().getFullYear());
   const [leaveEntitlementRows, setLeaveEntitlementRows] = useState([]);
   const [leaveEntitlementBusy, setLeaveEntitlementBusy] = useState(false);
+  const [editingLeaveEntitlementType, setEditingLeaveEntitlementType] = useState('');
   const [payrollQuick, setPayrollQuick] = useState(null);
   const [employees, setEmployees] = useState([]);
 
@@ -477,6 +504,10 @@ export default function HRDashboard() {
     fetchLeaveEntitlements();
   }, [fetchLeaveEntitlements]);
 
+  useEffect(() => {
+    setEditingLeaveEntitlementType('');
+  }, [leaveEntitlementEmployeeId, leaveEntitlementYear]);
+
   const updateLeaveEntitlement = async (leaveType, allocated) => {
     if (!role.canManage) return;
     try {
@@ -495,6 +526,11 @@ export default function HRDashboard() {
     } finally {
       setLeaveEntitlementBusy(false);
     }
+  };
+
+  const saveLeaveEntitlement = async (leaveType, allocated) => {
+    await updateLeaveEntitlement(leaveType, allocated);
+    setEditingLeaveEntitlementType('');
   };
 
   const decideLeave = async (id, decision) => {
@@ -776,6 +812,8 @@ export default function HRDashboard() {
                 <tbody>
                   {entitlementLeaveTypes.map((leaveType) => {
                     const row = leaveEntitlementRows.find((entry) => entry.leaveType === leaveType) || { leaveType, allocated: 0, used: 0, pending: 0, available: 0 };
+                    const isEditingEntitlement = editingLeaveEntitlementType === leaveType;
+                    const actionDisabled = !role.canManage || leaveEntitlementBusy;
                     return (
                       <tr key={leaveType}>
                         <td style={shell.td}>{leaveType}</td>
@@ -794,21 +832,43 @@ export default function HRDashboard() {
                               }
                               return [...prev, { ...row, allocated: nextValue }];
                             })}
-                            disabled={!role.canManage}
+                            disabled={!role.canManage || !isEditingEntitlement || leaveEntitlementBusy}
                           />
                         </td>
                         <td style={{ ...shell.td, textAlign: 'center' }}>{row.used ?? 0}</td>
                         <td style={{ ...shell.td, textAlign: 'center' }}>{row.pending ?? 0}</td>
                         <td style={{ ...shell.td, textAlign: 'center' }}>{row.available ?? 0}</td>
                         <td style={{ ...shell.td, textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            style={shell.btnLight}
-                            disabled={!role.canManage || leaveEntitlementBusy}
-                            onClick={() => updateLeaveEntitlement(leaveType, row.allocated ?? 0)}
-                          >
-                            Edit
-                          </button>
+                          {isEditingEntitlement ? (
+                            <button
+                              type="button"
+                              style={{
+                                ...shell.iconActionBtn,
+                                ...shell.iconActionBtnActive,
+                                ...(actionDisabled ? shell.iconActionBtnDisabled : {})
+                              }}
+                              disabled={actionDisabled}
+                              onClick={() => saveLeaveEntitlement(leaveType, row.allocated ?? 0)}
+                              aria-label={`Save ${leaveType} entitlement`}
+                              title="Save entitlement"
+                            >
+                              <Check size={17} strokeWidth={2.5} />
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              style={{
+                                ...shell.iconActionBtn,
+                                ...(actionDisabled ? shell.iconActionBtnDisabled : {})
+                              }}
+                              disabled={actionDisabled}
+                              onClick={() => setEditingLeaveEntitlementType(leaveType)}
+                              aria-label={`Edit ${leaveType} entitlement`}
+                              title="Edit entitlement"
+                            >
+                              <Pencil size={16} strokeWidth={2.4} />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
