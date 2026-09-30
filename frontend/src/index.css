@@ -5334,6 +5334,66 @@ html[data-theme="dark"] .contract-dashboard-page :where([aria-label="More option
   border-color: var(--border-soft) !important;
 }
 
+/* Keep theme-colored chrome readable across portals. */
+table thead :where(th, td),
+.crm-compact-table thead :where(th, td),
+.table-clean thead :where(th, td),
+.crm-table-card table thead :where(th, td),
+.crm-table-shell table thead :where(th, td),
+.table-scroll-x table thead :where(th, td) {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
+}
+
+table thead :where(th, td) :where(a, button, div, span, strong, small, label, svg),
+.crm-compact-table thead :where(th, td) :where(a, button, div, span, strong, small, label, svg),
+.table-clean thead :where(th, td) :where(a, button, div, span, strong, small, label, svg),
+.crm-table-card table thead :where(th, td) :where(a, button, div, span, strong, small, label, svg),
+.crm-table-shell table thead :where(th, td) :where(a, button, div, span, strong, small, label, svg),
+.table-scroll-x table thead :where(th, td) :where(a, button, div, span, strong, small, label, svg) {
+  color: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
+  stroke: currentColor !important;
+}
+
+table thead :where(th, td) :where(button) {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.main-content :where(tfoot, tfoot tr, tfoot td, .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination),
+.crm-table-shell :where(tfoot, tfoot tr, tfoot td),
+.crm-table-card :where(tfoot, tfoot tr, tfoot td) {
+  background: var(--table-footer-bg) !important;
+  color: var(--table-footer-text) !important;
+  -webkit-text-fill-color: var(--table-footer-text) !important;
+}
+
+.main-content :where(tfoot, .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination)
+  :where(span, strong, small, p, div:not(:has(button)), svg) {
+  color: var(--table-footer-text) !important;
+  -webkit-text-fill-color: var(--table-footer-text) !important;
+  stroke: currentColor !important;
+}
+
+.crm-card-header,
+[style*="background: var(--card-header-bg)"],
+[style*="background: var(--color-primary)"],
+[style*="background: var(--skuas-header)"] {
+  color: var(--card-header-text) !important;
+  -webkit-text-fill-color: var(--card-header-text) !important;
+}
+
+.crm-card-header :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, button, svg),
+[style*="background: var(--card-header-bg)"] :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, button, svg),
+[style*="background: var(--color-primary)"] :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, button, svg),
+[style*="background: var(--skuas-header)"] :where(h1, h2, h3, h4, h5, h6, p, span, strong, small, button, svg) {
+  color: var(--card-header-text) !important;
+  -webkit-text-fill-color: var(--card-header-text) !important;
+  stroke: currentColor !important;
+}
+
 html[data-theme="dark"] :where(.lead-capture-page, .contract-dashboard-page, .invoice-dashboard-page, .quotation-dashboard-page) :where(.crm-action-chip, .crm-action-menu-panel, [data-action-trigger="true"], [data-action-menu="true"]) {
   background: var(--dropdown-bg) !important;
   color: var(--text-primary) !important;
