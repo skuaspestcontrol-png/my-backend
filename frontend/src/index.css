@@ -5453,3 +5453,64 @@ html[data-theme="dark"] .payment-received-page button[style*="color: #b91c1c"] {
   color: #fecaca !important;
   border-color: rgba(248, 113, 113, 0.36) !important;
 }
+
+/* Final contrast pass for theme-colored table chrome and modal comparison surfaces. */
+:root {
+  --table-header-text: #ffffff;
+  --table-footer-text: #ffffff;
+}
+
+html[data-theme="dark"] {
+  --table-header-text: #ffffff;
+  --table-footer-text: #ffffff;
+}
+
+body :where(.table-clean, .crm-compact-table, .crm-table-card table, .crm-table-shell table, .table-scroll-x table, .responsive-table table)
+  thead :where(th, td),
+body :where(.table-clean, .crm-compact-table, .crm-table-card table, .crm-table-shell table, .table-scroll-x table, .responsive-table table)
+  thead :where(th, td) :where(a, button, div, span, strong, small, label) {
+  color: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
+}
+
+body :where(.table-clean, .crm-compact-table, .crm-table-card table, .crm-table-shell table, .table-scroll-x table, .responsive-table table)
+  thead :where(th, td) svg {
+  color: var(--table-header-text) !important;
+  stroke: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
+}
+
+body :where(tfoot, tfoot tr, tfoot td, .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination) {
+  color: var(--table-footer-text) !important;
+  -webkit-text-fill-color: var(--table-footer-text) !important;
+}
+
+body :where(tfoot, tfoot tr, tfoot td, .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination)
+  :where(span, strong, small, p, b, em, label) {
+  color: var(--table-footer-text) !important;
+  -webkit-text-fill-color: var(--table-footer-text) !important;
+}
+
+body :where(tfoot, tfoot tr, tfoot td, .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination)
+  > :where(div):not(:has(button)) {
+  color: var(--table-footer-text) !important;
+  -webkit-text-fill-color: var(--table-footer-text) !important;
+}
+
+body :where(tfoot, tfoot tr, tfoot td, .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination)
+  button {
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html[data-theme="dark"] .crm-modal-surface
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"]) {
+  background: var(--light-surface-bg) !important;
+  color: var(--light-surface-text) !important;
+}
+
+html[data-theme="dark"] .crm-modal-surface
+  :where([style*="background: #fff"], [style*="background: #ffffff"], [style*="background: rgb(255, 255, 255)"])
+  :where(h1, h2, h3, h4, h5, h6, p, div, span, strong, td, th, label, textarea) {
+  color: var(--light-surface-text) !important;
+  -webkit-text-fill-color: var(--light-surface-text) !important;
+}

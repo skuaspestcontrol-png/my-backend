@@ -11,8 +11,8 @@ const TRACK_TECHNICIANS_CACHE_KEY = 'track_technicians_cache_v2';
 const shell = {
   page: { display: 'grid', gap: '14px', background: 'transparent', border: 'none', borderRadius: 0, padding: 0 },
   hero: { border: '1px solid rgba(159, 23, 77, 0.2)', background: 'var(--color-primary)', borderRadius: '18px', padding: '16px', color: '#fff' },
-  title: { margin: 0, fontSize: '28px', fontWeight: 800, letterSpacing: '-0.03em' },
-  sub: { margin: '6px 0 0 0', fontSize: '13px', opacity: 0.92, fontWeight: 600 },
+  title: { margin: 0, fontSize: '28px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--card-header-text)' },
+  sub: { margin: '6px 0 0 0', fontSize: '13px', opacity: 0.92, fontWeight: 600, color: 'var(--card-header-text)' },
   stats: { display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' },
   stat: { border: '1px solid var(--color-border)', background: '#fff', borderRadius: '14px', padding: '12px' },
   statLabel: { margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
