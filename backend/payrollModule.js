@@ -1390,6 +1390,36 @@ const ensureSalarySlipStored = async ({ item, company, branding, withMysqlConnec
   return { absolutePath, relativePath };
 };
 
+const sanitizePdfFileName = (value = '', fallback = 'salary-slip.pdf') => {
+  const base = path.basename(normalizeText(value) || fallback).replace(/[^\w.-]+/g, '_');
+  const safe = base || fallback;
+  return /\.pdf$/i.test(safe) ? safe : `${safe}.pdf`;
+};
+
+const createWhatsAppSalarySlipAttachment = ({ absolutePath, fileName, origin, uploadRoot = uploadsRootDir }) => {
+  const safeFileName = sanitizePdfFileName(fileName);
+  const buffer = fs.readFileSync(absolutePath);
+  if (buffer.slice(0, 5).toString('latin1') !== '%PDF-') {
+    throw new Error('Salary slip PDF generation failed validation.');
+  }
+
+  const attachmentFileName = `whatsapp-salary-slip-${Date.now()}-${safeFileName}`;
+  const attachmentPath = path.resolve(uploadRoot, attachmentFileName);
+  const uploadsRoot = path.resolve(uploadRoot);
+  if (!attachmentPath.startsWith(`${uploadsRoot}${path.sep}`)) {
+    throw new Error('Invalid salary slip attachment path.');
+  }
+
+  fs.writeFileSync(attachmentPath, buffer);
+  return {
+    attachmentFileName,
+    attachmentPath,
+    attachmentUrl: `${String(origin || '').replace(/\/+$/, '')}/uploads/${attachmentFileName}`,
+    fileName: safeFileName,
+    size: buffer.length
+  };
+};
+
 const csvSafeValue = (value) => {
   const text = String(value ?? '');
   if (/^[\s]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text)) return `'${text}`;
@@ -3206,12 +3236,17 @@ function registerPayrollModule({
       const useCustomProvider = ['custom', 'deropo'].includes(waConfig.providerType) && Boolean(waConfig.baseUrl);
       let sendDocJson;
       if (useCustomProvider) {
+        const attachment = createWhatsAppSalarySlipAttachment({
+          absolutePath,
+          fileName,
+          origin: shareOrigin
+        });
         const sent = await sendWhatsAppMessage({
           settings,
           to: phone,
           message: caption,
-          attachmentUrl: shareLink,
-          attachmentName: fileName
+          attachmentUrl: attachment.attachmentUrl,
+          attachmentName: attachment.fileName
         });
         sendDocJson = sent.response;
       } else {
@@ -3566,6 +3601,7 @@ module.exports = {
     calcPayrollItem,
     normalizePayrollRecord,
     isEditablePayrollRecord,
-    buildAttendanceSummaryOptions
+    buildAttendanceSummaryOptions,
+    createWhatsAppSalarySlipAttachment
   }
 };

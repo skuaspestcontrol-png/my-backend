@@ -1,4 +1,7 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const test = require('node:test');
 
 const {
@@ -7,7 +10,8 @@ const {
     calcPayrollItem,
     normalizePayrollRecord,
     isEditablePayrollRecord,
-    buildAttendanceSummaryOptions
+    buildAttendanceSummaryOptions,
+    createWhatsAppSalarySlipAttachment
   }
 } = require('../payrollModule');
 
@@ -86,6 +90,28 @@ test('default weekly-off OT follows normal late-adjusted shift end', () => {
   const lateDay = summarize([weeklyOffAttendance('2026-09-06', '10:00', '20:00', 10)]);
   assert.equal(lateDay.weeklyOffPayableDays, 1);
   assert.equal(lateDay.overtimeHours, 2);
+});
+
+test('salary slip WhatsApp attachment creates public pdf copy for link providers', () => {
+  const uploadRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'salary-slip-whatsapp-'));
+  const sourcePdf = path.join(uploadRoot, 'source.pdf');
+  const pdfBytes = Buffer.from('%PDF-1.4\n% test salary slip\n');
+  fs.writeFileSync(sourcePdf, pdfBytes);
+
+  const attachment = createWhatsAppSalarySlipAttachment({
+    absolutePath: sourcePdf,
+    fileName: '../EMP-8438 2026 09.pdf',
+    origin: 'https://crm.skuaspestcontrol.com/',
+    uploadRoot
+  });
+
+  assert.match(attachment.fileName, /^EMP-8438_2026_09\.pdf$/);
+  assert.match(attachment.attachmentFileName, /^whatsapp-salary-slip-\d+-EMP-8438_2026_09\.pdf$/);
+  assert.equal(attachment.attachmentUrl.endsWith('.pdf'), true);
+  assert.equal(attachment.attachmentUrl.includes('/uploads/whatsapp-salary-slip-'), true);
+  assert.equal(fs.readFileSync(attachment.attachmentPath).slice(0, 5).toString('latin1'), '%PDF-');
+  assert.equal(fs.readFileSync(attachment.attachmentPath).equals(pdfBytes), true);
+  assert.equal(path.dirname(attachment.attachmentPath), path.resolve(uploadRoot));
 });
 
 test('custom standardDailyHours and workEndTime are propagated', () => {
