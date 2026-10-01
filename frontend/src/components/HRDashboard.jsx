@@ -146,6 +146,14 @@ const leaveOptions = [
 ];
 
 const entitlementLeaveTypes = ['Casual Leave (CL)', 'Sick Leave (SL)'];
+const maxLeaveEntitlementAllocation = 99;
+
+const normalizeLeaveEntitlementAllocationInput = (value) => String(value ?? '').replace(/\D/g, '').slice(0, 2);
+
+const toLeaveEntitlementAllocation = (value) => {
+  const numericText = normalizeLeaveEntitlementAllocationInput(value);
+  return Math.min(maxLeaveEntitlementAllocation, Math.max(0, Number(numericText) || 0));
+};
 
 const roleFlags = () => {
   const roleRaw = String(getPortalUserRole() || 'Admin').trim().toLowerCase();
@@ -511,11 +519,15 @@ export default function HRDashboard() {
 
   const updateLeaveEntitlement = async (leaveType, allocated) => {
     if (!role.canManage) return false;
-    const nextAllocated = Number(allocated);
+    const nextAllocated = toLeaveEntitlementAllocation(allocated);
     const currentRow = leaveEntitlementRows.find((entry) => entry.leaveType === leaveType);
     const used = Number(currentRow?.used || 0);
     if (!Number.isFinite(nextAllocated) || nextAllocated < 0) {
       setStatus('Allocation cannot be negative.');
+      return false;
+    }
+    if (nextAllocated > maxLeaveEntitlementAllocation) {
+      setStatus('Allocation must be 2 digits or less.');
       return false;
     }
     if (nextAllocated < used) {
@@ -865,12 +877,13 @@ export default function HRDashboard() {
                         <td style={{ ...shell.td, textAlign: 'center' }}>
                           <input
                             style={{ ...shell.input, minHeight: '32px', textAlign: 'center' }}
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            value={row.allocated ?? 0}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]{0,2}"
+                            maxLength={2}
+                            value={normalizeLeaveEntitlementAllocationInput(row.allocated ?? 0)}
                             onChange={(event) => setLeaveEntitlementRows((prev) => {
-                              const nextValue = Math.max(0, Number(event.target.value) || 0);
+                              const nextValue = toLeaveEntitlementAllocation(event.target.value);
                               const existing = prev.find((entry) => entry.leaveType === leaveType);
                               if (existing) {
                                 return prev.map((entry) => entry.leaveType === leaveType ? { ...entry, allocated: nextValue } : entry);

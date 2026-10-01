@@ -71,6 +71,7 @@ test('leave entitlement API keeps admin-only updates and non-negative allocation
   assert.match(sourceText, /app\.put\('\/api\/hr\/leave-entitlements'/);
   assert.match(sourceText, /Only Admin\/HR can update leave entitlements/);
   assert.match(sourceText, /allocated cannot be negative/);
+  assert.match(sourceText, /allocated must be 2 digits or less/);
   assert.match(sourceText, /Allocation cannot be below already-used leave/);
 });
 

@@ -1669,6 +1669,7 @@ function registerHrModule({
     if (!employeeId) return res.status(400).json({ error: 'employeeId is required' });
     if (!leaveType) return res.status(400).json({ error: 'Unsupported entitlement leave type' });
     if (allocated < 0) return res.status(400).json({ error: 'allocated cannot be negative' });
+    if (allocated > 99) return res.status(400).json({ error: 'allocated must be 2 digits or less' });
 
     const employee = getEmployees().find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
