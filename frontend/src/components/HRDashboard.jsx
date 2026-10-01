@@ -3,7 +3,6 @@ import axios from 'axios';
 import {
   Activity,
   CalendarCheck,
-  Check,
   Pencil,
   RefreshCw,
   Users,
@@ -347,6 +346,7 @@ export default function HRDashboard() {
   const [leaveEntitlementRows, setLeaveEntitlementRows] = useState([]);
   const [leaveEntitlementBusy, setLeaveEntitlementBusy] = useState(false);
   const [editingLeaveEntitlementType, setEditingLeaveEntitlementType] = useState('');
+  const [editingLeaveEntitlementOriginal, setEditingLeaveEntitlementOriginal] = useState(null);
   const [payrollQuick, setPayrollQuick] = useState(null);
   const [employees, setEmployees] = useState([]);
 
@@ -506,31 +506,76 @@ export default function HRDashboard() {
 
   useEffect(() => {
     setEditingLeaveEntitlementType('');
+    setEditingLeaveEntitlementOriginal(null);
   }, [leaveEntitlementEmployeeId, leaveEntitlementYear]);
 
   const updateLeaveEntitlement = async (leaveType, allocated) => {
-    if (!role.canManage) return;
+    if (!role.canManage) return false;
+    const nextAllocated = Number(allocated);
+    const currentRow = leaveEntitlementRows.find((entry) => entry.leaveType === leaveType);
+    const used = Number(currentRow?.used || 0);
+    if (!Number.isFinite(nextAllocated) || nextAllocated < 0) {
+      setStatus('Allocation cannot be negative.');
+      return false;
+    }
+    if (nextAllocated < used) {
+      setStatus('Allocation cannot be below already-used leave.');
+      return false;
+    }
     try {
       setLeaveEntitlementBusy(true);
       await axios.put(`${API_BASE}/api/hr/leave-entitlements`, {
         employeeId: leaveEntitlementEmployeeId,
         year: leaveEntitlementYear,
         leaveType,
-        allocated: Number(allocated)
+        allocated: nextAllocated
       }, { headers });
       setStatus('Leave entitlement updated.');
       await fetchLeaveEntitlements();
       await fetchAll(true);
+      return true;
     } catch (error) {
       setStatus(error?.response?.data?.error || 'Unable to update leave entitlement.');
+      return false;
     } finally {
       setLeaveEntitlementBusy(false);
     }
   };
 
   const saveLeaveEntitlement = async (leaveType, allocated) => {
-    await updateLeaveEntitlement(leaveType, allocated);
+    const saved = await updateLeaveEntitlement(leaveType, allocated);
+    if (!saved) return;
     setEditingLeaveEntitlementType('');
+    setEditingLeaveEntitlementOriginal(null);
+  };
+
+  const startLeaveEntitlementEdit = (row) => {
+    setEditingLeaveEntitlementType(row.leaveType);
+    setEditingLeaveEntitlementOriginal({ leaveType: row.leaveType, allocated: row.allocated ?? 0 });
+  };
+
+  const cancelLeaveEntitlementEdit = () => {
+    if (editingLeaveEntitlementOriginal) {
+      setLeaveEntitlementRows((prev) => {
+        const existing = prev.find((entry) => entry.leaveType === editingLeaveEntitlementOriginal.leaveType);
+        if (existing) {
+          return prev.map((entry) => (
+            entry.leaveType === editingLeaveEntitlementOriginal.leaveType
+              ? { ...entry, allocated: editingLeaveEntitlementOriginal.allocated }
+              : entry
+          ));
+        }
+        return [...prev, {
+          leaveType: editingLeaveEntitlementOriginal.leaveType,
+          allocated: editingLeaveEntitlementOriginal.allocated,
+          used: 0,
+          pending: 0,
+          available: editingLeaveEntitlementOriginal.allocated
+        }];
+      });
+    }
+    setEditingLeaveEntitlementType('');
+    setEditingLeaveEntitlementOriginal(null);
   };
 
   const decideLeave = async (id, decision) => {
@@ -840,20 +885,34 @@ export default function HRDashboard() {
                         <td style={{ ...shell.td, textAlign: 'center' }}>{row.available ?? 0}</td>
                         <td style={{ ...shell.td, textAlign: 'center' }}>
                           {isEditingEntitlement ? (
-                            <button
-                              type="button"
-                              style={{
-                                ...shell.iconActionBtn,
-                                ...shell.iconActionBtnActive,
-                                ...(actionDisabled ? shell.iconActionBtnDisabled : {})
-                              }}
-                              disabled={actionDisabled}
-                              onClick={() => saveLeaveEntitlement(leaveType, row.allocated ?? 0)}
-                              aria-label={`Save ${leaveType} entitlement`}
-                              title="Save entitlement"
-                            >
-                              <Check size={17} strokeWidth={2.5} />
-                            </button>
+                            <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                style={{
+                                  ...shell.btn,
+                                  minHeight: '32px',
+                                  height: '32px',
+                                  ...(actionDisabled ? shell.iconActionBtnDisabled : {})
+                                }}
+                                disabled={actionDisabled}
+                                onClick={() => saveLeaveEntitlement(leaveType, row.allocated ?? 0)}
+                              >
+                                Save
+                              </button>
+                              <button
+                                type="button"
+                                style={{
+                                  ...shell.btnLight,
+                                  minHeight: '32px',
+                                  height: '32px',
+                                  ...(actionDisabled ? shell.iconActionBtnDisabled : {})
+                                }}
+                                disabled={actionDisabled}
+                                onClick={cancelLeaveEntitlementEdit}
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           ) : (
                             <button
                               type="button"
@@ -862,7 +921,7 @@ export default function HRDashboard() {
                                 ...(actionDisabled ? shell.iconActionBtnDisabled : {})
                               }}
                               disabled={actionDisabled}
-                              onClick={() => setEditingLeaveEntitlementType(leaveType)}
+                              onClick={() => startLeaveEntitlementEdit(row)}
                               aria-label={`Edit ${leaveType} entitlement`}
                               title="Edit entitlement"
                             >

@@ -1674,6 +1674,21 @@ function registerHrModule({
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
     try {
+      const currentRows = buildLeaveEntitlementBalances({
+        employees: getEmployees(),
+        leaves: await getLeaves(),
+        entitlements: await getLeaveEntitlements(),
+        year,
+        employeeId,
+        scope,
+        scopeFilter: applyScopeFilter
+      });
+      const currentBalance = currentRows[0]?.balances?.find((entry) => entry.leaveType === leaveType);
+      const used = round2(currentBalance?.used || 0);
+      if (allocated < used) {
+        return res.status(400).json({ error: 'Allocation cannot be below already-used leave.' });
+      }
+
       await upsertLeaveEntitlement({ employeeId, year, leaveType, allocated });
       const rows = buildLeaveEntitlementBalances({
         employees: getEmployees(),
