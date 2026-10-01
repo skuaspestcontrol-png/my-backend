@@ -3,6 +3,7 @@ import axios from 'axios';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPinned, Users } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
 import { buildPortalAuthHeaders } from '../utils/portalAuth';
+import { formatDurationHours } from '../utils/duration';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const ATTENDANCE_CACHE_KEY = 'attendance_dashboard_cache_v1';
@@ -541,7 +542,7 @@ const computeAttendanceMetrics = (record = {}) => {
     return {
       workingHours,
       overtimeHours: 0,
-      overtimeLabel: `normal ${workingHours.toFixed(2)} hrs`,
+      overtimeLabel: `normal ${formatDurationHours(workingHours)}`,
       overtimeTone: 'sunday',
       overtimeTitle: 'Sunday work is paid at the normal daily rate, not 2x.'
     };
@@ -565,7 +566,7 @@ const computeAttendanceMetrics = (record = {}) => {
     return {
       workingHours,
       overtimeHours: Number(overtimeHours.toFixed(2)),
-      overtimeLabel: `OT ${overtimeHours.toFixed(2)} hrs`,
+      overtimeLabel: `OT ${formatDurationHours(overtimeHours)}`,
       overtimeTone: 'positive',
       overtimeTitle: `Carry-forward overtime starts at ${formatMinutesAsClock(overtimeStartMinutes)}.`
     };
@@ -1331,7 +1332,7 @@ export default function Attendance() {
                   <td style={shell.td}>
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                       <div style={shell.hoursBadgeStack}>
-                        <span className="attendance-hours-badge" style={shell.hoursBadge}>{workingHours.toFixed(2)} hrs</span>
+                        <span className="attendance-hours-badge" style={shell.hoursBadge}>{formatDurationHours(workingHours)}</span>
                         {attendanceMetrics.overtimeLabel ? (
                           <span
                             style={{
