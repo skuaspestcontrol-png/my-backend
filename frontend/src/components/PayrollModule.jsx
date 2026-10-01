@@ -47,6 +47,11 @@ const monthOptions = Array.from({ length: 12 }).map((_, index) => ({
   value: index + 1,
   label: new Date(defaultYear, index, 1).toLocaleDateString('en-IN', { month: 'long' })
 }));
+const shortMonthLabel = (value) => {
+  const monthNumber = Number(value);
+  if (!Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) return String(value || '');
+  return new Date(defaultYear, monthNumber - 1, 1).toLocaleDateString('en-IN', { month: 'short' });
+};
 
 const money = (value) => {
   const amount = Number(value || 0);
@@ -1209,13 +1214,13 @@ export default function PayrollModule() {
     const employeeName = String(item?.employeeName || employee?.name || 'Employee').trim() || 'Employee';
     const employeePhone = String(employee?.whatsappNumber || employee?.mobile || '').trim();
     const displayPhone = formatIndianMobileNumber(employee?.whatsappNumber || employee?.mobile || '');
-    const monthLabel = monthOptions.find((entry) => Number(entry.value) === Number(item?.month))?.label || item?.month;
-    const companyName = 'SKUAS Pest Control';
+    const monthLabel = shortMonthLabel(item?.month);
+    const companyName = 'Skuas Pest Control Pvt Ltd';
     setWhatsAppComposer({
       open: true,
       item,
       previewData: {
-        previewMessage: `Dear ${employeeName},\n\nPlease find attached your salary slip for ${monthLabel} ${item?.year}.\n\n${companyName}`,
+        previewMessage: `Dear ${employeeName},\n\nPlease find the enclosed Salary Slip for the month of ${monthLabel} ${item?.year}.\n\nRegards,\n${companyName}`,
         attachmentOption: 'Salary Slip PDF',
         template: {
           id: 'salary_slip',

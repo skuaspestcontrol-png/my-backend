@@ -116,8 +116,9 @@ export default function WhatsAppPreviewModal({
       setAttachmentUrl(String(resolved.suggestedAttachmentUrl || previewData?.suggestedAttachmentUrl || previewData?.attachmentUrl || ''));
     }).catch((previewError) => {
       if (!active) return;
-      setMessage('');
-      setError(previewError?.response?.data?.error || 'Could not load the saved WhatsApp template.');
+      const fallbackMessage = String(previewData?.previewMessage || '').trim();
+      setMessage(fallbackMessage);
+      setError(fallbackMessage ? '' : previewError?.response?.data?.error || 'Could not load the saved WhatsApp template.');
     });
 
     return () => { active = false; };
