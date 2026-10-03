@@ -158,7 +158,7 @@ const shell = {
   },
   sourceHeaderTitle: { margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 },
   sourceHeaderBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '84px', color: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', textAlign: 'center' },
-  sourceHeaderSelect: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '92px', color: '#ffffff', WebkitTextFillColor: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', border: 'none', outline: 'none', appearance: 'none', textAlign: 'center' },
+  sourceHeaderSelect: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '104px', color: '#ffffff', WebkitTextFillColor: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 26px 0 12px', fontSize: '12px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', border: 'none', outline: 'none', appearance: 'none', WebkitAppearance: 'none', textAlign: 'center', textAlignLast: 'center', boxSizing: 'border-box' },
   sourceBody: { padding: '14px 14px 14px', display: 'grid', gap: '12px', alignItems: 'center' },
   panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
   panelTitle: { margin: 0, color: '#475569', fontSize: '17px', fontWeight: 700 },
@@ -896,20 +896,32 @@ export default function Dashboard() {
     overflowX: isMobile ? 'auto' : 'visible',
     WebkitOverflowScrolling: 'touch'
   };
-  const salesChartSelectStyle = {
+  const compactHeaderSelectStyle = {
     ...shell.sourceHeaderSelect,
-    minWidth: 0,
+    width: isMobile ? '104px' : '108px',
+    minWidth: isMobile ? '104px' : '108px',
     height: '34px',
     minHeight: '34px',
-    padding: '0 8px',
-    background: 'rgba(255, 255, 255, 0.08)',
-    color: '#ffffff',
-    WebkitTextFillColor: '#ffffff',
+    color: isDarkTheme ? '#ffffff' : '#0f172a',
+    WebkitTextFillColor: isDarkTheme ? '#ffffff' : '#0f172a',
+    background: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
+    boxShadow: isDarkTheme ? shell.sourceHeaderSelect.boxShadow : 'inset 0 0 0 1px rgba(15, 23, 42, 0.14)',
+    flexShrink: 0
+  };
+  const salesChartSelectStyle = {
+    ...shell.sourceHeaderSelect,
+    minWidth: '112px',
+    height: '34px',
+    minHeight: '34px',
+    color: isDarkTheme ? '#ffffff' : '#0f172a',
+    WebkitTextFillColor: isDarkTheme ? '#ffffff' : '#0f172a',
+    background: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
+    boxShadow: isDarkTheme ? shell.sourceHeaderSelect.boxShadow : 'inset 0 0 0 1px rgba(15, 23, 42, 0.14)',
     flex: '1 1 0'
   };
   const salesChartYearSelectStyle = isMobile
-    ? { ...salesChartSelectStyle, flex: '0 0 76px', minWidth: '76px' }
-    : { ...salesChartSelectStyle, flex: '0 0 98px', minWidth: '98px' };
+    ? { ...salesChartSelectStyle, flex: '0 0 104px', minWidth: '104px' }
+    : { ...salesChartSelectStyle, flex: '0 0 108px', minWidth: '108px' };
   const salesChartPersonSelectStyle = isMobile
     ? { ...salesChartSelectStyle, flex: '1 1 0', minWidth: '128px' }
     : { ...salesChartSelectStyle, flex: '0 0 150px', minWidth: '150px' };
@@ -954,7 +966,7 @@ export default function Dashboard() {
     alignContent: 'space-between',
     padding: '8px 0 26px 0'
   };
-  const salesChartYAxisLabelStyle = { color: isDarkTheme ? darkDashboardMuted : '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1 };
+  const salesChartYAxisLabelStyle = { color: isDarkTheme ? darkDashboardMuted : '#334155', fontSize: '12px', fontWeight: 800, lineHeight: 1 };
   const yearlySummaryGridStyle = isMobile
     ? { ...shell.targetMetrics, gridTemplateColumns: '1fr' }
     : isTablet
@@ -1193,7 +1205,7 @@ export default function Dashboard() {
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{ ...shell.sourceHeaderSelect, width: '84px', minWidth: '84px' }}
+              style={compactHeaderSelectStyle}
               aria-label="Select lead pipeline year"
             >
               {dashboardYearOptions.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : dashboardYearOptions.map((year) => (
@@ -1271,7 +1283,7 @@ export default function Dashboard() {
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
-              style={{ ...shell.sourceHeaderSelect, width: '84px', minWidth: '84px' }}
+              style={compactHeaderSelectStyle}
               aria-label="Select contract year"
               >
               {dashboardYearOptions.length === 0 ? <option value={String(selectedYearNumber)}>{selectedYearNumber}</option> : dashboardYearOptions.map((year) => (
