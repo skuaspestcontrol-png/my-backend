@@ -167,21 +167,21 @@ const shell = {
   incomePanelHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' },
   incomeLegend: { display: 'flex', alignItems: 'flex-start', gap: '28px', flexWrap: 'wrap' },
   incomeLegendItem: { display: 'grid', gap: '4px' },
-  incomeLegendLabel: { display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#64748b', fontSize: '12px', fontWeight: 600, lineHeight: 1.1 },
-  incomeLegendValue: { margin: 0, color: '#111827', fontSize: '16px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 },
+  incomeLegendLabel: { display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '13px', fontWeight: 800, lineHeight: 1.1 },
+  incomeLegendValue: { margin: 0, color: '#111827', fontSize: '15px', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1 },
   modeToggle: { display: 'inline-flex', alignItems: 'center', border: '1px solid #d1d5db', borderRadius: '10px', overflow: 'hidden', background: '#fff', flexShrink: 0 },
   modeToggleBtn: { border: 'none', background: '#fff', color: '#111827', minHeight: '42px', height: '42px', padding: '0 14px', fontSize: '16px', fontWeight: 500, cursor: 'pointer' },
   modeToggleBtnActive: { background: '#e5e7eb', color: '#111827' },
   incomeChartWrap: { display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' },
   incomeYAxis: { display: 'grid', alignContent: 'space-between', padding: '8px 0 30px 0' },
-  incomeYAxisLabel: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1 },
+  incomeYAxisLabel: { color: '#334155', fontSize: '12px', fontWeight: 800, lineHeight: 1 },
   incomeChart: { position: 'relative', minHeight: '280px', borderLeft: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', padding: '10px 12px 8px 12px', background: '#fff' },
   incomeGridLine: { position: 'absolute', left: 0, right: 0, borderTop: '1px dashed #dbe4f0' },
   incomeBars: { position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '8px', alignItems: 'end', height: '100%' },
   incomeMonth: { display: 'grid', gridTemplateRows: '1fr auto', gap: '10px', alignItems: 'end', minHeight: 0 },
   incomeBarCluster: { display: 'flex', alignItems: 'end', justifyContent: 'center', gap: '4px', minHeight: 0, height: '100%' },
   incomeBarItem: { width: '18px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
-  incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#64748b', fontSize: '10px', fontWeight: 700, lineHeight: 1.05, textAlign: 'center' },
+  incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#334155', fontSize: '12px', fontWeight: 800, lineHeight: 1.05, textAlign: 'center' },
   progressTrack: { width: '100%', height: '20px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden', display: 'flex' },
   legendRow: { display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '14px' },
   legendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#334155', fontSize: '13px', fontWeight: 600 },
@@ -193,7 +193,7 @@ const shell = {
   donut: { width: '268px', height: '268px', borderRadius: '50%', position: 'relative' },
   donutInner: { position: 'absolute', inset: '30%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' },
   sourceLegend: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px', width: '100%', alignContent: 'start' },
-  sourceLegendItem: { display: 'grid', gridTemplateColumns: '13px minmax(0, 1fr) auto', alignItems: 'center', gap: '10px', color: '#475569', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 },
+  sourceLegendItem: { display: 'grid', gridTemplateColumns: '13px minmax(0, 1fr) auto', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '13px', fontWeight: 800, lineHeight: 1.2 },
   sourceLegendDot: { width: '13px', height: '13px', borderRadius: '999px', display: 'inline-block', flexShrink: 0 }
 };
 
@@ -858,8 +858,8 @@ export default function Dashboard() {
     ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', justifyItems: 'stretch', textAlign: 'left', maxWidth: '100%' }
     : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '250px' };
   const sourceLegendItemStyle = isMobile
-    ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px minmax(0, 1fr) auto', gap: '6px', fontSize: '11px', width: '100%', justifyContent: 'start' }
-    : { ...shell.sourceLegendItem, fontSize: '11px', gap: '8px' };
+    ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px minmax(0, 1fr) auto', gap: '6px', fontSize: '12px', width: '100%', justifyContent: 'start' }
+    : { ...shell.sourceLegendItem, fontSize: '13px', gap: '8px' };
   const salesChartSectionStyle = {
     display: 'grid',
     gap: '12px',
@@ -992,7 +992,7 @@ export default function Dashboard() {
   const successGreen = '#16A34A';
   const incomeGreen = '#24c17f';
   const dangerRed = '#DC2626';
-  const axisGray = '#94a3b8';
+  const axisGray = isDarkTheme ? darkDashboardMuted : '#334155';
   const gridGray = '#dbe4f0';
   const expenseColors = ['#16A34A', '#DC2626', isDarkTheme ? '#f8fafc' : '#111827', '#8B5CF6', '#0F766E'];
   const leadFunnelRows = [
@@ -1024,8 +1024,8 @@ export default function Dashboard() {
     : viewportWidth >= 1200
       ? { ...shell.incomeYAxis, padding: '6px 0 18px 0' }
     : shell.incomeYAxis;
-  const incomeExpenseLegendValueStyle = { ...shell.incomeLegendValue, color: isDarkTheme ? darkDashboardText : shell.incomeLegendValue.color, fontSize: '13px', lineHeight: 1.1 };
-  const incomeExpenseLegendLabelStyle = { ...shell.incomeLegendLabel, color: isDarkTheme ? darkDashboardMuted : shell.incomeLegendLabel.color, fontSize: '13px', lineHeight: 1.1 };
+  const incomeExpenseLegendValueStyle = { ...shell.incomeLegendValue, color: isDarkTheme ? darkDashboardText : shell.incomeLegendValue.color, fontSize: '14px', lineHeight: 1.1 };
+  const incomeExpenseLegendLabelStyle = { ...shell.incomeLegendLabel, color: isDarkTheme ? darkDashboardText : shell.incomeLegendLabel.color, fontSize: '13px', lineHeight: 1.1 };
   const formatCurrencyPrecise = (value) => {
     const formatted = Number(value || 0).toLocaleString('en-IN', {
       minimumFractionDigits: 2,
@@ -1100,7 +1100,7 @@ export default function Dashboard() {
           }}
         >
           <div
-            style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700, fontSize: labelSize, lineHeight: 1.15 }}
+            style={{ color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800, fontSize: labelSize, lineHeight: 1.15 }}
           >
             {label}
           </div>
@@ -1251,15 +1251,15 @@ export default function Dashboard() {
             <div style={{ ...shell.legendRow, marginTop: '14px', justifyContent: 'space-between' }}>
               <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
                 <strong style={{ color: '#4965dd', fontSize: '19px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
-                <span style={{ fontSize: '12px', color: isDarkTheme ? darkDashboardMuted : '#64748b' }}>Conversion Rate</span>
+                <span style={{ fontSize: '13px', color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800 }}>Conversion Rate</span>
               </span>
               <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
                 <strong style={{ color: '#16A34A', fontSize: '19px' }}>{formatCurrency(leadPipeline.pipelineValue)}</strong>
-                <span style={{ fontSize: '12px', color: isDarkTheme ? darkDashboardMuted : '#64748b' }}>Pipeline Value</span>
+                <span style={{ fontSize: '13px', color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800 }}>Pipeline Value</span>
               </span>
               <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
                 <strong style={{ color: '#45ABC8', fontSize: '19px' }}>{formatCurrency(leadPipeline.avgDealValue)}</strong>
-                <span style={{ fontSize: '12px', color: isDarkTheme ? darkDashboardMuted : '#64748b' }}>Avg Deal Value</span>
+                <span style={{ fontSize: '13px', color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800 }}>Avg Deal Value</span>
               </span>
             </div>
           </div>
@@ -1282,7 +1282,7 @@ export default function Dashboard() {
 
           <div style={{ padding: '18px 18px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', color: isDarkTheme ? darkDashboardMuted : '#64748b', fontSize: '13px', fontWeight: 700, lineHeight: 1.1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', color: isDarkTheme ? darkDashboardText : '#334155', fontSize: '13px', fontWeight: 800, lineHeight: 1.1 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ ...shell.dot, width: '10px', height: '10px', background: incomeGreen }} />
                   <span style={incomeExpenseLegendLabelStyle}>Total Income-</span>
@@ -1299,7 +1299,7 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' }}>
               <div style={incomeExpenseYAxisStyle}>
                 {incomeExpenseYAxisValues.slice().reverse().map((value) => (
-                  <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? '#64748b' : axisGray }}>
+                  <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? (isDarkTheme ? darkDashboardMuted : '#334155') : axisGray }}>
                     {value === 0 ? '0' : currencyLabel(value)}
                   </span>
                 ))}
@@ -1462,7 +1462,7 @@ export default function Dashboard() {
               '22px'
             )}
             {leadPipeline.sourceSeries.length === 0 ? (
-              <div style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>No lead source data available.</div>
+              <div style={{ color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800, fontSize: '13px' }}>No lead source data available.</div>
             ) : (
               <div style={sourceLegendStyle}>
                 {leadPipeline.sourceSeries.map((entry) => (
@@ -1474,7 +1474,7 @@ export default function Dashboard() {
                       }}
                     />
                     <span>{mapLeadSourceDisplayLabel(entry.name)}</span>
-                    <span style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>{entry.count}</span>
+                    <span style={{ color: isDarkTheme ? darkDashboardText : '#0f172a', fontWeight: 900 }}>{entry.count}</span>
                   </span>
                 ))}
               </div>
@@ -1501,7 +1501,7 @@ export default function Dashboard() {
             )}
             <div style={{ display: 'grid', gap: '10px' }}>
               {selectedYearAnalytics.topExpenses.length === 0 ? (
-                <div style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>No expense data available.</div>
+                <div style={{ color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800, fontSize: '13px' }}>No expense data available.</div>
               ) : selectedYearAnalytics.topExpenses.map((entry, idx) => (
                 <div key={`${entry.name}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: '10px', alignItems: 'center' }}>
                   <span style={{ ...shell.dot, width: '16px', height: '16px', borderRadius: '5px', background: expenseColors[idx % expenseColors.length] }} />

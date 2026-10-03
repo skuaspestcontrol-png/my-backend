@@ -73,7 +73,7 @@
   --icon-secondary: #64748b;
   --chart-surface: #ffffff;
   --chart-grid: rgba(148, 163, 184, 0.30);
-  --chart-axis: #64748b;
+  --chart-axis: #334155;
   --chart-target-bar: #111827;
   --chart-achieved-positive: #16A34A;
   --chart-achieved-negative: #DC2626;
@@ -1215,7 +1215,8 @@ select option {
 .recharts-cartesian-axis-tick-value,
 .recharts-text,
 .recharts-label {
-  fill: var(--text-secondary) !important;
+  fill: var(--chart-axis) !important;
+  font-weight: 700 !important;
 }
 
 .recharts-cartesian-grid line {
@@ -5647,4 +5648,26 @@ html[data-theme="dark"] .crm-modal-surface
   :where(h1, h2, h3, h4, h5, h6, p, div, span, strong, td, th, label, textarea) {
   color: var(--light-surface-text) !important;
   -webkit-text-fill-color: var(--light-surface-text) !important;
+}
+
+/* Final select chevron pass: prevents later background shorthands from tiling the icon. */
+body select:not([multiple]):not([size]),
+body select[size="1"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: var(--input-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center / 16px 16px !important;
+  padding-right: 42px !important;
+}
+
+html[data-theme="dark"] body select:not([multiple]):not([size]),
+html[data-theme="dark"] body select[size="1"] {
+  background: var(--input-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23e5e7eb' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center / 16px 16px !important;
+  color: var(--input-text) !important;
+}
+
+body .crm-compact-table select:not([multiple]):not([size]),
+body .crm-compact-table select[size="1"] {
+  background-position: right 8px center !important;
+  background-size: 13px 13px !important;
+  padding-right: 28px !important;
 }

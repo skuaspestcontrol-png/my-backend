@@ -57,7 +57,7 @@ export function getChartGridStyle(viewportWidth) {
 
 export function getChartAxisProps({ mobile = false, angledMobile = true } = {}) {
   return {
-    tick: { fontSize: mobile ? 10 : 11, fontWeight: 600, fill: axisTextColor },
+    tick: { fontSize: mobile ? 11 : 12, fontWeight: 700, fill: axisTextColor },
     tickLine: false,
     axisLine: { stroke: axisStroke },
     height: mobile ? 36 : 22,
@@ -79,7 +79,7 @@ export function getChartMargin({ mobile = false } = {}) {
 export function getCurrencyAxisProps({ mobile = false } = {}) {
   return {
     width: mobile ? 44 : 56,
-    tick: { fontSize: mobile ? 9 : 10, fill: axisTextColor },
+    tick: { fontSize: mobile ? 10 : 12, fontWeight: 700, fill: axisTextColor },
     tickLine: false,
     axisLine: false,
     tickFormatter: formatCompactIndianCurrency,
@@ -90,7 +90,7 @@ export function getCurrencyAxisProps({ mobile = false } = {}) {
 export function getPercentAxisProps({ mobile = false } = {}) {
   return {
     width: mobile ? 34 : 42,
-    tick: { fontSize: mobile ? 9 : 10, fill: axisTextColor },
+    tick: { fontSize: mobile ? 10 : 12, fontWeight: 700, fill: axisTextColor },
     tickLine: false,
     axisLine: false,
     tickFormatter: (value) => percent(value || 0),
