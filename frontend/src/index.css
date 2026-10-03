@@ -2517,6 +2517,30 @@ textarea:focus {
   box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
+select:not([multiple]):not([size]),
+select[size="1"] {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-color: var(--input-bg) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 16px 16px !important;
+  padding-right: 42px !important;
+}
+
+html[data-theme="dark"] select:not([multiple]):not([size]),
+html[data-theme="dark"] select[size="1"] {
+  background-color: var(--input-bg) !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+}
+
+select:disabled:not([multiple]):not([size]),
+select[size="1"]:disabled {
+  background-color: var(--surface-secondary) !important;
+  opacity: 0.92;
+}
+
 .sidebar {
   background:
     linear-gradient(180deg, rgba(247, 248, 252, 0.98) 0%, rgba(236, 240, 246, 0.98) 100%);
@@ -2937,6 +2961,13 @@ html[data-theme="dark"] .crm-kpi-icon {
   padding: 0 8px !important;
   font-size: 12px !important;
   border-radius: 7px !important;
+}
+
+.crm-compact-table select:not([multiple]):not([size]),
+.crm-compact-table select[size="1"] {
+  background-position: right 8px center !important;
+  background-size: 13px 13px !important;
+  padding-right: 28px !important;
 }
 
 .crm-compact-table button {

@@ -4,7 +4,7 @@ export const baseControl = {
   minHeight: '40px',
   borderRadius: '12px',
   border: '1px solid var(--input-border)',
-  background: 'var(--input-bg)',
+  backgroundColor: 'var(--input-bg)',
   color: 'var(--input-text)',
   padding: '0 12px',
   fontSize: '14px',
