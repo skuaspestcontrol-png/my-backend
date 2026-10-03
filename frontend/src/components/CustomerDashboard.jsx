@@ -360,7 +360,7 @@ const MORE_MENU_APPROX_HEIGHT = 270;
 const MORE_MENU_GAP = 4;
 
 const shell = {
-  page: { background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 0, boxShadow: 'var(--shadow)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box' },
+  page: { background: 'var(--surface-card)', border: '1px solid var(--border)', borderRadius: 0, boxShadow: 'var(--shadow)', overflow: 'visible', position: 'relative', backgroundClip: 'padding-box', gap: 0 },
   topbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', padding: '8px 18px', borderBottom: '1px solid var(--border)', background: 'var(--surface-card-elevated)', borderTopLeftRadius: 0, borderTopRightRadius: 0, backgroundClip: 'padding-box' },
   titleWrap: {
     display: 'inline-flex',
@@ -3052,6 +3052,7 @@ export default function CustomerDashboard() {
                 <td style={{ ...shell.cell, whiteSpace: 'nowrap' }}>
                   <button
                     type="button"
+                    className="customer-row-edit-button"
                     style={{ ...shell.rowActionButton, marginRight: '8px' }}
                     onClick={() => {
                       setEditingId(customer._id);
@@ -3064,7 +3065,8 @@ export default function CustomerDashboard() {
                   </button>
                   <button
                     type="button"
-                    style={{ ...shell.rowActionButton, color: '#fca5a5', borderColor: 'rgba(248, 113, 113, 0.45)', background: 'rgba(127, 29, 29, 0.22)' }}
+                    className="customer-row-delete-button"
+                    style={shell.rowActionButton}
                     onClick={() => deleteOneCustomer(customer._id)}
                   >
                     Delete

@@ -2983,6 +2983,55 @@ html[data-theme="dark"] .crm-kpi-icon {
   text-align: inherit;
 }
 
+.customer-dashboard-page {
+  gap: 0 !important;
+}
+
+.customer-dashboard-page .crm-table-shell {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-left: 0 !important;
+  border-right: 0 !important;
+  border-top: 0 !important;
+  margin: 0 !important;
+}
+
+.customer-dashboard-page .crm-compact-table tbody td {
+  color: var(--text-primary) !important;
+}
+
+.customer-dashboard-page .crm-compact-table .customer-row-edit-button {
+  color: var(--text-primary) !important;
+  border-color: var(--border) !important;
+  background: var(--surface-card-elevated) !important;
+}
+
+.customer-dashboard-page .crm-compact-table .customer-row-delete-button {
+  color: #b91c1c !important;
+  border-color: rgba(220, 38, 38, 0.35) !important;
+  background: #fee2e2 !important;
+}
+
+.customer-dashboard-page .crm-compact-table .customer-row-delete-button:hover,
+.customer-dashboard-page .crm-compact-table .customer-row-delete-button:focus-visible {
+  color: #991b1b !important;
+  border-color: rgba(220, 38, 38, 0.55) !important;
+  background: #fecaca !important;
+}
+
+html[data-theme="dark"] .customer-dashboard-page .crm-compact-table .customer-row-delete-button {
+  color: #fecaca !important;
+  border-color: rgba(248, 113, 113, 0.42) !important;
+  background: rgba(127, 29, 29, 0.72) !important;
+}
+
+html[data-theme="dark"] .customer-dashboard-page .crm-compact-table .customer-row-delete-button:hover,
+html[data-theme="dark"] .customer-dashboard-page .crm-compact-table .customer-row-delete-button:focus-visible {
+  color: #ffffff !important;
+  border-color: rgba(248, 113, 113, 0.62) !important;
+  background: rgba(153, 27, 27, 0.88) !important;
+}
+
 .crm-compact-table.invoice-register-table {
   display: table;
   width: 100% !important;
@@ -3047,11 +3096,25 @@ html[data-theme="dark"] .crm-kpi-icon {
   background: var(--surface-card-elevated) !important;
   border-color: var(--border-soft) !important;
   color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+.invoice-table-pagination button svg {
+  color: var(--text-primary) !important;
+  stroke: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
 }
 
 .invoice-table-pagination button:disabled {
   opacity: 0.45;
   color: var(--text-muted) !important;
+  -webkit-text-fill-color: var(--text-muted) !important;
+}
+
+.invoice-table-pagination button:disabled svg {
+  color: var(--text-muted) !important;
+  stroke: var(--text-muted) !important;
+  -webkit-text-fill-color: var(--text-muted) !important;
 }
 
 .crm-compact-table.lead-followups-table .lead-followups-customer-stack {
