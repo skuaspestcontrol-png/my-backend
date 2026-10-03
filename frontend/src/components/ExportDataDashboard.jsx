@@ -1023,6 +1023,12 @@ const shell = {
     fontWeight: 800,
     whiteSpace: 'nowrap'
   },
+  exportCardHeader: {
+    minHeight: 62,
+    padding: '0 14px',
+    borderBottom: 'none',
+    alignItems: 'center'
+  },
   status: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -1121,7 +1127,7 @@ export default function ExportDataDashboard() {
                 </span>
               )}
               style={{ borderRadius: 18 }}
-              headerStyle={{ padding: '14px 14px 0', borderBottom: 'none' }}
+              headerStyle={shell.exportCardHeader}
               bodyStyle={{ ...shell.cardBody, paddingTop: 10 }}
             >
               <div style={shell.cardTop}>
