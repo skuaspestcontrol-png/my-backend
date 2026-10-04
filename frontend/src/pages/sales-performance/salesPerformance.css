@@ -113,7 +113,9 @@
 
 .sales-performance-page .sales-performance-table thead .sticky-sales-person {
   z-index: 4 !important;
-  background: #f8fafc !important;
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
 }
 
 .sales-performance-page .sales-performance-table tbody .sticky-sales-person {
@@ -144,9 +146,17 @@
 
 .sales-dashboard-page .sales-matrix-table thead .table-sticky-first {
   z-index: 4 !important;
-  background: #f8fafc !important;
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
   box-shadow: 8px 0 12px rgba(15, 23, 42, 0.06) !important;
   border-right: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
+.sales-performance-page .sales-performance-table thead .sticky-sales-person :where(span, strong, small, div),
+.sales-dashboard-page .sales-matrix-table thead .table-sticky-first :where(span, strong, small, div) {
+  color: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
 }
 
 .sales-dashboard-page .sales-matrix-table tbody .table-sticky-first {
