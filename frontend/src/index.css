@@ -3015,6 +3015,31 @@ html[data-theme="dark"] .crm-kpi-icon {
   text-align: inherit;
 }
 
+/* Keep portal table edges sharp across shared and inline-styled table shells. */
+.main-content :where(
+  .crm-table-card,
+  .crm-table-shell,
+  .crm-scroll-table,
+  .table-scroll-x,
+  .table-wrapper,
+  .responsive-table,
+  .table-card,
+  .table-panel
+),
+.main-content :where(div, section):has(> table),
+.main-content :where(div, section):has(> .responsive-table),
+.main-content :where(div, section):has(> .table-wrapper),
+.main-content :where(div, section):has(> .crm-scroll-table) {
+  border-radius: 0 !important;
+  background-clip: border-box !important;
+}
+
+.main-content :where(table, thead, tbody, tr, th, td),
+.main-content :where(table) :where(th, td):first-child,
+.main-content :where(table) :where(th, td):last-child {
+  border-radius: 0 !important;
+}
+
 .customer-dashboard-page {
   gap: 0 !important;
 }
