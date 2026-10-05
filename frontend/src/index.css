@@ -5699,3 +5699,15 @@ body .crm-compact-table select[size="1"] {
   background-size: 13px 13px !important;
   padding-right: 28px !important;
 }
+
+.payment-received-page .responsive-table table thead th {
+  padding: 7px 12px !important;
+  height: 38px !important;
+  line-height: 1.2 !important;
+  vertical-align: middle !important;
+}
+
+.payment-received-page .responsive-table table thead th button,
+.payment-received-page .responsive-table table thead th span {
+  line-height: 1.2 !important;
+}

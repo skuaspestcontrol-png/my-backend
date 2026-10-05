@@ -46,8 +46,8 @@ const shell = {
     borderRadius: '18px',
     overflow: 'hidden'
   },
-  tableHeadBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)' },
-  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827' },
+  tableHeadBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '9px 16px', borderBottom: '1px solid var(--color-border)' },
+  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.2 },
   tableHeadButton: { minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '720px' },
   th: {
