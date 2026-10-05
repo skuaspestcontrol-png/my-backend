@@ -5,14 +5,12 @@ import {
   CalendarCheck,
   Pencil,
   RefreshCw,
-  Users,
-  Wallet
+  Users
 } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { buildPortalAuthHeaders, getPortalUserRole } from '../utils/portalAuth';
 import { formatIndiaDateTime } from '../utils/indiaTime';
-import RupeeSymbol from './ui/RupeeSymbol';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const now = new Date();
@@ -213,19 +211,6 @@ const hrBalanceBounds = {
   unpaid: { min: 100, max: 160 }
 };
 
-const hrPayrollColumns = [
-  { key: 'employee', label: 'Pending Employee' },
-  { key: 'amount', label: 'Amount' }
-];
-const hrPayrollWidths = {
-  employee: 240,
-  amount: 120
-};
-const hrPayrollBounds = {
-  employee: { min: 180, max: 320 },
-  amount: { min: 100, max: 180 }
-};
-
 const money = (value) => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 const baseHeaders = () => ({
   ...buildPortalAuthHeaders()
@@ -252,7 +237,6 @@ const readHrDashboardCache = (key) => {
       summary: parsed.summary || null,
       leaves: Array.isArray(parsed.leaves) ? parsed.leaves : [],
       leaveBalances: Array.isArray(parsed.leaveBalances) ? parsed.leaveBalances : [],
-      payrollQuick: parsed.payrollQuick || null,
       employees: Array.isArray(parsed.employees) ? parsed.employees : [],
       status: String(parsed.status || '').trim(),
       updatedAt: Number(parsed.updatedAt || 0) || 0
@@ -270,7 +254,6 @@ const writeHrDashboardCache = (queryKey, next = {}) => {
       summary: next.summary || null,
       leaves: Array.isArray(next.leaves) ? next.leaves : [],
       leaveBalances: Array.isArray(next.leaveBalances) ? next.leaveBalances : [],
-      payrollQuick: next.payrollQuick || null,
       employees: Array.isArray(next.employees) ? next.employees : [],
       status: String(next.status || '').trim(),
       updatedAt: Number(next.updatedAt || Date.now()) || Date.now()
@@ -355,7 +338,6 @@ export default function HRDashboard() {
   const [leaveEntitlementBusy, setLeaveEntitlementBusy] = useState(false);
   const [editingLeaveEntitlementType, setEditingLeaveEntitlementType] = useState('');
   const [editingLeaveEntitlementOriginal, setEditingLeaveEntitlementOriginal] = useState(null);
-  const [payrollQuick, setPayrollQuick] = useState(null);
   const [employees, setEmployees] = useState([]);
 
   const [leaveForm, setLeaveForm] = useState({ employeeId: '', leaveType: 'Paid Leave', fromDate: new Date().toISOString().slice(0, 10), toDate: new Date().toISOString().slice(0, 10), days: 1, reason: '' });
@@ -369,7 +351,6 @@ export default function HRDashboard() {
     setSummary(cachedHrData.summary);
     setLeaves(cachedHrData.leaves);
     setLeaveBalances(cachedHrData.leaveBalances);
-    setPayrollQuick(cachedHrData.payrollQuick);
     setEmployees(cachedHrData.employees);
     setStatus(cachedHrData.status);
     setLastUpdatedAt(cachedHrData.updatedAt || 0);
@@ -408,7 +389,6 @@ export default function HRDashboard() {
           axios.get(`${API_BASE}/api/hr/dashboard-summary`, { params: { ...queryParams, _ts: refreshToken }, headers }),
           axios.get(`${API_BASE}/api/hr/leaves`, { params: { month, year, _ts: refreshToken }, headers }),
           axios.get(`${API_BASE}/api/hr/leaves/balance`, { params: { month, year, _ts: refreshToken }, headers }),
-          axios.get(`${API_BASE}/api/hr/payroll-summary`, { params: { ...queryParams, _ts: refreshToken }, headers }),
           axios.get(`${API_BASE}/api/employees`, { params: { _ts: refreshToken }, headers })
         ]);
 
@@ -420,15 +400,13 @@ export default function HRDashboard() {
         const nextSummary = getData(1, null);
         const nextLeaves = Array.isArray(getData(2, [])) ? getData(2, []) : [];
         const nextLeaveBalances = Array.isArray(getData(3, [])) ? getData(3, []) : [];
-        const nextPayrollQuick = getData(4, null);
-        const nextEmployees = Array.isArray(getData(5, [])) ? getData(5, []) : [];
+        const nextEmployees = Array.isArray(getData(4, [])) ? getData(4, []) : [];
         const nextStatus = hasFailure ? 'Some HR data could not be loaded. Showing available data.' : '';
 
         setFilterOptions(nextFilterOptions);
         setSummary(nextSummary);
         setLeaves(nextLeaves);
         setLeaveBalances(nextLeaveBalances);
-        setPayrollQuick(nextPayrollQuick);
         setEmployees(nextEmployees);
         setStatus(nextStatus);
         setLastUpdatedAt(Date.now());
@@ -440,7 +418,6 @@ export default function HRDashboard() {
           summary: nextSummary,
           leaves: nextLeaves,
           leaveBalances: nextLeaveBalances,
-          payrollQuick: nextPayrollQuick,
           employees: nextEmployees,
           status: nextStatus,
           updatedAt: Date.now()
@@ -600,20 +577,8 @@ export default function HRDashboard() {
     }
   };
 
-  const generatePayrollQuick = async () => {
-    try {
-      await axios.post(`${API_BASE}/api/payroll/generate`, { month, year, forceRegenerate: true }, { headers });
-      setStatus('Payroll regenerated successfully.');
-      await fetchAll();
-    } catch (error) {
-      setStatus(error?.response?.data?.error || 'Unable to generate payroll.');
-    }
-  };
-
   const cards = summary?.cards || {};
   const departmentChart = summary?.charts?.departmentEmployeeCount || [];
-  const salaryChart = summary?.charts?.salaryExpenseChart || [];
-  const leaveChart = summary?.charts?.leaveTypeDistribution || [];
   const isMobile = viewportWidth <= 900;
   const isTablet = viewportWidth > 900 && viewportWidth <= 1200;
   const chartGridStyle = isMobile ? { ...shell.chartGrid, gridTemplateColumns: '1fr' } : shell.chartGrid;
@@ -642,23 +607,10 @@ export default function HRDashboard() {
     columnBounds: hrBalanceBounds,
     minWidth: 80,
   });
-  const {
-    getColumnWidth: getPayrollColumnWidth,
-    startResize: startPayrollResize,
-    resetColumns: resetPayrollColumns
-  } = useColumnResize({
-    storageKey: 'hr_dashboard_payroll_table_widths',
-    columns: hrPayrollColumns.map((column) => column.key),
-    defaultColumnWidths: hrPayrollWidths,
-    columnBounds: hrPayrollBounds,
-    minWidth: 80,
-  });
   const leaveTableMinWidth = hrLeaveColumns.reduce((sum, column) => sum + (getLeaveColumnWidth(column.key) || hrLeaveWidths[column.key] || 80), 0);
   const balanceTableMinWidth = hrBalanceColumns.reduce((sum, column) => sum + (getBalanceColumnWidth(column.key) || hrBalanceWidths[column.key] || 80), 0);
-  const payrollTableMinWidth = hrPayrollColumns.reduce((sum, column) => sum + (getPayrollColumnWidth(column.key) || hrPayrollWidths[column.key] || 80), 0);
   const leaveTableStyle = { ...shell.table, minWidth: `${Math.max(920, leaveTableMinWidth)}px` };
   const balanceTableStyle = { ...shell.table, minWidth: `${Math.max(920, balanceTableMinWidth)}px` };
-  const payrollTableStyle = { ...shell.table, minWidth: `${Math.max(920, payrollTableMinWidth)}px` };
   const lastUpdatedLabel = lastUpdatedAt ? formatIndiaDateTime(lastUpdatedAt, {}, 'Not updated yet') : 'Not updated yet';
   const headStyle = (getWidth, key, align = 'left') => ({
     ...shell.th,
@@ -742,22 +694,9 @@ export default function HRDashboard() {
           <h3 style={shell.panelTitle}><Users size={16} /> Department-wise Employee Count</h3>
           <MiniBarChart rows={departmentChart} nameKey="name" valueKey="value" color="var(--color-primary)" />
         </div>
-
-        <div style={shell.panel}>
-          <h3 style={shell.panelTitle}><Wallet size={16} /> Salary Expense Chart</h3>
-          <MiniBarChart rows={salaryChart} nameKey="month" valueKey="amount" color="var(--color-primary-dark)" />
-        </div>
-
-        <div style={shell.panel}>
-          <h3 style={shell.panelTitle}><CalendarCheck size={16} /> Leave Type Distribution</h3>
-          <MiniBarChart rows={leaveChart} nameKey="name" valueKey="value" color="#0f766e" />
-        </div>
       </section>
 
       <section style={chartGridStyle}>
-        <InsightList title="Employees with Highest Leaves" rows={summary?.quickInsights?.highestLeaves || []} />
-        <InsightList title="Frequent Late Marks" rows={summary?.quickInsights?.frequentLateMarks || []} />
-        <InsightList title="Top Performing Technicians" rows={summary?.quickInsights?.topPerformers || []} />
         <InsightList title="Upcoming Birthdays" rows={summary?.quickInsights?.upcomingBirthdays || []} />
       </section>
 
@@ -982,45 +921,6 @@ export default function HRDashboard() {
         </div>
       </section>
 
-      <section style={chartGridStyle}>
-        <div style={shell.panel}>
-          <h3 style={shell.panelTitle}><RupeeSymbol size={16} /> Payroll Quick View</h3>
-          <div style={shell.statGrid}>
-            <div style={shell.statCard}><p style={shell.statLabel}>Processed</p><p style={shell.statValue}>{payrollQuick?.salaryProcessedThisMonth || 0}</p></div>
-            <div style={shell.statCard}><p style={shell.statLabel}>Paid Amount</p><p style={shell.statValue}>₹{money(payrollQuick?.paidSalaryAmount || 0)}</p></div>
-            <div style={shell.statCard}><p style={shell.statLabel}>Pending Amount</p><p style={shell.statValue}>₹{money(payrollQuick?.pendingSalaryAmount || 0)}</p></div>
-            <div style={shell.statCard}><p style={shell.statLabel}>Advance Given</p><p style={shell.statValue}>₹{money(payrollQuick?.advanceSalaryGiven || 0)}</p></div>
-            <div style={shell.statCard}><p style={shell.statLabel}>Deductions</p><p style={shell.statValue}>₹{money(payrollQuick?.deductionsSummary || 0)}</p></div>
-            <div style={shell.statCard}><p style={shell.statLabel}>Advance Balance</p><p style={shell.statValue}>₹{money(payrollQuick?.advanceSalaryBalance || 0)}</p></div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button type="button" style={shell.btn} onClick={generatePayrollQuick} disabled={!role.canManage}>Generate Payroll</button>
-          </div>
-          <div style={shell.tableWrap}>
-            <table style={payrollTableStyle}>
-              <colgroup>
-                {hrPayrollColumns.map((column) => (
-                  <col key={column.key} style={{ width: `${getPayrollColumnWidth(column.key)}px` }} />
-                ))}
-              </colgroup>
-              <thead>
-                <tr>
-                  <th style={headStyle(getPayrollColumnWidth, 'employee')}>Pending Employee</th>
-                  <th style={headStyle(getPayrollColumnWidth, 'amount', 'center')}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(payrollQuick?.employeesWithPendingSalary || []).slice(0, 12).map((entry) => (
-                  <tr key={`${entry.employeeId}-${entry.employeeName}`}>
-                    <td style={bodyStyle(getPayrollColumnWidth, 'employee')}>{entry.employeeName}</td>
-                    <td style={bodyStyle(getPayrollColumnWidth, 'amount', 'center')}>₹{money(entry.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
