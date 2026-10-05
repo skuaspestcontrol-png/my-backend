@@ -931,6 +931,9 @@ export default function LeadCapture() {
   }, [sortedLeads, safeLeadPage]);
   const firstLeadRecord = sortedLeads.length ? ((safeLeadPage - 1) * LEAD_PAGE_SIZE) + 1 : 0;
   const lastLeadRecord = Math.min(safeLeadPage * LEAD_PAGE_SIZE, sortedLeads.length);
+  const leadPaginationText = sortedLeads.length
+    ? `Leads ${firstLeadRecord}-${lastLeadRecord} of ${sortedLeads.length} records`
+    : 'Leads 0 records';
 
   useEffect(() => {
     setLeadPage(1);
@@ -2860,10 +2863,7 @@ export default function LeadCapture() {
         </div>
         <div style={leadFooterStyle}>
           <div style={toolbarLeftStyle}>
-            <span style={s.toolLabel}>Leads</span>
-            <span style={s.toolbarMeta}>
-              {sortedLeads.length ? `${firstLeadRecord}-${lastLeadRecord} of ${sortedLeads.length} records` : '0 records'}
-            </span>
+            <span style={s.toolbarMeta}>{leadPaginationText}</span>
           </div>
           <div style={paginationActionsStyle}>
             <button
