@@ -337,7 +337,7 @@ html[data-theme="dark"] .sales-targets-page .sales-target-type-pill--monthly {
 
   .sales-dashboard-page .sales-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 12px !important;
+    gap: 8px !important;
   }
 
   .sales-dashboard-page .sales-summary-grid > * {
@@ -346,12 +346,12 @@ html[data-theme="dark"] .sales-targets-page .sales-target-type-pill--monthly {
   }
 
   .sales-dashboard-page .sales-summary-grid .crm-kpi-card {
-    min-height: 118px;
+    min-height: 82px;
   }
 
   .sales-dashboard-page .sales-summary-grid .crm-kpi-card .crm-card-body,
   .sales-dashboard-page .sales-summary-grid .crm-kpi-card > div {
-    min-height: 118px;
+    min-height: 82px;
   }
 
   .sales-dashboard-page .sales-summary-grid .crm-kpi-card span {

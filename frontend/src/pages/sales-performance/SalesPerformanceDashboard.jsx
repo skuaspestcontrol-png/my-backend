@@ -164,24 +164,24 @@ export default function SalesPerformanceDashboard() {
   const mobilePersonFilterStyle = isMobile ? { gridArea: 'person' } : undefined;
 
   const summaryGridStyle = viewportWidth >= 1200
-    ? { display: 'grid', gap: 14, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
+    ? { display: 'grid', gap: 10, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
     : viewportWidth >= 700
-      ? { display: 'grid', gap: 14, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%' };
+      ? { display: 'grid', gap: 10, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
+      : { display: 'grid', gap: 8, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', width: '100%' };
   const compactSummaryCardStyle = isMobile
-    ? { width: '100%', minWidth: 0, borderRadius: 18, minHeight: 108 }
-    : { width: '100%', minWidth: 0, minHeight: 134 };
+    ? { width: '100%', minWidth: 0, borderRadius: 14, minHeight: 82 }
+    : { width: '100%', minWidth: 0, borderRadius: 14, minHeight: 106 };
   const compactSummaryContentStyle = isMobile
-    ? { padding: 12, gap: 5, minHeight: 108, justifyContent: 'space-between' }
-    : { padding: 13, gap: 7, minHeight: 134, justifyContent: 'space-between' };
+    ? { padding: '10px 12px', gap: 4, minHeight: 82, justifyContent: 'center' }
+    : { padding: '12px 14px', gap: 6, minHeight: 106, justifyContent: 'center' };
   const compactSummaryTitleStyle = isMobile
-    ? { fontSize: 9, lineHeight: 1.1, letterSpacing: '0.02em', color: '#94a3b8', fontWeight: 500 }
-    : { fontSize: 10, lineHeight: 1.1, letterSpacing: '0.07em', color: '#94a3b8', fontWeight: 500 };
+    ? { fontSize: 8.5, lineHeight: 1.15, letterSpacing: '0.04em', color: '#94a3b8', fontWeight: 700 }
+    : { fontSize: 10, lineHeight: 1.15, letterSpacing: '0.06em', color: '#94a3b8', fontWeight: 700 };
   const compactSummaryValueStyle = (key) => {
-    if (!isMobile) return { fontSize: 29, lineHeight: 1.04, fontWeight: 900 };
-    if (key === 'bestPerformer') return { fontSize: 13, lineHeight: 1.15, wordBreak: 'break-word', fontWeight: 900 };
-    if (String(key).includes('Percent')) return { fontSize: 18, lineHeight: 1.05, fontWeight: 900 };
-    return { fontSize: 20, lineHeight: 1.05, fontWeight: 900 };
+    if (!isMobile) return { fontSize: key === 'bestPerformer' ? 24 : 27, lineHeight: 1.04, fontWeight: 900 };
+    if (key === 'bestPerformer') return { fontSize: 12, lineHeight: 1.15, wordBreak: 'break-word', fontWeight: 900 };
+    if (String(key).includes('Percent')) return { fontSize: 17, lineHeight: 1.05, fontWeight: 900 };
+    return { fontSize: 19, lineHeight: 1.05, fontWeight: 900 };
   };
   const matrixScrollStyle = {
     width: '100%',
