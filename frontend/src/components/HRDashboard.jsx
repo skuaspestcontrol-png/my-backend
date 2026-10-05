@@ -4,13 +4,11 @@ import {
   Activity,
   CalendarCheck,
   Pencil,
-  RefreshCw,
   Users
 } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { buildPortalAuthHeaders, getPortalUserRole } from '../utils/portalAuth';
-import { formatIndiaDateTime } from '../utils/indiaTime';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const now = new Date();
@@ -319,10 +317,7 @@ export default function HRDashboard() {
   const [cachedHrData] = useState(() => readHrDashboardCache(initialQueryKey));
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [busy, setBusy] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [highlightUpdatedAt, setHighlightUpdatedAt] = useState(false);
   const [status, setStatus] = useState('');
-  const [lastUpdatedAt, setLastUpdatedAt] = useState(() => cachedHrData?.updatedAt || 0);
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
 
@@ -353,8 +348,6 @@ export default function HRDashboard() {
     setLeaveBalances(cachedHrData.leaveBalances);
     setEmployees(cachedHrData.employees);
     setStatus(cachedHrData.status);
-    setLastUpdatedAt(cachedHrData.updatedAt || 0);
-    setHighlightUpdatedAt(false);
   }, [cachedHrData]);
 
   useEffect(() => {
@@ -382,7 +375,6 @@ export default function HRDashboard() {
     const refreshToken = Date.now();
     const request = (async () => {
       try {
-        setIsRefreshing(true);
         if (!shouldSilenceLoad) setBusy(true);
         const results = await Promise.allSettled([
           axios.get(`${API_BASE}/api/hr/filters`, { params: { _ts: refreshToken }, headers }),
@@ -409,10 +401,6 @@ export default function HRDashboard() {
         setLeaveBalances(nextLeaveBalances);
         setEmployees(nextEmployees);
         setStatus(nextStatus);
-        setLastUpdatedAt(Date.now());
-        setHighlightUpdatedAt(true);
-        window.clearTimeout(window.__hrDashboardUpdatedTimer);
-        window.__hrDashboardUpdatedTimer = window.setTimeout(() => setHighlightUpdatedAt(false), 1200);
         writeHrDashboardCache(queryKey, {
           filterOptions: nextFilterOptions,
           summary: nextSummary,
@@ -426,7 +414,6 @@ export default function HRDashboard() {
         console.error('HR dashboard load failed', error);
         setStatus(error?.response?.data?.error || 'Unable to load HR dashboard right now.');
       } finally {
-        setIsRefreshing(false);
         if (!shouldSilenceLoad) setBusy(false);
       }
     })();
@@ -611,7 +598,6 @@ export default function HRDashboard() {
   const balanceTableMinWidth = hrBalanceColumns.reduce((sum, column) => sum + (getBalanceColumnWidth(column.key) || hrBalanceWidths[column.key] || 80), 0);
   const leaveTableStyle = { ...shell.table, minWidth: `${Math.max(920, leaveTableMinWidth)}px` };
   const balanceTableStyle = { ...shell.table, minWidth: `${Math.max(920, balanceTableMinWidth)}px` };
-  const lastUpdatedLabel = lastUpdatedAt ? formatIndiaDateTime(lastUpdatedAt, {}, 'Not updated yet') : 'Not updated yet';
   const headStyle = (getWidth, key, align = 'left') => ({
     ...shell.th,
     position: 'relative',
@@ -630,46 +616,11 @@ export default function HRDashboard() {
 
   return (
     <div className="hr-dashboard-page" style={shell.page}>
-      <style>{`
-        @keyframes hr-dashboard-refresh-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes hr-dashboard-updated-pulse {
-          0% { transform: scale(1); opacity: 1; }
-          35% { transform: scale(1.05); opacity: 0.82; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
       <section style={shell.hero}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div>
             <h1 style={shell.title}>HR Dashboard</h1>
             <p style={shell.subtitle}>Eagle-eye view for workforce, attendance, payroll, leaves, productivity, and employee lifecycle actions.</p>
-          </div>
-          <div style={{ textAlign: 'right', minWidth: '180px' }}>
-            <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.78)' }}>
-              Last updated
-            </p>
-            <p style={{ margin: '3px 0 0', fontSize: '13px', fontWeight: 700, color: '#fff', display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end' }}>
-              <RefreshCw
-                size={14}
-                strokeWidth={2.3}
-                style={{
-                  flex: '0 0 auto',
-                  animation: isRefreshing ? 'hr-dashboard-refresh-spin 0.9s linear infinite' : 'none',
-                  opacity: isRefreshing ? 1 : 0.85
-                }}
-              />
-              <span
-                style={{
-                  display: 'inline-block',
-                  animation: highlightUpdatedAt ? 'hr-dashboard-updated-pulse 0.9s ease-out' : 'none'
-                }}
-              >
-                {lastUpdatedLabel}
-              </span>
-            </p>
           </div>
         </div>
       </section>
