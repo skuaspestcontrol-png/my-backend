@@ -3117,8 +3117,10 @@ html[data-theme="dark"] .customer-dashboard-page .crm-compact-table .customer-ro
 .invoice-table-shell.crm-table-shell,
 .invoice-table-shell.crm-table-shell--clipped {
   border-radius: 0 !important;
+  border-bottom: 0 !important;
   box-shadow: none !important;
   background: var(--table-bg) !important;
+  margin-bottom: 0 !important;
 }
 
 .invoice-table-shell .invoice-register-table thead th {
@@ -3147,6 +3149,7 @@ html[data-theme="dark"] .customer-dashboard-page .crm-compact-table .customer-ro
 
 .invoice-table-pagination {
   color: var(--text-primary) !important;
+  margin-top: 0 !important;
 }
 
 .invoice-table-pagination button {
