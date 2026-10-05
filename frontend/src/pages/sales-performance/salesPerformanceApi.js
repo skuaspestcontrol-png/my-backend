@@ -33,7 +33,7 @@ export const formatCompactIndianCurrency = (value = 0) => {
   const trimTrailingZeros = (formatted) => (formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted);
 
   if (absolute < 100000) {
-    return `${sign}₹${trimTrailingZeros(formatValue(absolute, { minimumFractionDigits: 0, maximumFractionDigits: 2 }))}`;
+    return `${sign}₹${formatValue(Math.floor(absolute), { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   }
 
   if (absolute >= 10000000) {
