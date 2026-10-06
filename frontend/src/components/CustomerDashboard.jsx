@@ -1678,6 +1678,17 @@ export default function CustomerDashboard() {
     return true;
   };
 
+  const getCustomerSearchUnavailableMessage = (error, { forShortLink = false } = {}) => {
+    const code = String(error?.code || '').trim();
+    if (forShortLink) {
+      return 'Short Google Maps links need resolver API. Please paste full Google Maps URL or coordinates.';
+    }
+    if (code === 'GOOGLE_MAPS_KEY_MISSING' || code === 'GOOGLE_MAPS_AUTH_FAILED' || code === 'GOOGLE_MAPS_SCRIPT_LOAD_FAILED' || code === 'GOOGLE_MAPS_INIT_FAILED') {
+      return 'Google Maps search unavailable. You can still paste full Google Maps URL or coordinates.';
+    }
+    return 'Google search failed. Please try full address with city.';
+  };
+
   const resolveCustomerAddressSearchInput = async (section, rawValue, { preserveSearchAddress = true } = {}) => {
     const text = String(rawValue || '').trim();
     if (!text) return false;
@@ -1711,9 +1722,9 @@ export default function CustomerDashboard() {
       });
       void enrichCustomerAddressFromLatLng(section, resolvedLink.latitude, resolvedLink.longitude, { preserveSearchAddress });
       return true;
-    } catch {
+    } catch (error) {
       setSectionAddressSearchState(section, {
-        error: 'Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.',
+        error: getCustomerSearchUnavailableMessage(error, { forShortLink: isGoogleMapsShortLink(text) }),
         suggestions: [],
         showSuggestions: false
       });
@@ -1820,8 +1831,9 @@ export default function CustomerDashboard() {
 
       applyCustomerAddressSuggestion(section, places[0], query);
       setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
-    } catch {
-      setSectionAddressSearchState(section, { error: 'Google search failed. Please try full address with city.' });
+    } catch (error) {
+      setSectionAddressSearchState(section, { error: getCustomerSearchUnavailableMessage(error) });
+      console.error('Customer Google place text search error:', error);
     } finally {
       setSectionAddressSearchState(section, { fetching: false });
     }

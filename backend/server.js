@@ -6171,6 +6171,36 @@ app.post('/api/maps/geocode', async (req, res) => {
     };
   };
 
+  const normalizeGooglePlacesNewResult = (place = {}) => {
+    const location = place.location || {};
+    const latNum = Number(location.latitude ?? location.lat);
+    const lngNum = Number(location.longitude ?? location.lng);
+    const addressComponents = Array.isArray(place.addressComponents)
+      ? place.addressComponents.map((component) => ({
+          long_name: String(component.longText || component.long_name || '').trim(),
+          short_name: String(component.shortText || component.short_name || component.longText || '').trim(),
+          types: Array.isArray(component.types) ? component.types : []
+        }))
+      : [];
+
+    return {
+      place_id: String(place.id || place.name || '').replace(/^places\//, '').trim(),
+      name: String(place.displayName?.text || place.displayName || '').trim(),
+      formatted_address: String(place.formattedAddress || '').trim(),
+      address_components: addressComponents,
+      geometry: {
+        location: {
+          lat: Number.isFinite(latNum) ? latNum : 0,
+          lng: Number.isFinite(lngNum) ? lngNum : 0
+        }
+      },
+      formatted_phone_number: String(place.nationalPhoneNumber || '').trim(),
+      international_phone_number: String(place.internationalPhoneNumber || '').trim(),
+      website: String(place.websiteUri || place.websiteURI || '').trim(),
+      types: Array.isArray(place.types) ? place.types : []
+    };
+  };
+
   let googleError = '';
   try {
     const isGoogleMapsUrl = isAllowedGoogleMapsUrl(address);
@@ -6303,6 +6333,9 @@ app.post('/api/maps/geocode', async (req, res) => {
           candidate = Array.isArray(placesFindData.candidates) && placesFindData.candidates[0]
             ? placesFindData.candidates[0]
             : null;
+          if (!candidate && placesFindData.status && placesFindData.status !== 'ZERO_RESULTS') {
+            googleError = placesFindData.error_message || `Google Places lookup failed (${placesFindData.status}).`;
+          }
         }
 
         if (!candidate) {
@@ -6321,7 +6354,47 @@ app.post('/api/maps/geocode', async (req, res) => {
                 geometry: textResult.geometry,
                 types: textResult.types
               };
+            } else if (textSearchData.status && textSearchData.status !== 'ZERO_RESULTS') {
+              googleError = textSearchData.error_message || `Google Places text search failed (${textSearchData.status}).`;
             }
+          }
+        }
+
+        if (!candidate) {
+          const placesNewResponse = await fetch('https://places.googleapis.com/v1/places:searchText', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Goog-Api-Key': mapsApiKey,
+              'X-Goog-FieldMask': [
+                'places.id',
+                'places.displayName',
+                'places.formattedAddress',
+                'places.location',
+                'places.addressComponents',
+                'places.nationalPhoneNumber',
+                'places.internationalPhoneNumber',
+                'places.websiteUri',
+                'places.types'
+              ].join(',')
+            },
+            body: JSON.stringify({
+              textQuery: geocodeAddress,
+              regionCode: 'IN',
+              maxResultCount: 1
+            })
+          });
+          if (placesNewResponse.ok) {
+            const placesNewData = await placesNewResponse.json();
+            const placesNewResult = Array.isArray(placesNewData.places) && placesNewData.places[0]
+              ? placesNewData.places[0]
+              : null;
+            if (placesNewResult) {
+              res.json({ result: normalizeGooglePlacesNewResult(placesNewResult) });
+              return;
+            }
+          } else {
+            googleError = `Google Places text search failed (${placesNewResponse.status}).`;
           }
         }
 

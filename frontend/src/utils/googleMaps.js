@@ -130,15 +130,26 @@ const normalizeGooglePlaceSearchResult = (result = {}, fallbackText = '') => {
     : Array.isArray(result.addressComponents)
       ? result.addressComponents
       : [];
-  const location = result.geometry?.location
-    || result.location
-    || (Number.isFinite(Number(result.latitude)) && Number.isFinite(Number(result.longitude))
-      ? { lat: Number(result.latitude), lng: Number(result.longitude) }
-      : null);
+  const rawLocation = result.geometry?.location || result.location || null;
+  const lat = typeof rawLocation?.lat === 'function'
+    ? rawLocation.lat()
+    : rawLocation?.lat ?? rawLocation?.latitude ?? result.latitude;
+  const lng = typeof rawLocation?.lng === 'function'
+    ? rawLocation.lng()
+    : rawLocation?.lng ?? rawLocation?.longitude ?? result.longitude;
+  const location = rawLocation
+    ? {
+        ...rawLocation,
+        lat: Number.isFinite(Number(lat)) ? Number(lat) : rawLocation.lat,
+        lng: Number.isFinite(Number(lng)) ? Number(lng) : rawLocation.lng
+      }
+    : (Number.isFinite(Number(result.latitude)) && Number.isFinite(Number(result.longitude))
+        ? { lat: Number(result.latitude), lng: Number(result.longitude) }
+        : null);
   const name = String(result.name || result.displayName?.text || result.displayName || fallbackText || '').trim();
   const placeId = String(result.place_id || result.placeId || result.id || '').trim();
   const phone = String(result.formatted_phone_number || result.international_phone_number || result.nationalPhoneNumber || result.internationalPhoneNumber || '').trim();
-  const website = String(result.website || result.websiteURI || '').trim();
+  const website = String(result.website || result.websiteURI || result.websiteUri || '').trim();
 
   return {
     ...result,

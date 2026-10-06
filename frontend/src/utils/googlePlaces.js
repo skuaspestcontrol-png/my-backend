@@ -315,7 +315,16 @@ const normalizeSearchPlace = (place = {}) => {
     : Array.isArray(place.address_components)
       ? place.address_components
       : [];
-  const location = place.location || place.geometry?.location || null;
+  const rawLocation = place.location || place.geometry?.location || null;
+  const rawLat = typeof rawLocation?.lat === 'function' ? rawLocation.lat() : rawLocation?.lat ?? rawLocation?.latitude;
+  const rawLng = typeof rawLocation?.lng === 'function' ? rawLocation.lng() : rawLocation?.lng ?? rawLocation?.longitude;
+  const location = rawLocation
+    ? {
+        ...rawLocation,
+        lat: Number.isFinite(Number(rawLat)) ? Number(rawLat) : rawLocation.lat,
+        lng: Number.isFinite(Number(rawLng)) ? Number(rawLng) : rawLocation.lng
+      }
+    : null;
   const displayName = typeof place.displayName === 'object' && place.displayName
     ? place.displayName
     : { text: name };
@@ -334,8 +343,8 @@ const normalizeSearchPlace = (place = {}) => {
     address_components: addressComponents,
     nationalPhoneNumber: String(place.nationalPhoneNumber || place.formatted_phone_number || '').trim(),
     internationalPhoneNumber: String(place.internationalPhoneNumber || place.international_phone_number || '').trim(),
-    websiteURI: String(place.websiteURI || place.website || '').trim(),
-    website: String(place.website || place.websiteURI || '').trim()
+    websiteURI: String(place.websiteURI || place.websiteUri || place.website || '').trim(),
+    website: String(place.website || place.websiteURI || place.websiteUri || '').trim()
   };
 };
 
