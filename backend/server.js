@@ -211,6 +211,7 @@ const portalPublicRoutePatterns = [
   /^\/api\/db-test$/,
   /^\/api\/auth\/(login|logout|me|forgot-password|reset-password)$/,
   /^\/api\/public\/.*$/,
+  /^\/api\/maps\/(geocode|resolve)$/,
   /^\/api\/google\/oauth\/callback$/,
 ];
 

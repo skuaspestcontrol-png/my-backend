@@ -180,6 +180,7 @@ const resolveGoogleMapsPlaceText = async (text, { apiBaseUrl = '' } = {}) => {
   const base = normalizeApiBaseUrl(apiBaseUrl || import.meta.env.VITE_API_BASE_URL || '');
   const endpoint = `${base}/api/maps/geocode`;
   const response = await axios.post(endpoint, { address }, {
+    withCredentials: true,
     validateStatus: () => true
   });
   const data = response?.data || {};
@@ -206,6 +207,7 @@ const resolveGoogleMapsUrl = async (url, { apiBaseUrl = '', timeoutMs = 8000 } =
   const endpoint = `${base}/api/maps/resolve`;
   const response = await axios.get(endpoint, {
     params: { url: normalized },
+    withCredentials: true,
     timeout: timeoutMs,
     validateStatus: () => true
   });
