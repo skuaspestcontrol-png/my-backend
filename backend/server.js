@@ -16471,6 +16471,170 @@ const technicianLocationKey = ({ technicianId, employeeCode }) => {
 const INDIA_TODAY_RECORDED_SQL = 'DATE(DATE_ADD(recorded_at, INTERVAL 330 MINUTE)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))';
 const INDIA_TODAY_ATTENDANCE_SQL = 'DATE(DATE_ADD(COALESCE(attendance_date, date, created_at), INTERVAL 330 MINUTE)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))';
 
+const technicianTrackerNumber = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
+const technicianTrackerText = (...values) => {
+  for (const value of values) {
+    const text = String(value ?? '').trim();
+    if (text) return text;
+  }
+  return '';
+};
+
+const technicianTrackerCoordinate = (source = {}, keys = []) => {
+  for (const key of keys) {
+    const value = technicianTrackerNumber(source?.[key]);
+    if (value !== null) return value;
+  }
+  return null;
+};
+
+const technicianTrackerJobCoords = (job = {}) => {
+  const latitude = technicianTrackerCoordinate(job, [
+    'latitude', 'lat', 'customerLatitude', 'customer_latitude', 'serviceLatitude', 'service_latitude',
+    'siteLatitude', 'site_latitude', 'addressLatitude', 'address_latitude'
+  ]);
+  const longitude = technicianTrackerCoordinate(job, [
+    'longitude', 'lng', 'lon', 'customerLongitude', 'customer_longitude', 'serviceLongitude', 'service_longitude',
+    'siteLongitude', 'site_longitude', 'addressLongitude', 'address_longitude'
+  ]);
+  return isValidTechnicianCoordinate(latitude, longitude) ? { latitude, longitude } : null;
+};
+
+const technicianTrackerJobDate = (job = {}) => formatIsoDate(job.scheduledDate || job.serviceDate || job.visitDate || job.date || job.createdAt);
+
+const technicianTrackerJobStatus = (job = {}) => String(job.status || '').trim().toLowerCase();
+
+const technicianTrackerJobTechnicianValues = (job = {}) => [
+  job.technicianId,
+  job.employeeId,
+  job.assignedToId,
+  job.employeeCode,
+  job.technicianEmpCode,
+  job.empCode,
+  ...(Array.isArray(job.technicianIds) ? job.technicianIds : []),
+  ...(Array.isArray(job.employeeCodes) ? job.employeeCodes : []),
+].map((value) => String(value || '').trim()).filter(Boolean);
+
+const technicianTrackerJobTechnicianNames = (job = {}) => [
+  job.technicianName,
+  job.assignedTo,
+  job.employeeName,
+  ...(Array.isArray(job.technicianNames) ? job.technicianNames : []),
+  ...(Array.isArray(job.technicians) ? job.technicians : []),
+].map((value) => String(value || '').trim()).filter(Boolean);
+
+const technicianTrackerJobMatches = (job = {}, technician = {}) => {
+  const identities = new Set([
+    technician.technician_id,
+    technician.employee_code,
+    technician.technician_name,
+  ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean));
+  if (!identities.size) return false;
+  return [...technicianTrackerJobTechnicianValues(job), ...technicianTrackerJobTechnicianNames(job)]
+    .some((value) => identities.has(String(value || '').trim().toLowerCase()));
+};
+
+const technicianTrackerJobContext = (job = null) => {
+  if (!job) return null;
+  const coords = technicianTrackerJobCoords(job);
+  return {
+    id: technicianTrackerText(job._id, job.id, job.external_id),
+    jobNumber: technicianTrackerText(job.jobNumber, job.job_number, job.jobCardNumber, job.job_card_number),
+    customerName: technicianTrackerText(job.customerName, job.customer_name, job.companyName),
+    serviceName: technicianTrackerText(job.serviceName, job.service_name, job.serviceType, job.service_type),
+    address: technicianTrackerText(job.full_address, job.fullAddress, job.address, job.location, job.areaName, job.city),
+    scheduledDate: technicianTrackerJobDate(job),
+    scheduledTime: technicianTrackerText(job.scheduledTime, job.serviceTime, job.time),
+    status: technicianTrackerText(job.status),
+    serviceStartTime: technicianTrackerText(job.serviceStartTime, job.service_start_time, job.punchInTime),
+    serviceEndTime: technicianTrackerText(job.serviceEndTime, job.service_end_time, job.punchOutTime),
+    latitude: coords?.latitude ?? null,
+    longitude: coords?.longitude ?? null,
+  };
+};
+
+const technicianTrackerOperationalState = ({ latest = null, routeSummary = {}, job = null }) => {
+  if (job) {
+    const status = technicianTrackerJobStatus(job);
+    if (['completed', 'closed'].includes(status) || job.serviceEndTime || job.service_end_time || job.punchOutTime) return 'Completed';
+    if (['in progress', 'started', 'job started'].includes(status) || job.serviceStartTime || job.service_start_time || job.punchInTime) return 'Job Started';
+    const jobCoords = technicianTrackerJobCoords(job);
+    if (latest && jobCoords) {
+      const distance = technicianTrackerDistanceKm(latest.latitude, latest.longitude, jobCoords.latitude, jobCoords.longitude);
+      if (distance !== null && distance <= 0.2) return 'Arrived';
+    }
+    if ((routeSummary.distanceKm || 0) > 0.05) return 'Travelling';
+  }
+  if ((routeSummary.distanceKm || 0) > 0.05) return 'Travelling';
+  return latest ? 'Idle' : 'Offline';
+};
+
+const technicianTrackerDistanceKm = (lat1, lng1, lat2, lng2) => {
+  if (!isValidTechnicianCoordinate(lat1, lng1) || !isValidTechnicianCoordinate(lat2, lng2)) return null;
+  const earthRadiusKm = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return earthRadiusKm * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+};
+
+const technicianTrackerSummarizeRoute = (points = []) => {
+  const ordered = (Array.isArray(points) ? points : [])
+    .filter((point) => isValidTechnicianCoordinate(Number(point.latitude), Number(point.longitude)))
+    .sort((a, b) => new Date(a.recordedAt || a.timestamp || 0).getTime() - new Date(b.recordedAt || b.timestamp || 0).getTime());
+  let distanceKm = 0;
+  let movementPoints = 0;
+  let ignoredJumps = 0;
+  for (let index = 1; index < ordered.length; index += 1) {
+    const previous = ordered[index - 1];
+    const point = ordered[index];
+    const distance = technicianTrackerDistanceKm(Number(previous.latitude), Number(previous.longitude), Number(point.latitude), Number(point.longitude));
+    if (distance === null || distance <= 0.01) continue;
+    const minutes = Math.max(1, Math.abs(new Date(point.recordedAt || point.timestamp || 0).getTime() - new Date(previous.recordedAt || previous.timestamp || 0).getTime()) / 60000);
+    const speedKmh = distance / (minutes / 60);
+    if (distance > 5 && speedKmh > 140) {
+      ignoredJumps += 1;
+      continue;
+    }
+    distanceKm += distance;
+    movementPoints += 1;
+  }
+  return {
+    distanceKm: Number(distanceKm.toFixed(3)),
+    pointCount: ordered.length,
+    movementPoints,
+    ignoredJumps,
+    firstUpdate: ordered[0]?.recordedAt || ordered[0]?.timestamp || null,
+    lastUpdate: ordered[ordered.length - 1]?.recordedAt || ordered[ordered.length - 1]?.timestamp || null,
+  };
+};
+
+const technicianTrackerBuildGeofenceAlert = ({ technician = {}, latest = null, job = null }) => {
+  if (!latest || !job) return null;
+  const jobCoords = technicianTrackerJobCoords(job);
+  if (!jobCoords) return null;
+  const distanceKm = technicianTrackerDistanceKm(Number(latest.latitude), Number(latest.longitude), jobCoords.latitude, jobCoords.longitude);
+  if (distanceKm === null) return null;
+  const inside = distanceKm <= 0.2;
+  return {
+    technicianId: technician.technician_id || '',
+    employeeCode: technician.employee_code || '',
+    technicianName: technician.technician_name || '',
+    jobId: technicianTrackerText(job._id, job.id, job.external_id),
+    jobNumber: technicianTrackerText(job.jobNumber, job.job_number, job.jobCardNumber, job.job_card_number),
+    customerName: technicianTrackerText(job.customerName, job.customer_name, job.companyName),
+    event: inside ? 'Arrived' : 'Outside geofence',
+    status: inside ? 'inside' : 'outside',
+    eventTime: latest.recordedAt || latest.timestamp || null,
+    distanceKm: Number(distanceKm.toFixed(3)),
+  };
+};
+
 const getTableColumns = async (conn, tableName) => {
   const [rows] = await conn.query(
     `
@@ -16678,6 +16842,14 @@ app.get('/api/technicians/live', async (req, res) => {
   if (!withMysqlConnection) return res.json({ success: true, items: [] });
 
   try {
+    const todayIndia = new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+    const jobsForTracker = (canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []))
+      .filter((job) => {
+        const status = technicianTrackerJobStatus(job);
+        if (['deleted', 'cancelled', 'canceled', 'archived'].includes(status)) return false;
+        const jobDate = technicianTrackerJobDate(job);
+        return !jobDate || jobDate === todayIndia;
+      });
     const items = await withMysqlConnection(async (conn) => {
       await ensureTechnicianLocationTables(conn);
       const [rows] = await conn.query(
@@ -16691,7 +16863,13 @@ app.get('/api/technicians/live', async (req, res) => {
             COALESCE(l.accuracy, CASE WHEN a.punch_out_location_accuracy IS NOT NULL THEN a.punch_out_location_accuracy ELSE a.punch_in_location_accuracy END) AS accuracy,
             COALESCE(l.address, CASE WHEN a.punch_out_address IS NOT NULL AND a.punch_out_address <> '' THEN a.punch_out_address ELSE a.punch_in_address END) AS address,
             COALESCE(l.recorded_at, a.attendance_time) AS recorded_at,
-            CASE WHEN l.id IS NOT NULL THEN l.source ELSE 'attendance' END AS source
+            CASE WHEN l.id IS NOT NULL THEN l.source ELSE 'attendance' END AS source,
+            a.attendance_status,
+            a.check_in_value,
+            a.check_out_value,
+            a.attendance_date_value,
+            a.punch_in_address,
+            a.punch_out_address
           FROM employees e
           LEFT JOIN technician_live_locations l
             ON l.technician_id = e.id OR l.employee_code = e.emp_code
@@ -16699,6 +16877,10 @@ app.get('/api/technicians/live', async (req, res) => {
             SELECT a1.employee_code, a1.punch_in_latitude, a1.punch_in_longitude, a1.punch_in_location_accuracy,
                    a1.punch_in_address, a1.punch_out_latitude, a1.punch_out_longitude,
                    a1.punch_out_location_accuracy, a1.punch_out_address,
+                   a1.status AS attendance_status,
+                   TIME_FORMAT(a1.check_in, '%H:%i') AS check_in_value,
+                   TIME_FORMAT(a1.check_out, '%H:%i') AS check_out_value,
+                   DATE_FORMAT(COALESCE(a1.attendance_date, a1.date), '%Y-%m-%d') AS attendance_date_value,
                    COALESCE(a1.updated_at, a1.source_updated_at, a1.created_at, a1.attendance_date, a1.date) AS attendance_time
             FROM attendance a1
             INNER JOIN (
@@ -16754,6 +16936,16 @@ app.get('/api/technicians/live', async (req, res) => {
         const routeHistory = routeHistoryByKey.get(String(row.technician_id || '').trim())
           || routeHistoryByKey.get(String(row.employee_code || '').trim())
           || [];
+        const routeSummary = technicianTrackerSummarizeRoute(routeHistory);
+        const latestPoint = hasGps ? {
+          latitude,
+          longitude,
+          recordedAt: row.recorded_at || null,
+          timestamp: row.recorded_at || null,
+        } : null;
+        const assignedJob = jobsForTracker.find((job) => technicianTrackerJobMatches(job, row)) || null;
+        const geofenceAlert = technicianTrackerBuildGeofenceAlert({ technician: row, latest: latestPoint, job: assignedJob });
+        const operationalState = technicianTrackerOperationalState({ latest: latestPoint, routeSummary, job: assignedJob });
         return {
           id: row.technician_id || row.employee_code,
           technicianId: row.technician_id || '',
@@ -16770,7 +16962,20 @@ app.get('/api/technicians/live', async (req, res) => {
           last_seen: row.recorded_at || null,
           source: row.source || '',
           isRecent: hasGps ? isRecentTechnicianLocation(row.recorded_at) : false,
-          status: hasGps && isRecentTechnicianLocation(row.recorded_at) ? 'Active' : 'Stale',
+          status: hasGps && isRecentTechnicianLocation(row.recorded_at) ? 'Active' : hasGps ? 'Stale' : 'Offline',
+          liveState: hasGps && isRecentTechnicianLocation(row.recorded_at) ? 'Live' : hasGps ? 'Stale' : 'Offline',
+          movementStatus: operationalState,
+          routeSummary,
+          assignedJob: technicianTrackerJobContext(assignedJob),
+          geofenceAlert,
+          attendance: {
+            date: row.attendance_date_value || '',
+            status: row.attendance_status || '',
+            checkIn: row.check_in_value || '',
+            checkOut: row.check_out_value || '',
+            punchInAddress: row.punch_in_address || '',
+            punchOutAddress: row.punch_out_address || '',
+          },
           routeHistory,
         };
       });
@@ -16787,9 +16992,19 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
   if (!id) return res.json({ success: true, items: [] });
 
   try {
+    const routeDate = String(req.query?.date || '').trim();
+    const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(routeDate)
+      ? routeDate
+      : new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+    const jobsForTracker = (canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []))
+      .filter((job) => {
+        const status = technicianTrackerJobStatus(job);
+        if (['deleted', 'cancelled', 'canceled', 'archived'].includes(status)) return false;
+        const jobDate = technicianTrackerJobDate(job);
+        return !jobDate || jobDate === selectedDate;
+      });
     const items = await withMysqlConnection(async (conn) => {
       await ensureTechnicianLocationTables(conn);
-      const routeDate = String(req.query?.date || '').trim();
       const params = [id, id];
       let dateWhere = INDIA_TODAY_RECORDED_SQL;
       if (/^\d{4}-\d{2}-\d{2}$/.test(routeDate)) {
@@ -16802,7 +17017,7 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
           FROM technician_location_history
           WHERE (technician_id = ? OR employee_code = ?)
             AND ${dateWhere}
-          ORDER BY recorded_at DESC, id DESC
+          ORDER BY recorded_at ASC, id ASC
           LIMIT 500
         `,
         params
@@ -16825,7 +17040,31 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
         })
         .filter(Boolean);
     });
-    return res.json({ success: true, items });
+    const summary = technicianTrackerSummarizeRoute(items);
+    const jobStops = jobsForTracker
+      .filter((job) => {
+        const identities = new Set([id].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean));
+        return [...technicianTrackerJobTechnicianValues(job), ...technicianTrackerJobTechnicianNames(job)]
+          .some((value) => identities.has(String(value || '').trim().toLowerCase()));
+      })
+      .map((job) => {
+        const context = technicianTrackerJobContext(job);
+        if (!context?.latitude || !context?.longitude) return null;
+        const nearest = items.reduce((best, point) => {
+          const distanceKm = technicianTrackerDistanceKm(Number(point.latitude), Number(point.longitude), context.latitude, context.longitude);
+          if (distanceKm === null) return best;
+          if (!best || distanceKm < best.distanceKm) return { point, distanceKm };
+          return best;
+        }, null);
+        return {
+          ...context,
+          nearestUpdate: nearest?.point?.recordedAt || nearest?.point?.timestamp || null,
+          distanceKm: nearest ? Number(nearest.distanceKm.toFixed(3)) : null,
+          status: nearest && nearest.distanceKm <= 0.2 ? 'visited' : 'not-reached',
+        };
+      })
+      .filter(Boolean);
+    return res.json({ success: true, items, summary, jobStops });
   } catch {
     return res.json({ success: true, items: [] });
   }
