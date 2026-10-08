@@ -340,6 +340,7 @@ const emptyForm = {
   items: [createEmptyLine()],
   customerNotes: '',
   termsAndConditions: '',
+  termsAndConditionsEdited: false,
   serviceScheduleDefaultTime: '10:00',
   showPaymentDetailsInPdf: true,
   showGstNumberInPdf: true,
@@ -1129,6 +1130,7 @@ const getEmployeeDisplayName = (employee = {}) => {
 };
 
 const normalizeInvoiceType = (value) => (String(value || '').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST');
+const isTruthyFlag = (value) => value === true || value === 1 || String(value || '').trim().toLowerCase() === 'true';
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 
 const invoiceColumnWidthStorageKey = 'invoice_column_widths';
@@ -1692,6 +1694,7 @@ export default function InvoiceDashboard() {
       items: Array.isArray(snapshot.items) && snapshot.items.length > 0 ? snapshot.items : [createEmptyLine()],
       customerNotes: snapshot.customerNotes || '',
       termsAndConditions: snapshot.termsAndConditions || '',
+      termsAndConditionsEdited: Boolean(snapshot.termsAndConditionsEdited),
       serviceScheduleDefaultTime: snapshot.serviceScheduleDefaultTime || '10:00',
       showPaymentDetailsInPdf: snapshot.showPaymentDetailsInPdf,
       showGstNumberInPdf: snapshot.showGstNumberInPdf,
@@ -1895,12 +1898,9 @@ export default function InvoiceDashboard() {
     return String(companySettings.gstTermsAndConditions || '').trim();
   };
 
-  const resolveTermsForInvoiceTypeChange = (previousTerms, previousInvoiceType, nextInvoiceType) => {
-    const currentTerms = String(previousTerms || '').trim();
-    const previousDefaultTerms = getDefaultTermsForInvoiceType(previousInvoiceType);
+  const resolveTermsForInvoiceTypeChange = (previousTerms, nextInvoiceType, termsEdited) => {
     const nextDefaultTerms = getDefaultTermsForInvoiceType(nextInvoiceType);
-    if (!currentTerms || currentTerms === previousDefaultTerms) return nextDefaultTerms;
-    return previousTerms;
+    return termsEdited ? previousTerms : nextDefaultTerms;
   };
 
   const loadInvoices = async (options = {}) => {
@@ -2024,7 +2024,7 @@ export default function InvoiceDashboard() {
     termsAutoSeededRef.current = true;
     setFormWithTotals((prev) => {
       if (String(prev.termsAndConditions || '').trim()) return prev;
-      return { ...prev, termsAndConditions: nextTerms };
+      return { ...prev, termsAndConditions: nextTerms, termsAndConditionsEdited: false };
     });
   }, [editingId, form.invoiceType, form.termsAndConditions, getDefaultTermsForInvoiceType, settingsHydrated, showModal]);
 
@@ -2373,6 +2373,7 @@ export default function InvoiceDashboard() {
       items: [createEmptyLine({ contractStartDate: invoiceDate, contractStartDateSource: 'invoice-date' })],
       customerNotes: '',
       termsAndConditions: '',
+      termsAndConditionsEdited: false,
       status: 'DRAFT'
     });
     setForm(nextForm);
@@ -2528,6 +2529,7 @@ export default function InvoiceDashboard() {
       subject: invoice.subject || '',
       items: mappedItems,
       customerNotes: invoice.customerNotes || '',
+      termsAndConditionsEdited: isTruthyFlag(invoice.termsAndConditionsEdited || invoice.terms_and_conditions_edited),
       termsAndConditions: invoice.termsAndConditions || getDefaultTermsForInvoiceType(invoiceType),
       serviceScheduleDefaultTime: normalizeTimeInput(invoice.serviceScheduleDefaultTime || '', '10:00'),
       showPaymentDetailsInPdf: invoice.showPaymentDetailsInPdf == null ? true : Boolean(invoice.showPaymentDetailsInPdf),
@@ -2962,7 +2964,8 @@ export default function InvoiceDashboard() {
             : split;
         })
         : prev.paymentSplits,
-      termsAndConditions: resolveTermsForInvoiceTypeChange(prev.termsAndConditions, prev.invoiceType, normalized)
+      termsAndConditions: resolveTermsForInvoiceTypeChange(prev.termsAndConditions, normalized, prev.termsAndConditionsEdited),
+      termsAndConditionsEdited: Boolean(prev.termsAndConditionsEdited)
     }));
   };
 
@@ -3080,6 +3083,7 @@ export default function InvoiceDashboard() {
       })),
       customerNotes: autofill?.customerNotes || '',
       termsAndConditions: autofill?.termsAndConditions || '',
+      termsAndConditionsEdited: isTruthyFlag(autofill?.termsAndConditionsEdited),
       serviceScheduleDefaultTime: autofill?.serviceScheduleDefaultTime || form.serviceScheduleDefaultTime || '10:00',
       showPaymentDetailsInPdf: autofill?.showPaymentDetailsInPdf ?? form.showPaymentDetailsInPdf ?? true,
       showGstNumberInPdf: autofill?.showGstNumberInPdf ?? form.showGstNumberInPdf ?? true,
@@ -3457,6 +3461,7 @@ export default function InvoiceDashboard() {
       items: validItems,
       customerNotes: form.customerNotes.trim(),
       termsAndConditions: form.termsAndConditions.trim(),
+      termsAndConditionsEdited: Boolean(form.termsAndConditionsEdited),
       serviceScheduleDefaultTime: serviceScheduleTime,
       serviceSchedules: normalizedServiceSchedules,
       showPaymentDetailsInPdf: Boolean(form.showPaymentDetailsInPdf),
@@ -4860,7 +4865,7 @@ export default function InvoiceDashboard() {
                     style={{ ...shell.textArea, borderRadius: '6px', minHeight: '64px' }}
                     placeholder="Enter the terms and conditions of your business"
                     value={form.termsAndConditions}
-                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, termsAndConditions: event.target.value }))}
+                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, termsAndConditions: event.target.value, termsAndConditionsEdited: true }))}
                   />
                   {!editingId && settingsHydrated && String(form.termsAndConditions || '').trim() && String(form.termsAndConditions || '').trim() === getDefaultTermsForInvoiceType(form.invoiceType) ? (
                     <span style={shell.helperText}>Loaded from Settings</span>

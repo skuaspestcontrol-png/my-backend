@@ -28,6 +28,7 @@ const toNumber = (value, fallback = 0) => {
 };
 
 const clean = (value) => String(value ?? '').trim();
+const isTruthyFlag = (value) => value === true || value === 1 || String(value || '').trim().toLowerCase() === 'true';
 const pickFirstText = (...values) => {
   for (const value of values) {
     const next = clean(value);
@@ -886,7 +887,10 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
         ]
       : [''];
 
-    const termsText = clean(invoice.termsAndConditions || invoice.terms_and_conditions) || company.terms || '';
+    const manualTerms = isTruthyFlag(invoice.termsAndConditionsEdited || invoice.terms_and_conditions_edited)
+      ? clean(invoice.termsAndConditions || invoice.terms_and_conditions)
+      : '';
+    const termsText = manualTerms || company.terms || '';
     const showPaymentDetails = invoice.showPaymentDetailsInPdf == null
       ? true
       : Boolean(invoice.showPaymentDetailsInPdf);

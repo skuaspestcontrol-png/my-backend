@@ -12736,6 +12736,7 @@ app.post('/api/invoices', async (req, res) => {
     total: toNumber(req.body.total, amount),
     customerNotes: req.body.customerNotes || '',
     termsAndConditions: req.body.termsAndConditions || '',
+    termsAndConditionsEdited: req.body.termsAndConditionsEdited === true,
     serviceScheduleDefaultTime,
     serviceSchedules,
     showPaymentDetailsInPdf,
@@ -12887,6 +12888,9 @@ app.put('/api/invoices/:id', async (req, res) => {
     premiseState: req.body.premiseState ?? req.body.premise_state ?? current.premiseState ?? current.premise_state ?? '',
     premisePincode: req.body.premisePincode ?? req.body.premise_pincode ?? current.premisePincode ?? current.premise_pincode ?? '',
     premiseGoogleMapUrl: req.body.premiseGoogleMapUrl ?? req.body.premise_google_map_url ?? current.premiseGoogleMapUrl ?? current.premise_google_map_url ?? '',
+    termsAndConditionsEdited: req.body.termsAndConditionsEdited == null
+      ? Boolean(current.termsAndConditionsEdited)
+      : req.body.termsAndConditionsEdited === true,
     notes: req.body.notes ?? current.notes ?? ''
   };
 
