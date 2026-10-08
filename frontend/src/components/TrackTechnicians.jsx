@@ -25,6 +25,10 @@ const EARTH_RADIUS_KM = 6371;
 const LIVE_MINUTES = 10;
 const STALE_MINUTES = 60;
 const TRACK_TECHNICIANS_CACHE_KEY = 'track_technicians_ops_cache_v1';
+const MAX_USABLE_ACCURACY_METERS = 100;
+const DEFAULT_ACCURACY_METERS = 25;
+const MIN_MOVEMENT_METERS = 30;
+const MAX_NOISE_THRESHOLD_METERS = 150;
 
 const styles = {
   page: { display: 'grid', gap: 12, width: '100%', minWidth: 0 },
@@ -153,14 +157,62 @@ const cleanPoints = (points = []) => {
     });
 };
 
-const routeDistanceKm = (points = []) => cleanPoints(points).slice(1).reduce((sum, point, index, ordered) => {
-  const previous = ordered[index];
+const accuracyMeters = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+};
+
+const movementFixUsable = (point = {}) => {
+  const accuracy = accuracyMeters(point.accuracy);
+  return accuracy === null || accuracy <= MAX_USABLE_ACCURACY_METERS;
+};
+
+const movementThresholdKm = (previous = {}, point = {}) => {
+  const combinedAccuracy = (accuracyMeters(previous.accuracy) ?? DEFAULT_ACCURACY_METERS)
+    + (accuracyMeters(point.accuracy) ?? DEFAULT_ACCURACY_METERS);
+  return Math.min(MAX_NOISE_THRESHOLD_METERS, Math.max(MIN_MOVEMENT_METERS, combinedAccuracy)) / 1000;
+};
+
+const isUnrealisticRouteJump = (previous = {}, point = {}) => {
   const distance = haversineKm(previous.lat, previous.lng, point.lat, point.lng);
-  const minutes = Math.max(1, Math.abs(new Date(point.timestamp || 0).getTime() - new Date(previous.timestamp || 0).getTime()) / 60000);
-  const speedKmh = distance / (minutes / 60);
-  if (distance <= 0.01 || (distance > 5 && speedKmh > 140)) return sum;
-  return sum + distance;
-}, 0);
+  const previousMs = new Date(previous.timestamp || 0).getTime();
+  const pointMs = new Date(point.timestamp || 0).getTime();
+  if (!Number.isFinite(previousMs) || !Number.isFinite(pointMs) || pointMs <= previousMs) return false;
+  const hours = (pointMs - previousMs) / 3600000;
+  return distance > 5 && hours > 0 && (distance / hours) > 180;
+};
+
+const routeMovementSummary = (points = []) => {
+  const ordered = cleanPoints(points);
+  let anchor = null;
+  let distanceKm = 0;
+  let movementPoints = 0;
+  ordered.forEach((point) => {
+    if (!movementFixUsable(point)) return;
+    if (!anchor) {
+      anchor = point;
+      return;
+    }
+    const distance = haversineKm(anchor.lat, anchor.lng, point.lat, point.lng);
+    if (isUnrealisticRouteJump(anchor, point)) {
+      anchor = point;
+      return;
+    }
+    if (distance <= movementThresholdKm(anchor, point)) {
+      if ((point.accuracy ?? DEFAULT_ACCURACY_METERS) <= (anchor.accuracy ?? DEFAULT_ACCURACY_METERS)) {
+        anchor = point;
+      }
+      return;
+    }
+    distanceKm += distance;
+    movementPoints += 1;
+    anchor = point;
+  });
+  return {
+    distanceKm: Number(distanceKm.toFixed(3)),
+    movementPoints,
+  };
+};
 
 const readCache = () => {
   try {
@@ -236,7 +288,8 @@ const buildTechnicians = (employees = [], liveItems = []) => {
 
   return Array.from(byKey.values()).map((tech) => {
     const latest = tech.latest || tech.routeHistory[tech.routeHistory.length - 1] || null;
-    const routeKm = Number(tech.routeSummary?.distanceKm ?? routeDistanceKm(tech.routeHistory));
+    const fallbackRouteSummary = routeMovementSummary(tech.routeHistory);
+    const routeKm = Number(tech.routeSummary?.distanceKm ?? fallbackRouteSummary.distanceKm);
     const liveState = stateFromPoint(latest);
     const movementStatus = tech.movementStatus || (routeKm > 0.05 ? 'Travelling' : latest ? 'Idle' : 'Offline');
     return {
@@ -248,7 +301,7 @@ const buildTechnicians = (employees = [], liveItems = []) => {
       lastSeen: latest?.timestamp || '',
       firstUpdate: tech.routeSummary?.firstUpdate || tech.routeHistory[0]?.timestamp || '',
       pointCount: Number(tech.routeSummary?.pointCount ?? tech.routeHistory.length),
-      movementPoints: Number(tech.routeSummary?.movementPoints ?? 0),
+      movementPoints: Number(tech.routeSummary?.movementPoints ?? fallbackRouteSummary.movementPoints),
     };
   }).sort((a, b) => {
     const order = { Live: 0, Stale: 1, Offline: 2 };
@@ -470,7 +523,8 @@ export default function TrackTechnicians() {
   const splitStyle = viewportWidth < 950 ? { ...styles.split, gridTemplateColumns: '1fr' } : styles.split;
   const statsStyle = viewportWidth < 1100 ? { ...styles.stats, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : styles.stats;
 
-  const routeDistance = Number(routeSummary?.distanceKm ?? routeDistanceKm(routePoints));
+  const fallbackRouteSummary = useMemo(() => routeMovementSummary(routePoints), [routePoints]);
+  const routeDistance = Number(routeSummary?.distanceKm ?? fallbackRouteSummary.distanceKm);
   const routeFirst = routeSummary?.firstUpdate || routePoints[0]?.timestamp || '';
   const routeLast = routeSummary?.lastUpdate || routePoints[routePoints.length - 1]?.timestamp || '';
   const alerts = technicians.map((tech) => tech.geofenceAlert ? { ...tech.geofenceAlert, key: tech.key } : null).filter(Boolean);

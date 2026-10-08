@@ -16507,17 +16507,29 @@ const isValidTechnicianCoordinate = (latitude, longitude) => (
   && !(latitude === 0 && longitude === 0)
 );
 
+const parseTechnicianTrackerTimestampMs = (value) => {
+  if (!value) return NaN;
+  if (value instanceof Date) return value.getTime();
+  const text = String(value || '').trim();
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text)
+    ? `${text.replace(' ', 'T')}Z`
+    : text;
+  return new Date(normalized).getTime();
+};
+
 const isRecentTechnicianLocation = (value, windowMinutes = 10) => {
-  const timestamp = new Date(value || 0).getTime();
+  const timestamp = parseTechnicianTrackerTimestampMs(value);
   if (!Number.isFinite(timestamp)) return false;
   return Date.now() - timestamp <= windowMinutes * 60 * 1000;
 };
 
 const formatMysqlDateTime = (value) => {
   const date = value ? new Date(value) : new Date();
-  const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+  const now = new Date();
+  const safeDate = Number.isNaN(date.getTime()) ? now : date;
+  const boundedDate = safeDate.getTime() > now.getTime() + 5 * 60 * 1000 ? now : safeDate;
   const pad = (number) => String(number).padStart(2, '0');
-  return `${safeDate.getUTCFullYear()}-${pad(safeDate.getUTCMonth() + 1)}-${pad(safeDate.getUTCDate())} ${pad(safeDate.getUTCHours())}:${pad(safeDate.getUTCMinutes())}:${pad(safeDate.getUTCSeconds())}`;
+  return `${boundedDate.getUTCFullYear()}-${pad(boundedDate.getUTCMonth() + 1)}-${pad(boundedDate.getUTCDate())} ${pad(boundedDate.getUTCHours())}:${pad(boundedDate.getUTCMinutes())}:${pad(boundedDate.getUTCSeconds())}`;
 };
 
 const technicianLocationKey = ({ technicianId, employeeCode }) => {
@@ -16541,6 +16553,17 @@ const technicianTrackerText = (...values) => {
   }
   return '';
 };
+
+const technicianTrackerTimestampValue = (point = {}) => (
+  point.recordedAtIso
+  || point.recorded_at_iso
+  || point.timestampIso
+  || point.timestamp_iso
+  || point.recordedAt
+  || point.recorded_at
+  || point.timestamp
+  || null
+);
 
 const technicianTrackerCoordinate = (source = {}, keys = []) => {
   for (const key of keys) {
@@ -16641,34 +16664,111 @@ const technicianTrackerDistanceKm = (lat1, lng1, lat2, lng2) => {
   return earthRadiusKm * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 };
 
+const TECHNICIAN_TRACKER_MAX_ACCURACY_METERS = 100;
+const TECHNICIAN_TRACKER_DEFAULT_ACCURACY_METERS = 25;
+const TECHNICIAN_TRACKER_MIN_MOVEMENT_METERS = 30;
+const TECHNICIAN_TRACKER_MAX_NOISE_METERS = 150;
+
+const technicianTrackerAccuracyMeters = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+};
+
+const technicianTrackerMovementFixUsable = (point = {}) => {
+  const accuracy = technicianTrackerAccuracyMeters(point.accuracy);
+  return accuracy === null || accuracy <= TECHNICIAN_TRACKER_MAX_ACCURACY_METERS;
+};
+
+const technicianTrackerMovementThresholdKm = (previous = {}, point = {}) => {
+  const previousAccuracy = technicianTrackerAccuracyMeters(previous.accuracy);
+  const nextAccuracy = technicianTrackerAccuracyMeters(point.accuracy);
+  const combinedAccuracy = (previousAccuracy ?? TECHNICIAN_TRACKER_DEFAULT_ACCURACY_METERS) + (nextAccuracy ?? TECHNICIAN_TRACKER_DEFAULT_ACCURACY_METERS);
+  return Math.min(
+    TECHNICIAN_TRACKER_MAX_NOISE_METERS,
+    Math.max(TECHNICIAN_TRACKER_MIN_MOVEMENT_METERS, combinedAccuracy)
+  ) / 1000;
+};
+
+const technicianTrackerUnrealisticJump = (previous = {}, next = {}, maxSpeedKmh = 180) => {
+  const previousLat = Number(previous.latitude);
+  const previousLng = Number(previous.longitude);
+  const nextLat = Number(next.latitude);
+  const nextLng = Number(next.longitude);
+  if (!isValidTechnicianCoordinate(previousLat, previousLng) || !isValidTechnicianCoordinate(nextLat, nextLng)) return false;
+  const previousMs = parseTechnicianTrackerTimestampMs(previous.recordedAt || previous.recorded_at || previous.timestamp);
+  const nextMs = parseTechnicianTrackerTimestampMs(next.recordedAt || next.recorded_at || next.timestamp);
+  if (!Number.isFinite(previousMs) || !Number.isFinite(nextMs) || nextMs <= previousMs) return false;
+  const distanceKm = technicianTrackerDistanceKm(previousLat, previousLng, nextLat, nextLng);
+  const hours = (nextMs - previousMs) / 3600000;
+  return distanceKm !== null && distanceKm > 5 && hours > 0 && (distanceKm / hours) > maxSpeedKmh;
+};
+
 const technicianTrackerSummarizeRoute = (points = []) => {
   const ordered = (Array.isArray(points) ? points : [])
-    .filter((point) => isValidTechnicianCoordinate(Number(point.latitude), Number(point.longitude)))
-    .sort((a, b) => new Date(a.recordedAt || a.timestamp || 0).getTime() - new Date(b.recordedAt || b.timestamp || 0).getTime());
+    .map((point) => ({
+      ...point,
+      latitude: Number(point.latitude),
+      longitude: Number(point.longitude),
+      accuracy: technicianTrackerAccuracyMeters(point.accuracy),
+      timestamp: technicianTrackerTimestampValue(point),
+    }))
+    .filter((point) => isValidTechnicianCoordinate(point.latitude, point.longitude))
+    .sort((a, b) => {
+      const left = parseTechnicianTrackerTimestampMs(a.timestamp);
+      const right = parseTechnicianTrackerTimestampMs(b.timestamp);
+      return (Number.isFinite(left) ? left : 0) - (Number.isFinite(right) ? right : 0);
+    });
+  let anchor = null;
   let distanceKm = 0;
   let movementPoints = 0;
+  let stationaryPoints = 0;
+  let poorAccuracyPoints = 0;
   let ignoredJumps = 0;
-  for (let index = 1; index < ordered.length; index += 1) {
-    const previous = ordered[index - 1];
-    const point = ordered[index];
-    const distance = technicianTrackerDistanceKm(Number(previous.latitude), Number(previous.longitude), Number(point.latitude), Number(point.longitude));
-    if (distance === null || distance <= 0.01) continue;
-    const minutes = Math.max(1, Math.abs(new Date(point.recordedAt || point.timestamp || 0).getTime() - new Date(previous.recordedAt || previous.timestamp || 0).getTime()) / 60000);
-    const speedKmh = distance / (minutes / 60);
-    if (distance > 5 && speedKmh > 140) {
-      ignoredJumps += 1;
-      continue;
+  const movementSegments = [];
+  ordered.forEach((point) => {
+    if (!technicianTrackerMovementFixUsable(point)) {
+      poorAccuracyPoints += 1;
+      return;
     }
+    if (!anchor) {
+      anchor = point;
+      return;
+    }
+    const distance = technicianTrackerDistanceKm(anchor.latitude, anchor.longitude, point.latitude, point.longitude);
+    if (technicianTrackerUnrealisticJump(anchor, point)) {
+      ignoredJumps += 1;
+      anchor = point;
+      return;
+    }
+    const thresholdKm = technicianTrackerMovementThresholdKm(anchor, point);
+    if (distance === null || distance <= thresholdKm) {
+      stationaryPoints += 1;
+      if ((point.accuracy ?? TECHNICIAN_TRACKER_DEFAULT_ACCURACY_METERS) <= (anchor.accuracy ?? TECHNICIAN_TRACKER_DEFAULT_ACCURACY_METERS)) {
+        anchor = point;
+      }
+      return;
+    }
+
     distanceKm += distance;
     movementPoints += 1;
-  }
+    movementSegments.push({
+      from: anchor.timestamp,
+      to: point.timestamp,
+      distanceKm: Number(distance.toFixed(3))
+    });
+    anchor = point;
+  });
   return {
     distanceKm: Number(distanceKm.toFixed(3)),
     pointCount: ordered.length,
+    usablePointCount: ordered.length - poorAccuracyPoints,
     movementPoints,
+    stationaryPoints,
+    poorAccuracyPoints,
     ignoredJumps,
-    firstUpdate: ordered[0]?.recordedAt || ordered[0]?.timestamp || null,
-    lastUpdate: ordered[ordered.length - 1]?.recordedAt || ordered[ordered.length - 1]?.timestamp || null,
+    movementSegments,
+    firstUpdate: technicianTrackerTimestampValue(ordered[0]),
+    lastUpdate: technicianTrackerTimestampValue(ordered[ordered.length - 1]),
   };
 };
 
@@ -16688,7 +16788,7 @@ const technicianTrackerBuildGeofenceAlert = ({ technician = {}, latest = null, j
     customerName: technicianTrackerText(job.customerName, job.customer_name, job.companyName),
     event: inside ? 'Arrived' : 'Outside geofence',
     status: inside ? 'inside' : 'outside',
-    eventTime: latest.recordedAt || latest.timestamp || null,
+    eventTime: technicianTrackerTimestampValue(latest),
     distanceKm: Number(distanceKm.toFixed(3)),
   };
 };
@@ -16829,6 +16929,30 @@ app.post('/api/technicians/location', async (req, res) => {
   try {
     await withMysqlConnection(async (conn) => {
       await ensureTechnicianLocationTables(conn);
+      const [previousRows] = await conn.query(
+        `
+          SELECT latitude, longitude, recorded_at
+          FROM technician_location_history
+          WHERE (technician_id = ? OR employee_code = ?)
+          ORDER BY recorded_at DESC, id DESC
+          LIMIT 1
+        `,
+        [technicianId || null, employeeCode || '']
+      );
+      if (previousRows.length && technicianTrackerUnrealisticJump(previousRows[0], {
+        latitude,
+        longitude,
+        recordedAt,
+      })) {
+        console.warn('[technician-location] rejected unrealistic GPS jump', {
+          technicianId: technicianId || null,
+          employeeCode: employeeCode || null,
+          recordedAt,
+        });
+        const error = new Error('GPS_JUMP_REJECTED');
+        error.statusCode = 400;
+        throw error;
+      }
       await conn.query(
         `
           INSERT INTO technician_live_locations
@@ -16892,6 +17016,10 @@ app.post('/api/technicians/location', async (req, res) => {
     });
     return res.json({ success: true, message: 'Location saved' });
   } catch (error) {
+    if (error?.statusCode === 400 && error.message === 'GPS_JUMP_REJECTED') {
+      return res.status(400).json({ success: false, error: 'Location rejected', code: 'GPS_JUMP_REJECTED' });
+    }
+    console.warn('[technician-location] failed to save GPS point:', error.message || error);
     return res.status(500).json({ success: false, error: error.message || 'Failed to save location' });
   }
 });
@@ -16921,6 +17049,7 @@ app.get('/api/technicians/live', async (req, res) => {
             COALESCE(l.accuracy, CASE WHEN a.punch_out_location_accuracy IS NOT NULL THEN a.punch_out_location_accuracy ELSE a.punch_in_location_accuracy END) AS accuracy,
             COALESCE(l.address, CASE WHEN a.punch_out_address IS NOT NULL AND a.punch_out_address <> '' THEN a.punch_out_address ELSE a.punch_in_address END) AS address,
             COALESCE(l.recorded_at, a.attendance_time) AS recorded_at,
+            DATE_FORMAT(COALESCE(l.recorded_at, a.attendance_time), '%Y-%m-%dT%H:%i:%sZ') AS recorded_at_iso,
             CASE WHEN l.id IS NOT NULL THEN l.source ELSE 'attendance' END AS source,
             a.attendance_status,
             a.check_in_value,
@@ -16960,7 +17089,9 @@ app.get('/api/technicians/live', async (req, res) => {
       );
       const [routeRows] = await conn.query(
         `
-          SELECT id, technician_id, employee_code, latitude, longitude, accuracy, address, recorded_at, source
+          SELECT id, technician_id, employee_code, latitude, longitude, accuracy, address, recorded_at,
+                 DATE_FORMAT(recorded_at, '%Y-%m-%dT%H:%i:%sZ') AS recorded_at_iso,
+                 source
           FROM technician_location_history
           WHERE ${INDIA_TODAY_RECORDED_SQL}
           ORDER BY recorded_at ASC, id ASC
@@ -16979,7 +17110,9 @@ app.get('/api/technicians/live', async (req, res) => {
           accuracy: point.accuracy == null ? null : Number(point.accuracy),
           address: point.address || '',
           recordedAt: point.recorded_at,
-          timestamp: point.recorded_at,
+          recordedAtIso: point.recorded_at_iso || null,
+          timestamp: point.recorded_at_iso || point.recorded_at,
+          timestampIso: point.recorded_at_iso || null,
           source: point.source || 'live',
         };
         [point.technician_id, point.employee_code].map((value) => String(value || '').trim()).filter(Boolean).forEach((key) => {
@@ -16999,7 +17132,9 @@ app.get('/api/technicians/live', async (req, res) => {
           latitude,
           longitude,
           recordedAt: row.recorded_at || null,
-          timestamp: row.recorded_at || null,
+          recordedAtIso: row.recorded_at_iso || null,
+          timestamp: row.recorded_at_iso || row.recorded_at || null,
+          timestampIso: row.recorded_at_iso || null,
         } : null;
         const assignedJob = jobsForTracker.find((job) => technicianTrackerJobMatches(job, row)) || null;
         const geofenceAlert = technicianTrackerBuildGeofenceAlert({ technician: row, latest: latestPoint, job: assignedJob });
@@ -17017,7 +17152,11 @@ app.get('/api/technicians/live', async (req, res) => {
           accuracy: row.accuracy == null ? null : Number(row.accuracy),
           address: row.address || '',
           recordedAt: row.recorded_at || null,
-          last_seen: row.recorded_at || null,
+          recordedAtIso: row.recorded_at_iso || null,
+          timestamp: row.recorded_at_iso || row.recorded_at || null,
+          timestampIso: row.recorded_at_iso || null,
+          last_seen: row.recorded_at_iso || row.recorded_at || null,
+          lastSeenIso: row.recorded_at_iso || null,
           source: row.source || '',
           isRecent: hasGps ? isRecentTechnicianLocation(row.recorded_at) : false,
           status: hasGps && isRecentTechnicianLocation(row.recorded_at) ? 'Active' : hasGps ? 'Stale' : 'Offline',
@@ -17039,7 +17178,8 @@ app.get('/api/technicians/live', async (req, res) => {
       });
     });
     return res.json({ success: true, items });
-  } catch {
+  } catch (error) {
+    console.warn('[technician-location] failed to load live tracking:', error.message || error);
     return res.json({ success: true, items: [] });
   }
 });
@@ -17071,7 +17211,9 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
       }
       const [rows] = await conn.query(
         `
-          SELECT id, latitude, longitude, accuracy, address, recorded_at, source
+          SELECT id, latitude, longitude, accuracy, address, recorded_at,
+                 DATE_FORMAT(recorded_at, '%Y-%m-%dT%H:%i:%sZ') AS recorded_at_iso,
+                 source
           FROM technician_location_history
           WHERE (technician_id = ? OR employee_code = ?)
             AND ${dateWhere}
@@ -17092,7 +17234,9 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
             accuracy: row.accuracy == null ? null : Number(row.accuracy),
             address: row.address || '',
             recordedAt: row.recorded_at,
-            timestamp: row.recorded_at,
+            recordedAtIso: row.recorded_at_iso || null,
+            timestamp: row.recorded_at_iso || row.recorded_at,
+            timestampIso: row.recorded_at_iso || null,
             source: row.source || 'live',
           };
         })
@@ -17116,14 +17260,15 @@ app.get('/api/technicians/:id/route-history', async (req, res) => {
         }, null);
         return {
           ...context,
-          nearestUpdate: nearest?.point?.recordedAt || nearest?.point?.timestamp || null,
+          nearestUpdate: technicianTrackerTimestampValue(nearest?.point),
           distanceKm: nearest ? Number(nearest.distanceKm.toFixed(3)) : null,
           status: nearest && nearest.distanceKm <= 0.2 ? 'visited' : 'not-reached',
         };
       })
       .filter(Boolean);
     return res.json({ success: true, items, summary, jobStops });
-  } catch {
+  } catch (error) {
+    console.warn('[technician-location] failed to load route history:', error.message || error);
     return res.json({ success: true, items: [] });
   }
 });
