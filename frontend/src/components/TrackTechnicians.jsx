@@ -23,8 +23,11 @@ import { formatIndiaDateTime } from '../utils/indiaTime';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const EARTH_RADIUS_KM = 6371;
 const LIVE_MINUTES = 10;
-const STALE_MINUTES = 60;
+const STALE_MINUTES = 30;
+const MAX_FUTURE_CLOCK_SKEW_MINUTES = 5;
 const TRACK_TECHNICIANS_CACHE_KEY = 'track_technicians_ops_cache_v1';
+const TILE_SIZE = 256;
+const OSM_TILE_URL = 'https://tile.openstreetmap.org';
 const MAX_USABLE_ACCURACY_METERS = 100;
 const DEFAULT_ACCURACY_METERS = 25;
 const MIN_MOVEMENT_METERS = 30;
@@ -48,11 +51,15 @@ const styles = {
   panelHead: { minHeight: 46, padding: '10px 12px', borderBottom: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
   panelTitle: { margin: 0, fontSize: 14, color: 'var(--text-primary)', fontWeight: 900, display: 'inline-flex', alignItems: 'center', gap: 8 },
   panelBody: { padding: 12, display: 'grid', gap: 10 },
-  map: { position: 'relative', minHeight: 465, border: '1px solid var(--border-soft)', borderRadius: 8, overflow: 'hidden', background: 'linear-gradient(135deg, #eef7f3 0%, #f8fafc 42%, #eef2ff 100%)' },
-  mapGrid: { position: 'absolute', inset: 0, opacity: 0.5, backgroundImage: 'linear-gradient(rgba(15,23,42,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,.08) 1px, transparent 1px)', backgroundSize: '44px 44px' },
+  map: { position: 'relative', minHeight: 500, border: '1px solid var(--border-soft)', borderRadius: 8, overflow: 'hidden', background: '#dbeafe' },
+  tile: { position: 'absolute', width: TILE_SIZE, height: TILE_SIZE, userSelect: 'none', pointerEvents: 'none' },
+  mapControls: { position: 'absolute', top: 10, left: 10, zIndex: 6, display: 'grid', gap: 4 },
+  zoomButton: { width: 32, height: 32, borderRadius: 6, border: '1px solid rgba(15,23,42,.18)', background: '#fff', color: '#0f172a', fontSize: 18, fontWeight: 900, cursor: 'pointer', boxShadow: '0 4px 14px rgba(15,23,42,.18)' },
+  attribution: { position: 'absolute', right: 8, bottom: 6, zIndex: 4, background: 'rgba(255,255,255,.86)', color: '#334155', fontSize: 10, padding: '2px 6px', borderRadius: 4 },
   marker: { position: 'absolute', transform: 'translate(-50%, -50%)', border: 0, background: 'transparent', cursor: 'pointer', padding: 0 },
   markerDot: { width: 26, height: 26, borderRadius: 999, border: '3px solid #fff', boxShadow: '0 8px 24px rgba(15,23,42,.25)', display: 'grid', placeItems: 'center' },
   markerLabel: { position: 'absolute', top: 30, left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap', borderRadius: 8, background: 'rgba(15,23,42,.86)', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 7px' },
+  markerPopup: { position: 'absolute', left: '50%', bottom: 36, transform: 'translateX(-50%)', width: 250, border: '1px solid var(--border-soft)', borderRadius: 8, background: 'var(--surface-card)', color: 'var(--text-primary)', boxShadow: '0 16px 36px rgba(15,23,42,.25)', padding: 10, display: 'grid', gap: 5, textAlign: 'left', zIndex: 8 },
   list: { display: 'grid', gap: 8, maxHeight: 620, overflowY: 'auto', paddingRight: 2 },
   techRow: { border: '1px solid var(--border-soft)', background: 'var(--surface-elevated)', borderRadius: 8, padding: 10, display: 'grid', gap: 8, textAlign: 'left', cursor: 'pointer', color: 'var(--text-primary)' },
   techRowActive: { borderColor: 'var(--color-primary)', boxShadow: '0 0 0 2px var(--color-primary-soft)' },
@@ -65,7 +72,8 @@ const styles = {
   split: { display: 'grid', gridTemplateColumns: '330px minmax(0, 1fr)', gap: 12, alignItems: 'start' },
   field: { display: 'grid', gap: 5 },
   label: { fontSize: 10, fontWeight: 900, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' },
-  routeCanvas: { minHeight: 330, border: '1px solid var(--border-soft)', borderRadius: 8, background: '#f8fafc', overflow: 'hidden' },
+  routeCanvas: { position: 'relative', minHeight: 330, border: '1px solid var(--border-soft)', borderRadius: 8, background: '#dbeafe', overflow: 'hidden' },
+  routeNotice: { position: 'absolute', left: 12, right: 12, bottom: 12, zIndex: 5, border: '1px solid var(--border-soft)', borderRadius: 8, padding: 10, background: 'rgba(255,255,255,.92)', color: '#334155', fontSize: 12, fontWeight: 800, boxShadow: '0 8px 24px rgba(15,23,42,.14)' },
   timeline: { display: 'grid', gap: 7, maxHeight: 330, overflowY: 'auto' },
   timelineItem: { border: '1px solid var(--border-soft)', borderRadius: 8, padding: 8, background: 'var(--surface-elevated)' },
   alertRow: { border: '1px solid var(--border-soft)', borderRadius: 8, padding: 9, background: 'var(--surface-elevated)', display: 'grid', gap: 4 },
@@ -93,28 +101,60 @@ const todayInput = () => {
   return now.toISOString().slice(0, 10);
 };
 
-const formatDateTime = (value, fallback = '-') => formatIndiaDateTime(value, {}, fallback);
+const normalizeTimestampValue = (value) => {
+  if (!value) return '';
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? '' : value.toISOString();
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text)) return `${text.replace(' ', 'T')}Z`;
+  const timestamp = new Date(text).getTime();
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : '';
+};
+
+const pointTimestamp = (entry = {}) => normalizeTimestampValue(
+  entry.recordedAtIso
+  || entry.recorded_at_iso
+  || entry.timestampIso
+  || entry.timestamp_iso
+  || entry.recordedAt
+  || entry.recorded_at
+  || entry.timestamp
+  || entry.lastSeenIso
+  || entry.last_seen
+);
+
+const formatDateTime = (value, fallback = '-') => {
+  const timestamp = normalizeTimestampValue(value);
+  return timestamp ? formatIndiaDateTime(timestamp, {}, fallback) : fallback;
+};
 
 const formatAge = (value) => {
-  const timestamp = new Date(value || 0).getTime();
-  if (!Number.isFinite(timestamp)) return '';
-  const minutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes} min ago`;
+  const normalized = normalizeTimestampValue(value);
+  const timestamp = new Date(normalized || 0).getTime();
+  if (!Number.isFinite(timestamp)) return 'Timestamp missing';
+  const deltaMinutes = (Date.now() - timestamp) / 60000;
+  if (deltaMinutes < -MAX_FUTURE_CLOCK_SKEW_MINUTES) return 'Timestamp invalid';
+  const minutes = Math.max(0, Math.round(deltaMinutes));
+  if (minutes < 1) return 'Updated just now';
+  if (minutes < 60) return `Updated ${minutes} min ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hr ago`;
-  return `${Math.floor(hours / 24)} day ago`;
+  if (hours < 24) return `Updated ${hours} hr ago`;
+  return `Updated ${Math.floor(hours / 24)} day ago`;
 };
 
 const gpsAgeMinutes = (value) => {
-  const timestamp = new Date(value || 0).getTime();
+  const timestamp = new Date(normalizeTimestampValue(value) || 0).getTime();
   if (!Number.isFinite(timestamp)) return Infinity;
-  return Math.max(0, (Date.now() - timestamp) / 60000);
+  const deltaMinutes = (Date.now() - timestamp) / 60000;
+  if (deltaMinutes < -MAX_FUTURE_CLOCK_SKEW_MINUTES) return Infinity;
+  return Math.max(0, deltaMinutes);
 };
 
 const stateFromPoint = (point) => {
-  if (!point) return 'Offline';
+  if (!point) return 'No GPS';
+  if (!point.timestamp) return 'No GPS';
   const age = gpsAgeMinutes(point.timestamp);
+  if (!Number.isFinite(age)) return 'No GPS';
   if (age <= LIVE_MINUTES) return 'Live';
   if (age <= STALE_MINUTES) return 'Stale';
   return 'Offline';
@@ -123,6 +163,7 @@ const stateFromPoint = (point) => {
 const stateTone = (state) => {
   if (state === 'Live') return { color: '#047857', background: '#ecfdf5', borderColor: '#a7f3d0' };
   if (state === 'Stale') return { color: '#92400e', background: '#fffbeb', borderColor: '#fde68a' };
+  if (state === 'No GPS') return { color: '#475569', background: '#f8fafc', borderColor: '#cbd5e1' };
   return { color: '#991b1b', background: '#fef2f2', borderColor: '#fecaca' };
 };
 
@@ -130,15 +171,17 @@ const normalizePoint = (entry = {}) => {
   const lat = toNum(entry.latitude ?? entry.lat);
   const lng = toNum(entry.longitude ?? entry.lng);
   if (!validCoords(lat, lng)) return null;
+  const timestamp = pointTimestamp(entry);
   return {
-    id: entry.id || `${entry.recordedAt || entry.timestamp || ''}-${lat}-${lng}`,
+    id: entry.id || `${timestamp || entry.recordedAt || entry.timestamp || ''}-${lat}-${lng}`,
     lat,
     lng,
     latitude: lat,
     longitude: lng,
     accuracy: entry.accuracy == null ? null : Number(entry.accuracy),
     address: entry.address || '',
-    timestamp: entry.recordedAt || entry.recorded_at || entry.timestamp || entry.last_seen || '',
+    timestamp,
+    rawTimestamp: entry.recordedAt || entry.recorded_at || entry.timestamp || entry.last_seen || '',
     source: String(entry.source || 'live').trim() || 'live',
   };
 };
@@ -187,6 +230,7 @@ const routeMovementSummary = (points = []) => {
   let anchor = null;
   let distanceKm = 0;
   let movementPoints = 0;
+  const movementSegments = [];
   ordered.forEach((point) => {
     if (!movementFixUsable(point)) return;
     if (!anchor) {
@@ -206,12 +250,41 @@ const routeMovementSummary = (points = []) => {
     }
     distanceKm += distance;
     movementPoints += 1;
+    movementSegments.push({
+      from: anchor.timestamp,
+      to: point.timestamp,
+      distanceKm: Number(distance.toFixed(3)),
+      points: [anchor, point],
+    });
     anchor = point;
   });
   return {
     distanceKm: Number(distanceKm.toFixed(3)),
     movementPoints,
+    movementSegments,
   };
+};
+
+const findPointByTimestamp = (points = [], timestamp) => {
+  const normalized = normalizeTimestampValue(timestamp);
+  if (!normalized) return null;
+  return points.find((point) => normalizeTimestampValue(point.timestamp) === normalized) || null;
+};
+
+const routeMovementSegments = (points = [], summary = null) => {
+  const clean = cleanPoints(points);
+  const backendSegments = Array.isArray(summary?.movementSegments) ? summary.movementSegments : [];
+  const validatedSegments = backendSegments
+    .map((segment) => {
+      const from = findPointByTimestamp(clean, segment?.from);
+      const to = findPointByTimestamp(clean, segment?.to);
+      const distanceKm = Number(segment?.distanceKm);
+      if (!from || !to || !Number.isFinite(distanceKm) || distanceKm <= 0) return null;
+      return { from, to, distanceKm };
+    })
+    .filter(Boolean);
+  if (validatedSegments.length) return validatedSegments;
+  return routeMovementSummary(clean).movementSegments || [];
 };
 
 const readCache = () => {
@@ -238,21 +311,92 @@ const getEmployeeName = (entry = {}) => {
   return String(entry.full_name || entry.fullName || entry.name || fullName || getEmployeeCode(entry) || 'Technician').trim();
 };
 
-const boundsProjector = (points = []) => {
+const lonToWorldX = (lng, zoom) => ((lng + 180) / 360) * TILE_SIZE * (2 ** zoom);
+const latToWorldY = (lat, zoom) => {
+  const clampedLat = Math.max(-85.05112878, Math.min(85.05112878, lat));
+  const rad = (clampedLat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(rad) + (1 / Math.cos(rad))) / Math.PI) / 2) * TILE_SIZE * (2 ** zoom);
+};
+
+const chooseZoom = (points = []) => {
+  if (points.length <= 1) return 15;
+  const lats = points.map((point) => point.lat);
+  const lngs = points.map((point) => point.lng);
+  const span = Math.max(Math.max(...lats) - Math.min(...lats), Math.max(...lngs) - Math.min(...lngs));
+  if (span < 0.006) return 16;
+  if (span < 0.015) return 15;
+  if (span < 0.04) return 14;
+  if (span < 0.12) return 13;
+  if (span < 0.35) return 12;
+  return 11;
+};
+
+const buildTileMap = (points = [], zoomOffset = 0, cols = 5, rows = 4) => {
   const valid = points.filter(Boolean);
-  if (!valid.length) return () => ({ x: 50, y: 50 });
-  const lats = valid.map((point) => point.lat);
-  const lngs = valid.map((point) => point.lng);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const latSpan = Math.max(0.002, maxLat - minLat);
-  const lngSpan = Math.max(0.002, maxLng - minLng);
-  return (point) => ({
-    x: 8 + ((point.lng - minLng) / lngSpan) * 84,
-    y: 92 - ((point.lat - minLat) / latSpan) * 84,
+  const center = valid.length
+    ? {
+      lat: (Math.min(...valid.map((point) => point.lat)) + Math.max(...valid.map((point) => point.lat))) / 2,
+      lng: (Math.min(...valid.map((point) => point.lng)) + Math.max(...valid.map((point) => point.lng))) / 2,
+    }
+    : { lat: 19.076, lng: 72.8777 };
+  const zoom = Math.max(3, Math.min(18, chooseZoom(valid) + zoomOffset));
+  const centerPx = { x: lonToWorldX(center.lng, zoom), y: latToWorldY(center.lat, zoom) };
+  const width = cols * TILE_SIZE;
+  const height = rows * TILE_SIZE;
+  const startTileX = Math.floor((centerPx.x - width / 2) / TILE_SIZE);
+  const startTileY = Math.floor((centerPx.y - height / 2) / TILE_SIZE);
+  const tileCount = 2 ** zoom;
+  const tiles = [];
+  for (let y = startTileY; y < startTileY + rows; y += 1) {
+    if (y < 0 || y >= tileCount) continue;
+    for (let x = startTileX; x < startTileX + cols; x += 1) {
+      const wrappedX = ((x % tileCount) + tileCount) % tileCount;
+      tiles.push({
+        key: `${zoom}-${wrappedX}-${y}`,
+        url: `${OSM_TILE_URL}/${zoom}/${wrappedX}/${y}.png`,
+        left: (x * TILE_SIZE) - (centerPx.x - width / 2),
+        top: (y * TILE_SIZE) - (centerPx.y - height / 2),
+      });
+    }
+  }
+  const project = (point) => ({
+    x: 50 + ((lonToWorldX(point.lng, zoom) - centerPx.x) / width) * 100,
+    y: 50 + ((latToWorldY(point.lat, zoom) - centerPx.y) / height) * 100,
   });
+  return { center, zoom, width, height, tiles, project };
+};
+
+const markerOffsets = (items = []) => {
+  const groups = new Map();
+  items.forEach((item) => {
+    const key = `${item.point.lat.toFixed(5)}:${item.point.lng.toFixed(5)}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item.key);
+  });
+  const offsets = new Map();
+  groups.forEach((keys) => {
+    if (keys.length === 1) {
+      offsets.set(keys[0], { x: 0, y: 0 });
+      return;
+    }
+    keys.forEach((key, index) => {
+      const angle = ((Math.PI * 2) / keys.length) * index;
+      offsets.set(key, { x: Math.round(Math.cos(angle) * 18), y: Math.round(Math.sin(angle) * 18) });
+    });
+  });
+  return offsets;
+};
+
+const formatDuration = (start, end) => {
+  const startMs = new Date(normalizeTimestampValue(start) || 0).getTime();
+  const endMs = new Date(normalizeTimestampValue(end) || 0).getTime();
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) return '-';
+  const minutes = Math.round((endMs - startMs) / 60000);
+  if (minutes < 1) return '< 1 min';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest ? `${hours} hr ${rest} min` : `${hours} hr`;
 };
 
 const buildTechnicians = (employees = [], liveItems = []) => {
@@ -292,6 +436,7 @@ const buildTechnicians = (employees = [], liveItems = []) => {
     const routeKm = Number(tech.routeSummary?.distanceKm ?? fallbackRouteSummary.distanceKm);
     const liveState = stateFromPoint(latest);
     const movementStatus = tech.movementStatus || (routeKm > 0.05 ? 'Travelling' : latest ? 'Idle' : 'Offline');
+    const lastUpdateLabel = latest?.timestamp ? formatAge(latest.timestamp) : 'GPS timestamp missing';
     return {
       ...tech,
       latest,
@@ -299,12 +444,13 @@ const buildTechnicians = (employees = [], liveItems = []) => {
       movementStatus,
       routeKm,
       lastSeen: latest?.timestamp || '',
+      lastUpdateLabel,
       firstUpdate: tech.routeSummary?.firstUpdate || tech.routeHistory[0]?.timestamp || '',
       pointCount: Number(tech.routeSummary?.pointCount ?? tech.routeHistory.length),
       movementPoints: Number(tech.routeSummary?.movementPoints ?? fallbackRouteSummary.movementPoints),
     };
   }).sort((a, b) => {
-    const order = { Live: 0, Stale: 1, Offline: 2 };
+    const order = { Live: 0, Stale: 1, Offline: 2, 'No GPS': 3 };
     return (order[a.liveState] - order[b.liveState]) || a.name.localeCompare(b.name);
   });
 };
@@ -315,48 +461,81 @@ function StatusChip({ state }) {
 
 function MiniMap({ technicians, selectedKey, onSelect }) {
   const points = technicians.map((tech) => tech.latest).filter(Boolean);
-  const project = boundsProjector(points);
+  const [zoomOffset, setZoomOffset] = useState(0);
+  const map = useMemo(() => buildTileMap(points, zoomOffset, 5, 4), [points, zoomOffset]);
+  const markerItems = technicians.filter((tech) => tech.latest).map((tech) => ({ key: tech.key, tech, point: tech.latest }));
+  const offsets = markerOffsets(markerItems);
 
   return (
     <div style={styles.map}>
-      <div style={styles.mapGrid} />
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+      <div style={{ position: 'absolute', left: '50%', top: '50%', width: map.width, height: map.height, transform: 'translate(-50%, -50%)' }}>
+        {map.tiles.map((tile) => (
+          <img key={tile.key} src={tile.url} alt="" style={{ ...styles.tile, left: tile.left, top: tile.top }} loading="lazy" draggable="false" />
+        ))}
+      </div>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2, pointerEvents: 'none' }}>
         {technicians.map((tech) => {
-          const route = cleanPoints(tech.routeHistory);
-          if (route.length < 2) return null;
+          const segments = routeMovementSegments(tech.routeHistory, tech.routeSummary);
+          if (!segments.length) return null;
           return (
-            <polyline
-              key={`${tech.key}-line`}
-              points={route.map((point) => {
-                const plotted = project(point);
-                return `${plotted.x},${plotted.y}`;
-              }).join(' ')}
-              fill="none"
-              stroke={tech.key === selectedKey ? '#9f174d' : '#64748b'}
-              strokeWidth={tech.key === selectedKey ? 0.75 : 0.35}
-              opacity={tech.key === selectedKey ? 0.9 : 0.35}
-            />
+            segments.map((segment, index) => (
+              <line
+                key={`${tech.key}-line-${index}`}
+                x1={map.project(segment.from).x}
+                y1={map.project(segment.from).y}
+                x2={map.project(segment.to).x}
+                y2={map.project(segment.to).y}
+                stroke={tech.key === selectedKey ? '#9f174d' : '#64748b'}
+                strokeWidth={tech.key === selectedKey ? 0.75 : 0.35}
+                opacity={tech.key === selectedKey ? 0.9 : 0.35}
+                strokeLinecap="round"
+              />
+            ))
           );
         })}
       </svg>
-      {technicians.filter((tech) => tech.latest).map((tech) => {
-        const plotted = project(tech.latest);
+      <div style={styles.mapControls}>
+        <button type="button" style={styles.zoomButton} onClick={() => setZoomOffset((value) => Math.min(value + 1, 3))} title="Zoom in">+</button>
+        <button type="button" style={styles.zoomButton} onClick={() => setZoomOffset((value) => Math.max(value - 1, -3))} title="Zoom out">-</button>
+      </div>
+      {markerItems.map(({ tech }) => {
+        const plotted = map.project(tech.latest);
         const tone = stateTone(tech.liveState);
+        const offset = offsets.get(tech.key) || { x: 0, y: 0 };
+        const selected = tech.key === selectedKey;
         return (
           <button
             key={`${tech.key}-marker`}
             type="button"
-            title={`Locate ${tech.name}`}
-            style={{ ...styles.marker, left: `${plotted.x}%`, top: `${plotted.y}%`, zIndex: tech.key === selectedKey ? 4 : 2 }}
+            title={`${tech.name} - ${tech.liveState} - ${tech.lastSeen ? formatDateTime(tech.lastSeen) : 'Timestamp missing'}`}
+            style={{ ...styles.marker, left: `calc(${plotted.x}% + ${offset.x}px)`, top: `calc(${plotted.y}% + ${offset.y}px)`, zIndex: selected ? 7 : 5 }}
             onClick={() => onSelect(tech.key)}
           >
             <span style={{ ...styles.markerDot, background: tone.color }}>
               <MapPin size={14} color="#fff" />
             </span>
-            {(tech.key === selectedKey || technicians.length <= 6) ? <span style={styles.markerLabel}>{tech.name}</span> : null}
+            {(selected || technicians.length <= 6) ? <span style={styles.markerLabel}>{tech.name}</span> : null}
+            {selected ? (
+              <span style={styles.markerPopup}>
+                <strong>{tech.name}</strong>
+                <span style={styles.meta}>{tech.employeeCode || '-'}</span>
+                <span style={{ ...styles.chip, ...stateTone(tech.liveState), width: 'fit-content' }}>{tech.liveState}</span>
+                <span style={styles.meta}>{tech.lastUpdateLabel}</span>
+                <span style={styles.meta}>{tech.movementStatus} - {tech.routeKm.toFixed(2)} km today</span>
+                <span style={styles.meta}>{tech.assignedJob?.customerName || 'No assigned job context'}</span>
+                {tech.latest ? (
+                  <a href={`https://www.google.com/maps/search/?api=1&query=${tech.latest.lat},${tech.latest.lng}`} target="_blank" rel="noreferrer" style={styles.action} onClick={(event) => event.stopPropagation()}>
+                    <LocateFixed size={13} /> Open
+                  </a>
+                ) : null}
+              </span>
+            ) : null}
           </button>
         );
       })}
+      <div style={styles.attribution}>
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>OpenStreetMap</a>
+      </div>
       {!points.length ? (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: 20 }}>
           <div style={styles.empty}>No valid GPS coordinates are available for the selected technicians.</div>
@@ -366,31 +545,51 @@ function MiniMap({ technicians, selectedKey, onSelect }) {
   );
 }
 
-function RouteMap({ points = [], stops = [] }) {
+function RouteMap({ points = [], stops = [], summary = null }) {
   const clean = cleanPoints(points);
+  const segments = routeMovementSegments(clean, summary);
   const stopPoints = stops
     .filter((stop) => validCoords(Number(stop.latitude), Number(stop.longitude)))
     .map((stop) => ({ ...stop, lat: Number(stop.latitude), lng: Number(stop.longitude) }));
-  const project = boundsProjector([...clean, ...stopPoints]);
+  const segmentPoints = segments.flatMap((segment) => [segment.from, segment.to]);
+  const map = buildTileMap([...clean, ...segmentPoints, ...stopPoints], 0, 5, 3);
+  const hasMeaningfulRoute = segments.length > 0;
 
   return (
     <div style={styles.routeCanvas}>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: 330, display: 'block' }}>
-        <rect x="0" y="0" width="100" height="100" fill="#f8fafc" />
-        <path d="M0 22 H100 M0 44 H100 M0 66 H100 M0 88 H100 M20 0 V100 M40 0 V100 M60 0 V100 M80 0 V100" stroke="#e2e8f0" strokeWidth="0.25" />
-        {clean.length > 1 ? (
-          <polyline points={clean.map((point) => {
-            const plotted = project(point);
-            return `${plotted.x},${plotted.y}`;
-          }).join(' ')} fill="none" stroke="#9f174d" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-        ) : null}
-        {clean[0] ? <circle cx={project(clean[0]).x} cy={project(clean[0]).y} r="1.8" fill="#047857" /> : null}
-        {clean.length > 1 ? <circle cx={project(clean[clean.length - 1]).x} cy={project(clean[clean.length - 1]).y} r="1.8" fill="#b91c1c" /> : null}
+      <div style={{ position: 'absolute', left: '50%', top: '50%', width: map.width, height: map.height, transform: 'translate(-50%, -50%)' }}>
+        {map.tiles.map((tile) => (
+          <img key={tile.key} src={tile.url} alt="" style={{ ...styles.tile, left: tile.left, top: tile.top }} loading="lazy" draggable="false" />
+        ))}
+      </div>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 2 }}>
+        {segments.map((segment, index) => (
+          <line
+            key={`${segment.from.id || segment.from.timestamp}-${segment.to.id || segment.to.timestamp}-${index}`}
+            x1={map.project(segment.from).x}
+            y1={map.project(segment.from).y}
+            x2={map.project(segment.to).x}
+            y2={map.project(segment.to).y}
+            stroke="#9f174d"
+            strokeWidth="1.1"
+            strokeLinecap="round"
+          />
+        ))}
+        {clean[0] ? <circle cx={map.project(clean[0]).x} cy={map.project(clean[0]).y} r="1.9" fill="#047857" stroke="#fff" strokeWidth="0.7" /> : null}
+        {clean.length > 1 ? <circle cx={map.project(clean[clean.length - 1]).x} cy={map.project(clean[clean.length - 1]).y} r="1.9" fill="#b91c1c" stroke="#fff" strokeWidth="0.7" /> : null}
         {stopPoints.map((stop) => {
-          const plotted = project(stop);
+          const plotted = map.project(stop);
           return <rect key={stop.id || stop.jobNumber || stop.customerName} x={plotted.x - 1.5} y={plotted.y - 1.5} width="3" height="3" fill="#2563eb" rx="0.8" />;
         })}
       </svg>
+      {!hasMeaningfulRoute && clean.length > 0 ? (
+        <div style={styles.routeNotice}>
+          {clean.length} GPS point{clean.length === 1 ? '' : 's'} recorded for this date, but no validated movement segment was found.
+        </div>
+      ) : null}
+      <div style={styles.attribution}>
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>OpenStreetMap</a>
+      </div>
     </div>
   );
 }
@@ -407,6 +606,7 @@ export default function TrackTechnicians() {
   const [routePoints, setRoutePoints] = useState([]);
   const [routeSummary, setRouteSummary] = useState(null);
   const [jobStops, setJobStops] = useState([]);
+  const [routeError, setRouteError] = useState('');
   const [routeLoading, setRouteLoading] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const loadRef = useRef(null);
@@ -463,11 +663,13 @@ export default function TrackTechnicians() {
       setRoutePoints([]);
       setRouteSummary(null);
       setJobStops([]);
+      setRouteError('');
       return;
     }
     let mounted = true;
     const loadRoute = async () => {
       setRouteLoading(true);
+      setRouteError('');
       try {
         const routeId = selectedTech.id || selectedTech.employeeCode;
         const res = await axios.get(`${API_BASE_URL}/api/technicians/${encodeURIComponent(routeId)}/route-history`, { params: { date: routeDate } });
@@ -482,6 +684,7 @@ export default function TrackTechnicians() {
           setRoutePoints([]);
           setRouteSummary(null);
           setJobStops([]);
+          setRouteError('Unable to load route history for this technician/date. Try refreshing again.');
         }
       } finally {
         if (mounted) setRouteLoading(false);
@@ -512,11 +715,12 @@ export default function TrackTechnicians() {
     const live = technicians.filter((tech) => tech.liveState === 'Live').length;
     const stale = technicians.filter((tech) => tech.liveState === 'Stale').length;
     const offline = technicians.filter((tech) => tech.liveState === 'Offline').length;
+    const noGps = technicians.filter((tech) => tech.liveState === 'No GPS').length;
     const onJob = technicians.filter((tech) => ['Arrived', 'Job Started', 'Completed'].includes(tech.movementStatus)).length;
     const idle = technicians.filter((tech) => tech.movementStatus === 'Idle').length;
     const alerts = technicians.filter((tech) => tech.geofenceAlert && tech.geofenceAlert.status !== 'inside').length;
     const distance = technicians.reduce((sum, tech) => sum + (Number(tech.routeKm) || 0), 0);
-    return { total: technicians.length, live, stale, offline, onJob, idle, alerts, distance };
+    return { total: technicians.length, live, stale, offline, noGps, onJob, idle, alerts, distance };
   }, [technicians]);
 
   const gridStyle = viewportWidth < 1000 ? { ...styles.grid, gridTemplateColumns: '1fr' } : styles.grid;
@@ -527,6 +731,8 @@ export default function TrackTechnicians() {
   const routeDistance = Number(routeSummary?.distanceKm ?? fallbackRouteSummary.distanceKm);
   const routeFirst = routeSummary?.firstUpdate || routePoints[0]?.timestamp || '';
   const routeLast = routeSummary?.lastUpdate || routePoints[routePoints.length - 1]?.timestamp || '';
+  const routeDuration = formatDuration(routeFirst, routeLast);
+  const routeMovementPoints = Number(routeSummary?.movementPoints ?? fallbackRouteSummary.movementPoints);
   const alerts = technicians.map((tech) => tech.geofenceAlert ? { ...tech.geofenceAlert, key: tech.key } : null).filter(Boolean);
 
   return (
@@ -548,6 +754,7 @@ export default function TrackTechnicians() {
               <option value="live">Live</option>
               <option value="stale">Stale</option>
               <option value="offline">Offline</option>
+              <option value="no gps">No GPS</option>
               <option value="travelling">Travelling</option>
               <option value="idle">Idle</option>
               <option value="job-started">Job Started</option>
@@ -583,7 +790,7 @@ export default function TrackTechnicians() {
         <section style={styles.panel}>
           <div style={styles.panelHead}>
             <h3 style={styles.panelTitle}><Navigation size={16} /> Live Operations Map</h3>
-            <p style={styles.meta}>{filteredTechnicians.length} shown - {totals.stale} stale GPS</p>
+            <p style={styles.meta}>{filteredTechnicians.length} shown - {totals.live} live, {totals.stale} stale, {totals.offline} offline, {totals.noGps} no GPS</p>
           </div>
           <div style={styles.panelBody}>
             <MiniMap technicians={filteredTechnicians} selectedKey={selectedTech?.key} onSelect={setSelectedKey} />
@@ -607,26 +814,32 @@ export default function TrackTechnicians() {
                     <StatusChip state={tech.liveState} />
                   </div>
                   <div style={styles.chips}>
-                    <span style={styles.chip}><Clock size={12} /> {tech.lastSeen ? formatAge(tech.lastSeen) : 'No GPS'}</span>
-                    <span style={styles.chip}><Route size={12} /> {tech.routeKm.toFixed(2)} km</span>
-                    <span style={styles.chip}><Crosshair size={12} /> {tech.movementStatus}</span>
+                    <span style={styles.chip} title={tech.lastSeen ? formatDateTime(tech.lastSeen) : 'No usable GPS timestamp'}><Clock size={12} /> {tech.lastUpdateLabel}</span>
+                    {tech.routeKm > 0 ? <span style={styles.chip}><Route size={12} /> {tech.routeKm.toFixed(2)} km</span> : null}
+                    {tech.movementStatus ? <span style={styles.chip}><Crosshair size={12} /> {tech.movementStatus}</span> : null}
                   </div>
                   <p style={styles.meta}>
                     {tech.assignedJob?.customerName ? `${tech.assignedJob.customerName} - ${tech.assignedJob.serviceName || 'Service'}` : 'No assigned job context found for today'}
                   </p>
-                  <p style={styles.meta}>
-                    Last seen: {tech.lastSeen ? formatDateTime(tech.lastSeen) : '-'}{tech.latest?.source ? ` - ${tech.latest.source}` : ''}
+                  {tech.attendance?.status || tech.attendance?.checkIn ? (
+                    <p style={styles.meta}>Attendance: {tech.attendance.status || 'Marked'}{tech.attendance.checkIn ? ` - In ${tech.attendance.checkIn}` : ''}{tech.attendance.checkOut ? ` - Out ${tech.attendance.checkOut}` : ''}</p>
+                  ) : null}
+                  <p style={styles.meta} title={tech.lastSeen ? formatDateTime(tech.lastSeen) : 'No timestamp returned by API'}>
+                    Last GPS: {tech.lastSeen ? formatDateTime(tech.lastSeen) : 'No timestamp returned'}{tech.lastSeen && tech.latest?.source ? ` - ${tech.latest.source}` : ''}
                   </p>
                   {tech.latest ? (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${tech.latest.lat},${tech.latest.lng}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={styles.action}
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <LocateFixed size={14} /> Locate
-                    </a>
+                    <div style={styles.toolbar}>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${tech.latest.lat},${tech.latest.lng}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={styles.action}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <LocateFixed size={14} /> Locate
+                      </a>
+                      <span style={styles.action}><Route size={14} /> View Route</span>
+                    </div>
                   ) : null}
                 </button>
               ))}
@@ -666,11 +879,16 @@ export default function TrackTechnicians() {
               <article style={styles.stat}>
                 <p style={styles.statLabel}>GPS Points</p>
                 <p style={{ ...styles.statValue, fontSize: 18 }}>{routePoints.length}</p>
+                <p style={styles.meta}>{routeMovementPoints} movement segment{routeMovementPoints === 1 ? '' : 's'}</p>
+              </article>
+              <article style={styles.stat}>
+                <p style={styles.statLabel}>Duration Tracked</p>
+                <p style={{ ...styles.statValue, fontSize: 18 }}>{routeDuration}</p>
               </article>
               <article style={styles.stat}>
                 <p style={styles.statLabel}>First / Last Update</p>
-                <p style={styles.meta}>{routeFirst ? formatDateTime(routeFirst) : '-'}</p>
-                <p style={styles.meta}>{routeLast ? formatDateTime(routeLast) : '-'}</p>
+                <p style={styles.meta} title={routeFirst || 'No timestamp'}>{routeFirst ? formatDateTime(routeFirst) : 'No first timestamp'}</p>
+                <p style={styles.meta} title={routeLast || 'No timestamp'}>{routeLast ? formatDateTime(routeLast) : 'No last timestamp'}</p>
               </article>
               <article style={styles.stat}>
                 <p style={styles.statLabel}>Job Stops</p>
@@ -678,10 +896,11 @@ export default function TrackTechnicians() {
               </article>
             </div>
             <div style={{ display: 'grid', gap: 10 }}>
-              <RouteMap points={routePoints} stops={jobStops} />
+              <RouteMap points={routePoints} stops={jobStops} summary={routeSummary} />
               <div style={styles.timeline}>
                 {routeLoading ? <div style={styles.empty}>Loading route history...</div> : null}
-                {!routeLoading && !routePoints.length ? <div style={styles.empty}>No movement data for this technician/date. Distance is not fabricated from a single or missing GPS point.</div> : null}
+                {!routeLoading && routeError ? <div style={styles.empty}>{routeError}</div> : null}
+                {!routeLoading && !routeError && !routePoints.length ? <div style={styles.empty}>No movement data for this technician/date. Distance is not fabricated from a single or missing GPS point.</div> : null}
                 {routePoints.map((point, index) => (
                   <div key={point.id || `${point.timestamp}-${index}`} style={styles.timelineItem}>
                     <p style={styles.name}>{index === 0 ? 'Start' : index === routePoints.length - 1 ? 'Latest' : `Point ${index + 1}`}</p>
