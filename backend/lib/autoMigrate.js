@@ -212,6 +212,8 @@ const tableDefinitions = [
         city VARCHAR(100) NULL,
         state VARCHAR(100) NULL,
         pincode VARCHAR(20) NULL,
+        latitude DECIMAL(10,8) NULL,
+        longitude DECIMAL(11,8) NULL,
         google_place_id VARCHAR(255) NULL,
         google_place_name VARCHAR(255) NULL,
         google_map_url TEXT NULL,
@@ -245,6 +247,8 @@ const tableDefinitions = [
       city: 'VARCHAR(100) NULL',
       state: 'VARCHAR(100) NULL',
       pincode: 'VARCHAR(20) NULL',
+      latitude: 'DECIMAL(10,8) NULL',
+      longitude: 'DECIMAL(11,8) NULL',
       google_place_id: 'VARCHAR(255) NULL',
       google_place_name: 'VARCHAR(255) NULL',
       google_map_url: 'TEXT NULL',
@@ -1665,7 +1669,7 @@ const backfillLeadColumnsFromPayload = async (target) => {
 
 const migrateCustomerPremises = async (target) => {
   if (!(await tableExists(target, 'customers')) || !(await tableExists(target, 'customer_premises'))) return 0;
-  for (const columnName of ['latitude', 'longitude', 'country', 'place_of_supply']) {
+  for (const columnName of ['country', 'place_of_supply']) {
     try {
       await target.query(`ALTER TABLE customer_premises DROP COLUMN ${quoteIdent(columnName)}`);
     } catch (error) {
@@ -1806,5 +1810,8 @@ module.exports = {
   runAutoMigrations,
   syncPayrollJsonFilesToMysql,
   backfillLeadColumnsFromPayload,
-  getLastMigrationStatus
+  getLastMigrationStatus,
+  __test__: {
+    migrateCustomerPremises
+  }
 };

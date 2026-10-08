@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS customer_premises (
   city VARCHAR(100) NULL,
   state VARCHAR(100) NULL,
   pincode VARCHAR(20) NULL,
+  latitude DECIMAL(10,8) NULL,
+  longitude DECIMAL(11,8) NULL,
   google_place_id VARCHAR(255) NULL,
   google_place_name VARCHAR(255) NULL,
   google_map_url TEXT NULL,
@@ -34,8 +36,8 @@ CREATE TABLE IF NOT EXISTS customer_premises (
 SET @schema_name := DATABASE();
 
 SET @sql := (
-  SELECT IF(COUNT(*) > 0,
-    'ALTER TABLE customer_premises DROP COLUMN latitude',
+  SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE customer_premises ADD COLUMN latitude DECIMAL(10,8) NULL',
     'SELECT 1'
   )
   FROM INFORMATION_SCHEMA.COLUMNS
@@ -44,8 +46,8 @@ SET @sql := (
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @sql := (
-  SELECT IF(COUNT(*) > 0,
-    'ALTER TABLE customer_premises DROP COLUMN longitude',
+  SELECT IF(COUNT(*) = 0,
+    'ALTER TABLE customer_premises ADD COLUMN longitude DECIMAL(11,8) NULL',
     'SELECT 1'
   )
   FROM INFORMATION_SCHEMA.COLUMNS

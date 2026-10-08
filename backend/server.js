@@ -5445,6 +5445,8 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
     { name: 'city', definition: 'VARCHAR(100) NULL' },
     { name: 'state', definition: 'VARCHAR(100) NULL' },
     { name: 'pincode', definition: 'VARCHAR(20) NULL' },
+    { name: 'latitude', definition: 'DECIMAL(10,8) NULL' },
+    { name: 'longitude', definition: 'DECIMAL(11,8) NULL' },
     { name: 'google_place_id', definition: 'VARCHAR(255) NULL' },
     { name: 'google_place_name', definition: 'VARCHAR(255) NULL' },
     { name: 'google_map_url', definition: 'TEXT NULL' },
@@ -5470,24 +5472,10 @@ const ensureCustomerPremisesInfrastructure = async (conn) => {
     }
   }
   try {
-    await conn.query('ALTER TABLE customer_premises DROP COLUMN latitude');
-  } catch (error) {
-    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
-      console.warn('[MySQL] customer_premises latitude drop failed:', error.message);
-    }
-  }
-  try {
     await conn.query('ALTER TABLE customer_premises DROP COLUMN place_of_supply');
   } catch (error) {
     if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
       console.warn('[MySQL] customer_premises place_of_supply drop failed:', error.message);
-    }
-  }
-  try {
-    await conn.query('ALTER TABLE customer_premises DROP COLUMN longitude');
-  } catch (error) {
-    if (!/can't drop|unknown column|doesn't exist/i.test(String(error.message || ''))) {
-      console.warn('[MySQL] customer_premises longitude drop failed:', error.message);
     }
   }
   try {
