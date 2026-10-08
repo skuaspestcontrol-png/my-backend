@@ -1237,7 +1237,7 @@ const parseMysqlEmployeeRow = (row = {}) => {
     employeePhotoUrl: profilePhoto,
     profile_photo: profilePhoto,
     present_address: String(row?.present_address ?? payload.present_address ?? '').trim(),
-    appAccessEnabled: toBooleanDbValue(row?.app_access_enabled ?? payload.appAccessEnabled ?? false),
+    appAccessEnabled: toBooleanDbValue(payload.appAccessEnabled ?? row?.app_access_enabled ?? false),
     webPortalAccessEnabled: toBooleanDbValue(row?.web_portal_access_enabled ?? payload.webPortalAccessEnabled ?? payload.portalAccess ?? false),
     portalAccess,
     has_portal_password: Boolean(storedPortalPassword),
@@ -3304,7 +3304,7 @@ const findJobByPdfReference = (jobs = [], reference = '') => {
 };
 
 const allowedAttendanceStatus = new Set(['present', 'absent', 'leave', 'half-day', 'weekly-off']);
-const attendanceTimePattern = /^([01]\d|2[0-3]):([0-5]\d)$/;
+const attendanceTimePattern = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/;
 const attendanceLeaveTypeAliases = new Map([
   ['cl', 'Casual Leave (CL)'],
   ['sl', 'Sick Leave (SL)'],
@@ -3333,7 +3333,7 @@ const normalizeAttendanceStatus = (value) => {
 
 const normalizeAttendanceTime = (value) => {
   const raw = String(value || '').trim();
-  return attendanceTimePattern.test(raw) ? raw : '';
+  return attendanceTimePattern.test(raw) ? raw.slice(0, 5) : '';
 };
 
 const normalizeAttendanceLeaveType = (value) => {
@@ -3408,6 +3408,12 @@ const sanitizeAttendanceRecord = (raw = {}) => {
   const defaultCheckOut = status === 'present' && !isSelfServiceSource ? '17:00' : '';
   const checkIn = normalizeAttendanceTime(raw.checkIn || defaultCheckIn);
   const checkOut = normalizeAttendanceTime(raw.checkOut || defaultCheckOut);
+  const rawWorkingMinutes = Number(raw.workingMinutes ?? raw.working_minutes);
+  const rawWorkingHours = Number(raw.workingHours ?? raw.working_hours);
+  const computedWorkingHours = computeWorkingHours({ status, checkIn, checkOut });
+  const workingHours = Number.isFinite(rawWorkingMinutes) && rawWorkingMinutes > 0
+    ? Number((rawWorkingMinutes / 60).toFixed(2))
+    : (Number.isFinite(rawWorkingHours) && rawWorkingHours > 0 ? rawWorkingHours : computedWorkingHours);
   const punchInLatitude = raw.punchInLatitude ?? raw.punch_in_latitude ?? null;
   const punchInLongitude = raw.punchInLongitude ?? raw.punch_in_longitude ?? null;
   const punchOutLatitude = raw.punchOutLatitude ?? raw.punch_out_latitude ?? null;
@@ -3438,7 +3444,8 @@ const sanitizeAttendanceRecord = (raw = {}) => {
     editedBy: String(raw.editedBy || raw.edited_by || '').trim(),
     editedAt: String(raw.editedAt || raw.edited_at || '').trim(),
     editReason: String(raw.editReason || raw.edit_reason || '').trim(),
-    workingHours: computeWorkingHours({ status, checkIn, checkOut }),
+    workingMinutes: Number.isFinite(rawWorkingMinutes) && rawWorkingMinutes >= 0 ? rawWorkingMinutes : Math.round(workingHours * 60),
+    workingHours,
     updatedAt: raw.updatedAt || new Date().toISOString()
   };
 };
@@ -5678,11 +5685,29 @@ const ensureEmployeeAuthColumns = async (conn) => {
     { name: 'portal_password', definition: 'VARCHAR(255) NULL' },
     { name: 'employment_status', definition: 'VARCHAR(40) NULL' },
     { name: 'resignation_date', definition: 'DATE NULL' },
-    { name: 'app_access_enabled', definition: 'TINYINT(1) NOT NULL DEFAULT 0' },
+    { name: 'app_access_enabled', definition: 'TINYINT(1) NULL' },
     { name: 'web_portal_access_enabled', definition: 'TINYINT(1) NOT NULL DEFAULT 0' },
-    { name: 'status', definition: 'VARCHAR(80) NULL' }
+    { name: 'status', definition: 'VARCHAR(80) NULL' },
+    { name: 'technician_session_version', definition: 'INT NOT NULL DEFAULT 0' },
+    { name: 'technician_session_id_hash', definition: 'CHAR(64) NULL' },
+    { name: 'technician_session_issued_at', definition: 'DATETIME NULL' }
   ]);
   employeeAuthColumnsEnsured = true;
+};
+
+const invalidateTechnicianAppSessionsForEmployee = async (conn, employeeId) => {
+  const numericId = Number(employeeId);
+  const safeNumericId = Number.isFinite(numericId) ? numericId : -1;
+  await conn.query(
+    `
+    UPDATE employees
+    SET technician_session_version = COALESCE(technician_session_version, 0) + 1,
+        technician_session_id_hash = NULL,
+        technician_session_issued_at = NULL
+    WHERE external_id = ? OR id = ?
+    `,
+    [employeeId, safeNumericId]
+  );
 };
 
 let customerPremisesCustomerFkEnsured = false;
@@ -6792,6 +6817,16 @@ const shouldRevokeEmployeeSessions = ({ passwordChanged = false, previous = {}, 
   return prevAccess && !nextAccess;
 };
 
+const shouldRevokeTechnicianAppSessions = ({ passwordChanged = false, previous = {}, next = {} } = {}) => {
+  if (passwordChanged) return true;
+  const prevStatus = normalizeEmploymentStatus(previous.employmentStatus ?? previous.employment_status ?? 'Active', 'Active');
+  const nextStatus = normalizeEmploymentStatus(next.employmentStatus ?? next.employment_status ?? prevStatus, prevStatus);
+  if (prevStatus === 'Active' && nextStatus !== 'Active') return true;
+  const prevAccess = toBooleanFlag(previous.appAccessEnabled ?? previous.app_access_enabled);
+  const nextAccess = toBooleanFlag(next.appAccessEnabled ?? next.app_access_enabled);
+  return prevAccess && !nextAccess;
+};
+
 app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), security.validateUploadedFiles, async (req, res) => {
   const employeeId = String(req.params.id || '').trim();
   const incoming = normalizePhoneFields(
@@ -6892,6 +6927,16 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), securi
   }
 
   try {
+    const shouldRevokeAccess = shouldRevokeEmployeeSessions({
+      passwordChanged: employeePasswordChanged,
+      previous: previousEmployeeForRevocation || {},
+      next: updatedEmployee
+    });
+    const shouldRevokeTechnicianAppAccess = shouldRevokeTechnicianAppSessions({
+      passwordChanged: employeePasswordChanged,
+      previous: previousEmployeeForRevocation || {},
+      next: updatedEmployee
+    });
     const affectedRows = await withMysqlConnection(async (conn) => {
       await ensureEmployeeAuthColumns(conn);
       const numericId = Number(employeeId);
@@ -6928,11 +6973,14 @@ app.put('/api/employees/:id', employeePhotoUpload.single('profilePhoto'), securi
           safeNumericId
         ]
       );
+      if (shouldRevokeTechnicianAppAccess) {
+        await invalidateTechnicianAppSessionsForEmployee(conn, employeeId);
+      }
       return Number(result?.affectedRows || 0);
     });
     if (!affectedRows) return res.status(404).json({ error: 'Employee not found' });
     syncEmployeeJsonMirror(employeeId, { ...payloadToSave, ...updatedEmployee });
-    if (shouldRevokeEmployeeSessions({ passwordChanged: employeePasswordChanged, previous: previousEmployeeForRevocation || {}, next: updatedEmployee })) {
+    if (shouldRevokeAccess) {
       sessionRevocations?.revokeUser(employeeSessionIdentity(updatedEmployee, employeeId), 'employee_access_changed');
     }
     invalidateDashboardSummaryCache();
@@ -6995,10 +7043,12 @@ app.get('/api/attendance', async (req, res) => {
           a.employee_name,
           DATE_FORMAT(a.attendance_date, '%Y-%m-%d') AS attendance_date_value,
           DATE_FORMAT(a.\`date\`, '%Y-%m-%d') AS legacy_date_value,
-          TIME_FORMAT(a.check_in, '%H:%i') AS check_in_value,
-          TIME_FORMAT(a.check_out, '%H:%i') AS check_out_value,
-          TIME_FORMAT(a.check_in_time, '%H:%i') AS legacy_check_in_value,
-          TIME_FORMAT(a.check_out_time, '%H:%i') AS legacy_check_out_value,
+          TIME_FORMAT(a.check_in, '%H:%i:%s') AS check_in_value,
+          TIME_FORMAT(a.check_out, '%H:%i:%s') AS check_out_value,
+          TIME_FORMAT(a.check_in_time, '%H:%i:%s') AS legacy_check_in_value,
+          TIME_FORMAT(a.check_out_time, '%H:%i:%s') AS legacy_check_out_value,
+          a.working_minutes,
+          a.working_hours,
           a.status,
           a.leave_type,
           a.notes,
@@ -7047,6 +7097,8 @@ app.get('/api/attendance', async (req, res) => {
             row?.resolved_first_name,
             row?.resolved_last_name,
           ].filter(Boolean).join(' ').trim() || row?.employee_name || parsed.employeeName || '';
+          const dbCheckIn = row?.check_in_value || row?.legacy_check_in_value || '';
+          const dbCheckOut = row?.check_out_value || row?.legacy_check_out_value || '';
           return {
             ...parsed,
             _id: parsed._id || row?.external_id || `ATT-${row?.id}`,
@@ -7055,8 +7107,10 @@ app.get('/api/attendance', async (req, res) => {
             employeeName,
             date: parsed.date || row?.attendance_date_value || row?.legacy_date_value || '',
             status: parsed.status || row?.status,
-            checkIn: parsed.checkIn || row?.check_in_value || row?.legacy_check_in_value || '',
-            checkOut: parsed.checkOut || row?.check_out_value || row?.legacy_check_out_value || '',
+            checkIn: dbCheckIn || parsed.checkIn || '',
+            checkOut: dbCheckOut || parsed.checkOut || '',
+            workingMinutes: row?.working_minutes ?? parsed.workingMinutes ?? parsed.working_minutes,
+            workingHours: row?.working_hours ?? parsed.workingHours ?? parsed.working_hours,
             leaveType: parsed.leaveType || leaveType,
             notes: parsed.notes || row?.notes || '',
             source: parsed.source || row?.source || '',
@@ -11530,6 +11584,10 @@ app.post('/api/google/tasks/sync-job/:jobId', async (req, res) => {
 
 const syncAttendanceToMysql = async (record) => {
   if (!record || !record._id) return;
+  const toAttendanceSqlTime = (value) => {
+    const normalized = normalizeAttendanceTime(value);
+    return normalized ? `${normalized}:00` : null;
+  };
   return withMysqlConnection(async (conn) => {
     await ensureAttendanceTable(conn);
     await conn.query(
@@ -11578,8 +11636,8 @@ const syncAttendanceToMysql = async (record) => {
         record.date || null,
         record.status || null,
         record.leaveType || null,
-        record.checkIn ? `${record.checkIn}:00` : null,
-        record.checkOut ? `${record.checkOut}:00` : null,
+        toAttendanceSqlTime(record.checkIn),
+        toAttendanceSqlTime(record.checkOut),
         toNumber(record.workingHours, 0),
         record.source || 'manual_admin',
         record.punchInLatitude ?? null,

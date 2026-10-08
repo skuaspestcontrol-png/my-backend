@@ -519,7 +519,11 @@ const computeHours = (status, checkIn, checkOut) => {
 
 const computeAttendanceMetrics = (record = {}) => {
   const status = String(record.status || 'absent').trim().toLowerCase();
-  const workingHours = computeHours(status, record.checkIn, record.checkOut);
+  const storedWorkingMinutes = Number(record.workingMinutes ?? record.working_minutes);
+  const storedWorkingHours = Number(record.workingHours ?? record.working_hours);
+  const workingHours = Number.isFinite(storedWorkingMinutes) && storedWorkingMinutes > 0
+    ? Number((storedWorkingMinutes / 60).toFixed(2))
+    : (Number.isFinite(storedWorkingHours) && storedWorkingHours > 0 ? storedWorkingHours : computeHours(status, record.checkIn, record.checkOut));
   const attendanceDate = String(record.date || '').trim();
   const weekdayName = attendanceDate ? getWeekdayName(attendanceDate) : '';
   const isSunday = weekdayName === 'Sunday';
@@ -673,6 +677,7 @@ export default function Attendance() {
   const [statusMessage, setStatusMessage] = useState('');
   const [editingTimeKey, setEditingTimeKey] = useState('');
   const [auditModal, setAuditModal] = useState({ open: false, loading: false, employeeName: '', items: [] });
+  const [locationModal, setLocationModal] = useState({ open: false, title: '', address: '', timestamp: '', latitude: null, longitude: null, mapUrl: '' });
   const loadRequestRef = useRef(null);
   const {
     getColumnWidth,
@@ -749,15 +754,21 @@ export default function Attendance() {
             status: normalizedStatus,
             checkIn: normalizedCheckIn,
             checkOut: normalizedCheckOut,
+            workingMinutes: entry.workingMinutes ?? entry.working_minutes ?? null,
+            workingHours: entry.workingHours ?? entry.working_hours ?? null,
             leaveType: normalizeLeaveType(entry.leaveType),
             leaveReason: entry.leaveReason || '',
             notes: entry.notes || '',
             source: entry.source || '',
             punchInLatitude: entry.punchInLatitude ?? null,
             punchInLongitude: entry.punchInLongitude ?? null,
+            punchInAccuracy: entry.punchInAccuracy ?? null,
+            punchInAddress: entry.punchInAddress || '',
             punchInMapUrl: entry.punchInMapUrl || '',
             punchOutLatitude: entry.punchOutLatitude ?? null,
             punchOutLongitude: entry.punchOutLongitude ?? null,
+            punchOutAccuracy: entry.punchOutAccuracy ?? null,
+            punchOutAddress: entry.punchOutAddress || '',
             punchOutMapUrl: entry.punchOutMapUrl || ''
           };
         });
@@ -834,9 +845,11 @@ export default function Attendance() {
         source: '',
         punchInLatitude: null,
         punchInLongitude: null,
+        punchInAddress: '',
         punchInMapUrl: '',
         punchOutLatitude: null,
         punchOutLongitude: null,
+        punchOutAddress: '',
         punchOutMapUrl: ''
       };
       const attendanceMetrics = computeAttendanceMetrics(record);
@@ -1017,11 +1030,15 @@ export default function Attendance() {
           leaveReason: saved.leaveReason || '',
           notes: saved.notes || '',
           source: saved.source || '',
+          workingMinutes: saved.workingMinutes ?? saved.working_minutes ?? null,
+          workingHours: saved.workingHours ?? saved.working_hours ?? null,
           punchInLatitude: saved.punchInLatitude ?? null,
           punchInLongitude: saved.punchInLongitude ?? null,
+          punchInAddress: saved.punchInAddress || '',
           punchInMapUrl: saved.punchInMapUrl || '',
           punchOutLatitude: saved.punchOutLatitude ?? null,
           punchOutLongitude: saved.punchOutLongitude ?? null,
+          punchOutAddress: saved.punchOutAddress || '',
           punchOutMapUrl: saved.punchOutMapUrl || ''
         }
       }));
@@ -1093,6 +1110,22 @@ export default function Attendance() {
       setAuditModal({ open: true, loading: false, employeeName: getEmployeeName(employee), items: [] });
       setStatusMessage(error?.response?.data?.error || 'Unable to load attendance audit.');
     }
+  };
+
+  const openLocationModal = (record, type, employeeName) => {
+    const isPunchIn = type === 'in';
+    const latitude = isPunchIn ? record.punchInLatitude : record.punchOutLatitude;
+    const longitude = isPunchIn ? record.punchInLongitude : record.punchOutLongitude;
+    const mapUrl = isPunchIn ? record.punchInMapUrl : record.punchOutMapUrl;
+    setLocationModal({
+      open: true,
+      title: `${employeeName || 'Employee'} ${isPunchIn ? 'Check In' : 'Check Out'} Location`,
+      address: isPunchIn ? record.punchInAddress : record.punchOutAddress,
+      timestamp: `${record.date || date} ${isPunchIn ? record.checkIn : record.checkOut}`.trim(),
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
+      mapUrl: mapUrl || (latitude && longitude ? `https://www.google.com/maps?q=${latitude},${longitude}` : '')
+    });
   };
 
   return (
@@ -1366,24 +1399,22 @@ export default function Attendance() {
                   <td style={shell.td}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'nowrap', whiteSpace: 'nowrap', width: '100%' }}>
                       {record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) ? (
-                        <a
-                          href={record.punchInMapUrl || `https://www.google.com/maps?q=${record.punchInLatitude},${record.punchInLongitude}`}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
                           style={shell.mapBtn}
+                          onClick={() => openLocationModal(record, 'in', employee.fullName || employee.name)}
                         >
                           <MapPinned size={12} /> In
-                        </a>
+                        </button>
                       ) : null}
                       {record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude) ? (
-                        <a
-                          href={record.punchOutMapUrl || `https://www.google.com/maps?q=${record.punchOutLatitude},${record.punchOutLongitude}`}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
                           style={shell.mapBtn}
+                          onClick={() => openLocationModal(record, 'out', employee.fullName || employee.name)}
                         >
                           <MapPinned size={12} /> Out
-                        </a>
+                        </button>
                       ) : null}
                       {!(record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) || record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude)) ? '-' : null}
                     </div>
@@ -1427,6 +1458,26 @@ export default function Attendance() {
                 {item.reason ? <p style={shell.footerNote}>Reason: {item.reason}</p> : null}
               </div>
             ))}
+          </div>
+        </div>
+      ) : null}
+      {locationModal.open ? (
+        <div style={shell.modalBg}>
+          <div style={{ ...shell.modal, width: 'min(520px, 100%)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
+              <div>
+                <h3 style={shell.modalTitle}>{locationModal.title}</h3>
+                <p style={shell.auditMeta}>{locationModal.timestamp || '-'}</p>
+              </div>
+              <button type="button" style={shell.actionBtn} onClick={() => setLocationModal({ open: false, title: '', address: '', timestamp: '', latitude: null, longitude: null, mapUrl: '' })}>Close</button>
+            </div>
+            <p style={shell.footerNote}>{locationModal.address || 'Address not captured by the app.'}</p>
+            <p style={shell.footerNote}>Coordinates: {locationModal.latitude ?? '-'}, {locationModal.longitude ?? '-'}</p>
+            {locationModal.mapUrl ? (
+              <a href={locationModal.mapUrl} target="_blank" rel="noreferrer" style={{ ...shell.mapBtn, width: 'fit-content' }}>
+                <MapPinned size={12} /> Open in Maps
+              </a>
+            ) : null}
           </div>
         </div>
       ) : null}
