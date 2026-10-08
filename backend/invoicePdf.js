@@ -886,7 +886,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
         ]
       : [''];
 
-    const termsText = company.terms || '';
+    const termsText = clean(invoice.termsAndConditions || invoice.terms_and_conditions) || company.terms || '';
     const showPaymentDetails = invoice.showPaymentDetailsInPdf == null
       ? true
       : Boolean(invoice.showPaymentDetailsInPdf);

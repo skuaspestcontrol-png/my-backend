@@ -1895,6 +1895,14 @@ export default function InvoiceDashboard() {
     return String(companySettings.gstTermsAndConditions || '').trim();
   };
 
+  const resolveTermsForInvoiceTypeChange = (previousTerms, previousInvoiceType, nextInvoiceType) => {
+    const currentTerms = String(previousTerms || '').trim();
+    const previousDefaultTerms = getDefaultTermsForInvoiceType(previousInvoiceType);
+    const nextDefaultTerms = getDefaultTermsForInvoiceType(nextInvoiceType);
+    if (!currentTerms || currentTerms === previousDefaultTerms) return nextDefaultTerms;
+    return previousTerms;
+  };
+
   const loadInvoices = async (options = {}) => {
     if (invoicesLoadRef.current) return;
     invoicesLoadRef.current = true;
@@ -2954,7 +2962,7 @@ export default function InvoiceDashboard() {
             : split;
         })
         : prev.paymentSplits,
-      termsAndConditions: getDefaultTermsForInvoiceType(normalized)
+      termsAndConditions: resolveTermsForInvoiceTypeChange(prev.termsAndConditions, prev.invoiceType, normalized)
     }));
   };
 
