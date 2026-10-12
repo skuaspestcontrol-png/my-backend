@@ -1,6 +1,8 @@
 import axios from 'axios';
 
 let portalUserSnapshot = null;
+let portalUserValidatedAt = 0;
+const PORTAL_USER_AUTH_CACHE_MS = 60 * 1000;
 
 const normalizePortalUser = (user = null) => {
   if (!user || typeof user !== 'object') return null;
@@ -15,11 +17,13 @@ const normalizePortalUser = (user = null) => {
 
 export const setPortalUser = (user) => {
   portalUserSnapshot = normalizePortalUser(user);
+  portalUserValidatedAt = portalUserSnapshot ? Date.now() : 0;
   return portalUserSnapshot;
 };
 
 export const clearPortalUser = () => {
   portalUserSnapshot = null;
+  portalUserValidatedAt = 0;
 };
 
 export const getPortalUser = () => portalUserSnapshot;
@@ -35,7 +39,15 @@ export const buildPortalAuthHeaders = (user = portalUserSnapshot) => {
   return {};
 };
 
-export const fetchPortalUser = async (apiBaseUrl = '') => {
+export const fetchPortalUser = async (apiBaseUrl = '', options = {}) => {
+  const maxAgeMs = Number(options?.maxAgeMs ?? PORTAL_USER_AUTH_CACHE_MS);
+  if (
+    portalUserSnapshot &&
+    maxAgeMs > 0 &&
+    Date.now() - portalUserValidatedAt < maxAgeMs
+  ) {
+    return portalUserSnapshot;
+  }
   const baseUrl = String(apiBaseUrl || '').trim();
   const url = `${baseUrl}/api/auth/me`;
   const response = await axios.get(url, { withCredentials: true, timeout: 10000 });

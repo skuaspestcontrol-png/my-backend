@@ -42,6 +42,16 @@ const NOTIFICATION_READ_STORAGE_KEY = 'skuas_read_notification_ids';
 const DASHBOARD_NOTIFICATION_CACHE_KEY = 'dashboard_notifications_cache_v1';
 const OPEN_SERVICE_CALENDAR_ONCE_KEY = 'open_service_calendar_once_v1';
 
+const scheduleIdleTask = (callback, timeout = 2000) => {
+  if (typeof window === 'undefined') return () => {};
+  if (typeof window.requestIdleCallback === 'function') {
+    const idleId = window.requestIdleCallback(callback, { timeout });
+    return () => window.cancelIdleCallback(idleId);
+  }
+  const timerId = window.setTimeout(callback, timeout);
+  return () => window.clearTimeout(timerId);
+};
+
 const isLightHex = (value) => {
   const raw = String(value || '').trim().replace('#', '');
   if (!/^[0-9A-Fa-f]{6}$/.test(raw)) return false;
@@ -343,12 +353,15 @@ export default function DashboardLayout({ children }) {
       return request;
     };
 
-    fetchLeadNotifications({ silent: Boolean(cachedNotificationData) });
+    const cancelInitialFetch = scheduleIdleTask(() => {
+      fetchLeadNotifications({ silent: Boolean(cachedNotificationData) });
+    }, 2200);
     const interval = window.setInterval(() => {
       fetchLeadNotifications({ silent: true });
     }, 60000);
     return () => {
       active = false;
+      cancelInitialFetch();
       window.clearInterval(interval);
     };
   }, [cachedNotificationData]);
