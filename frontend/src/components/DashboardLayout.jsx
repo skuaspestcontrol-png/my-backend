@@ -37,7 +37,6 @@ import { applyPortalTheme, loadPortalTheme, savePortalTheme } from '../utils/the
 const ServiceCalendar = lazy(() => import('./ServiceCalendar'));
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const INACTIVITY_LOGOUT_MS = 5 * 60 * 1000;
 const NOTIFICATION_READ_STORAGE_KEY = 'skuas_read_notification_ids';
 const DASHBOARD_NOTIFICATION_CACHE_KEY = 'dashboard_notifications_cache_v1';
 const OPEN_SERVICE_CALENDAR_ONCE_KEY = 'open_service_calendar_once_v1';
@@ -518,29 +517,6 @@ export default function DashboardLayout({ children }) {
     }
     navigate('/', { replace: true });
   }, [navigate]);
-
-  useEffect(() => {
-    let logoutTimer;
-    const resetLogoutTimer = () => {
-      window.clearTimeout(logoutTimer);
-      logoutTimer = window.setTimeout(() => {
-        handleLogout();
-      }, INACTIVITY_LOGOUT_MS);
-    };
-    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
-
-    resetLogoutTimer();
-    activityEvents.forEach((eventName) => {
-      window.addEventListener(eventName, resetLogoutTimer, { passive: true });
-    });
-
-    return () => {
-      window.clearTimeout(logoutTimer);
-      activityEvents.forEach((eventName) => {
-        window.removeEventListener(eventName, resetLogoutTimer);
-      });
-    };
-  }, [handleLogout]);
 
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim() || 'SKUAS Pest Control Private Limited';
   const portalUserRole = getPortalUserRole() || 'Admin';

@@ -15207,6 +15207,10 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       { text: ' We value our association and trust you have found our services exemplary and to your complete satisfaction.', bold: false }
     ]);
     drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
+    const sourceInvoiceForLetter = renewal.sourceInvoice || renewal.payload?.sourceInvoice || {};
+    const sourceInvoiceType = String(sourceInvoiceForLetter.invoiceType || sourceInvoiceForLetter.invoice_type || '').trim().toUpperCase().replace(/[-_]+/g, ' ');
+    const sourceInvoiceTax = toNumber(sourceInvoiceForLetter.totalTax ?? sourceInvoiceForLetter.total_tax ?? sourceInvoiceForLetter.taxAmount ?? sourceInvoiceForLetter.tax_amount, Number.NaN);
+    const isNonGstRenewalLetter = sourceInvoiceType.includes('NON GST') || (!sourceInvoiceType && Number.isFinite(sourceInvoiceTax) && sourceInvoiceTax <= 0);
     const renewalAmountWithGst = Math.max(0, toNumber(renewal.proposedAmount, 0));
     const buildServiceLine = (item, index) => {
       const quantity = Math.max(0, toNumber(item?.quantity, 0));
@@ -15224,15 +15228,24 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const serviceLinesFromInvoice = sourceInvoiceItems
       .map(buildServiceLine)
       .filter((line) => line.name && (line.amountWithoutGst > 0 || line.amountWithGst > 0));
-    const fallbackAmountWithoutGst = renewalAmountWithGst > 0 ? renewalAmountWithGst / 1.18 : 0;
+    const fallbackAmountWithoutGst = renewalAmountWithGst > 0
+      ? (isNonGstRenewalLetter ? renewalAmountWithGst : renewalAmountWithGst / 1.18)
+      : 0;
     const serviceLines = renewalAmountWithGst > 0
-      ? [{ serial: 1, name: serviceName, amountWithoutGst: fallbackAmountWithoutGst, amountWithGst: renewalAmountWithGst }]
+      ? [{
+          serial: 1,
+          name: serviceName,
+          amountWithoutGst: fallbackAmountWithoutGst,
+          amountWithGst: isNonGstRenewalLetter ? fallbackAmountWithoutGst : renewalAmountWithGst
+        }]
       : (serviceLinesFromInvoice.length > 0
         ? serviceLinesFromInvoice
         : [{ serial: 1, name: serviceName, amountWithoutGst: fallbackAmountWithoutGst, amountWithGst: renewalAmountWithGst }]);
     const amountWithGst = renewalAmountWithGst > 0
       ? renewalAmountWithGst
       : (serviceLines.reduce((sum, line) => sum + toNumber(line.amountWithGst, 0), 0) || renewalAmountWithGst);
+    const amountWithoutGst = serviceLines.reduce((sum, line) => sum + toNumber(line.amountWithoutGst, 0), 0);
+    const renewalTotalAmount = isNonGstRenewalLetter ? amountWithoutGst : amountWithGst;
     const formatTableAmount = (value) => `${Math.round(toNumber(value, 0)).toLocaleString('en-IN')}/-`;
     const formatTableAmountWords = (value) => {
       const words = amountToWords(Math.round(toNumber(value, 0)));
@@ -15241,7 +15254,9 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     };
     const tableX = pageLeft;
     const tableY = doc.y + 4;
-    const colWidths = [30, 190, 136, pageRight - tableX - 30 - 190 - 136];
+    const colWidths = isNonGstRenewalLetter
+      ? [30, 326, pageRight - tableX - 30 - 326]
+      : [30, 190, 136, pageRight - tableX - 30 - 190 - 136];
     const headerHeight = 22;
     const itemRowHeight = 24;
     const totalRowHeight = 24;
@@ -15284,7 +15299,10 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     };
     const headerY = tableY;
     let cursorX = tableX;
-    ['Sn', 'Service Name', 'Amount without GST', 'Amount with GST'].forEach((heading, index) => {
+    const tableHeadings = isNonGstRenewalLetter
+      ? ['Sn', 'Service Name', 'Amount without GST']
+      : ['Sn', 'Service Name', 'Amount without GST', 'Amount with GST'];
+    tableHeadings.forEach((heading, index) => {
       drawTableCell(cursorX, headerY, colWidths[index], headerHeight, heading, {
         bold: true,
         fontSize: 8.8,
@@ -15297,7 +15315,10 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     serviceLines.forEach((line, rowIndex) => {
       const itemY = tableY + headerHeight + (rowIndex * itemRowHeight);
       cursorX = tableX;
-      [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithGst)].forEach((value, index) => {
+      const rowValues = isNonGstRenewalLetter
+        ? [line.serial, line.name, formatTableAmount(line.amountWithoutGst)]
+        : [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithGst)];
+      rowValues.forEach((value, index) => {
         drawTableCell(cursorX, itemY, colWidths[index], itemRowHeight, String(value), {
           bold: false,
           fontSize: 8.8,
@@ -15307,10 +15328,10 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       });
     });
     const leftTotalWidth = colWidths[0] + colWidths[1];
-    const rightTotalWidth = colWidths[2] + colWidths[3];
+    const rightTotalWidth = isNonGstRenewalLetter ? colWidths[2] : colWidths[2] + colWidths[3];
     const totalY = tableY + headerHeight + (serviceLines.length * itemRowHeight);
-    const leftTotalText = `Total Price with GST (In Words) = ${formatTableAmount(amountWithGst)}`;
-    const rightTotalText = formatTableAmountWords(amountWithGst);
+    const leftTotalText = `${isNonGstRenewalLetter ? 'Total Price without GST' : 'Total Price with GST'} (In Words) = ${formatTableAmount(renewalTotalAmount)}`;
+    const rightTotalText = formatTableAmountWords(renewalTotalAmount);
     const totalTextFontSize = 8.4;
     doc.font(pdfFont.bold).fontSize(totalTextFontSize);
     const leftTotalTextHeight = doc.heightOfString(leftTotalText, { width: Math.max(0, leftTotalWidth - 10), align: 'left', lineGap: 1 });
