@@ -5164,7 +5164,7 @@ export default function InvoiceDashboard() {
         </div>
       , document.body) : null}
 
-      {showBillingAddressPicker ? (
+      {showBillingAddressPicker ? createPortal(
         <div style={shell.addressPickerOverlay}>
           <div style={{ ...shell.addressPicker, width: 'min(100%, 640px)' }}>
             <div style={shell.addressPickerHead}>
@@ -5199,9 +5199,9 @@ export default function InvoiceDashboard() {
             </div>
           </div>
         </div>
-      ) : null}
+      , document.body) : null}
 
-      {showShippingAddressPicker ? (
+      {showShippingAddressPicker ? createPortal(
         <div style={shell.addressPickerOverlay}>
           <div style={shell.addressPicker}>
             <div style={shell.addressPickerHead}>
@@ -5268,8 +5268,8 @@ export default function InvoiceDashboard() {
             </div>
           </div>
         </div>
-      ) : null}
-      {showShippingAddressPicker && editingShippingAddressId ? (
+      , document.body) : null}
+      {showShippingAddressPicker && editingShippingAddressId ? createPortal(
         <div style={shell.miniModalOverlay}>
           <div style={{ ...shell.miniModal, width: 'min(100%, 900px)' }}>
             <div style={shell.miniModalHead}>
@@ -5374,7 +5374,7 @@ export default function InvoiceDashboard() {
             </div>
           </div>
         </div>
-      ) : null}
+      , document.body) : null}
 
       <PdfPreviewModal
         open={pdfPreview.open}
