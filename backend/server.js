@@ -15254,9 +15254,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     };
     const tableX = pageLeft;
     const tableY = doc.y + 4;
-    const colWidths = isNonGstRenewalLetter
-      ? [30, 326, pageRight - tableX - 30 - 326]
-      : [30, 190, 136, pageRight - tableX - 30 - 190 - 136];
+    const colWidths = [30, 190, 136, pageRight - tableX - 30 - 190 - 136];
     const headerHeight = 22;
     const itemRowHeight = 24;
     const totalRowHeight = 24;
@@ -15300,7 +15298,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const headerY = tableY;
     let cursorX = tableX;
     const tableHeadings = isNonGstRenewalLetter
-      ? ['Sn', 'Service Name', 'Amount without GST']
+      ? ['Sn', 'Service Name', 'Amount without GST', 'Amount without GST']
       : ['Sn', 'Service Name', 'Amount without GST', 'Amount with GST'];
     tableHeadings.forEach((heading, index) => {
       drawTableCell(cursorX, headerY, colWidths[index], headerHeight, heading, {
@@ -15316,7 +15314,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       const itemY = tableY + headerHeight + (rowIndex * itemRowHeight);
       cursorX = tableX;
       const rowValues = isNonGstRenewalLetter
-        ? [line.serial, line.name, formatTableAmount(line.amountWithoutGst)]
+        ? [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithoutGst)]
         : [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithGst)];
       rowValues.forEach((value, index) => {
         drawTableCell(cursorX, itemY, colWidths[index], itemRowHeight, String(value), {
@@ -15328,7 +15326,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       });
     });
     const leftTotalWidth = colWidths[0] + colWidths[1];
-    const rightTotalWidth = isNonGstRenewalLetter ? colWidths[2] : colWidths[2] + colWidths[3];
+    const rightTotalWidth = colWidths[2] + colWidths[3];
     const totalY = tableY + headerHeight + (serviceLines.length * itemRowHeight);
     const leftTotalText = `${isNonGstRenewalLetter ? 'Total Price without GST' : 'Total Price with GST'} (In Words) = ${formatTableAmount(renewalTotalAmount)}`;
     const rightTotalText = formatTableAmountWords(renewalTotalAmount);
@@ -15336,9 +15334,9 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     doc.font(pdfFont.bold).fontSize(totalTextFontSize);
     const leftTotalTextHeight = doc.heightOfString(leftTotalText, { width: Math.max(0, leftTotalWidth - 10), align: 'left', lineGap: 1 });
     const rightTotalTextHeight = doc.heightOfString(rightTotalText, { width: Math.max(0, rightTotalWidth - 10), align: 'center', lineGap: 1 });
-    const mergedTotalRowHeight = Math.max(48, Math.ceil(Math.max(leftTotalTextHeight, rightTotalTextHeight) + 14));
-    drawWrappedTableCell(tableX, totalY, leftTotalWidth, mergedTotalRowHeight, leftTotalText, { bold: true, fontSize: totalTextFontSize, align: 'left', lineGap: 1.2, paddingY: 5 });
-    drawWrappedTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, mergedTotalRowHeight, rightTotalText, { bold: true, fontSize: totalTextFontSize, align: 'center', lineGap: 1.2, paddingY: 5 });
+    const mergedTotalRowHeight = Math.max(28, Math.ceil(Math.max(leftTotalTextHeight, rightTotalTextHeight) + 10));
+    drawWrappedTableCell(tableX, totalY, leftTotalWidth, mergedTotalRowHeight, leftTotalText, { bold: true, fontSize: totalTextFontSize, align: 'left', lineGap: 1.2, paddingY: 4 });
+    drawWrappedTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, mergedTotalRowHeight, rightTotalText, { bold: true, fontSize: totalTextFontSize, align: 'center', lineGap: 1.2, paddingY: 4 });
     doc.y = totalY + mergedTotalRowHeight + 12;
     const terms = [
       '100% Advance along with your confirmation order.',
