@@ -586,8 +586,10 @@ const shell = {
   miniCloseButton: { border: 'none', background: 'transparent', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, width: '28px', height: '28px' },
   miniModalOverlay: { position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.35)', display: 'grid', placeItems: 'center', zIndex: 3300, padding: 'clamp(12px, 3vh, 24px)', overflowY: 'auto' },
   miniModal: { width: 'min(100%, 680px)', background: 'var(--surface-card)', borderRadius: '20px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', color: 'var(--text-primary)' },
-  miniModalHead: { padding: '14px 18px', borderBottom: '1px solid transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--card-header-bg)', color: '#fff' },
+  miniModalHead: { padding: '14px 18px', borderBottom: '1px solid transparent', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: 'var(--card-header-bg)', color: '#fff' },
   miniModalTitle: { margin: 0, fontSize: '18px', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.01em' },
+  miniModalHeadActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', flexWrap: 'wrap' },
+  miniHeaderButton: { minHeight: '42px', height: '42px', border: '1px solid rgba(255,255,255,0.22)', background: '#ffffff', color: '#111827', borderRadius: '10px', padding: '0 16px', fontSize: '14px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', lineHeight: 1.1, boxShadow: '0 8px 18px rgba(2,6,23,0.18)' },
   miniModalBody: { padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' },
   miniModalNote: { margin: 0, fontSize: '16px', color: 'var(--text-primary)', lineHeight: 1.4 },
   miniRadioRow: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)' },
@@ -3042,8 +3044,12 @@ export default function InvoiceDashboard() {
 
   const handleCustomerChange = (value) => {
     const customer = resolveCustomerMatch(value);
-    const customerName = String(customer?.displayName || customer?.name || value || '').trim();
-    const latestContract = findLatestContractForCustomer(customer, customerName);
+    const typedCustomerName = String(value ?? '');
+    const customerName = customer
+      ? String(customer.displayName || customer.name || typedCustomerName).trim()
+      : typedCustomerName;
+    const shouldReuseLatestContract = String(form.customerType || '').trim().toLowerCase() !== 'new';
+    const latestContract = shouldReuseLatestContract ? findLatestContractForCustomer(customer, customerName) : null;
     const autofill = buildContractAutofill(latestContract);
     const invoiceDate = new Date().toISOString().slice(0, 10);
     const baseInvoiceType = String(autofill?.invoiceType || form.invoiceType || 'GST').trim() || 'GST';
@@ -5270,11 +5276,11 @@ export default function InvoiceDashboard() {
               <h3 style={shell.miniModalTitle}>
                 {editingShippingAddressId === 'new' || editingShippingAddressId === 'new-premise' ? 'Add New Address' : 'Edit Address'}
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={shell.miniModalHeadActions}>
                 {(editingShippingAddressId === 'new' || editingShippingAddressId === 'new-premise') && addressDraftTarget === 'shipping' ? (
                   <button
                     type="button"
-                    style={shell.copyBillingBtn}
+                    style={shell.miniHeaderButton}
                     onClick={copyBillingIntoNewAddressDraft}
                   >
                     Copy billing address
@@ -5282,7 +5288,7 @@ export default function InvoiceDashboard() {
                 ) : null}
                 <button
                   type="button"
-                  style={shell.cancelButton}
+                  style={shell.miniHeaderButton}
                   onClick={() => {
                     setEditingShippingAddressId('');
                     setShippingAddressDraft(emptyAddressDraft);
