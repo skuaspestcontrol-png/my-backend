@@ -13360,8 +13360,11 @@ app.delete('/api/payments/:id', (req, res) => {
   return res.json({ message: 'Payment deleted', payment: deletedPayment, invoice: updatedInvoice });
 });
 
-const renewalStatusesNew = new Set(['Pending', 'Follow-up', 'Done', 'Declined', 'Overdue', 'NOT_DUE', 'UPCOMING', 'DUE', 'FOLLOW_UP', 'OVERDUE', 'RENEWED', 'DECLINED', 'EXPIRED']);
-const renewalFinalStatuses = new Set(['Done', 'Declined', 'RENEWED', 'DECLINED']);
+const renewalStatusesNew = new Set(['Pending', 'Follow-up', 'Done', 'Declined', 'Overdue', 'NOT_DUE', 'UPCOMING', 'DUE', 'FOLLOW_UP', 'OVERDUE', 'RENEWED', 'DECLINED', 'EXPIRED', 'WON', 'LOST']);
+const renewalFinalStatuses = new Set(['Done', 'Declined', 'RENEWED', 'DECLINED', 'WON', 'LOST']);
+const renewalLegacyEditableStatuses = new Set(['NOT_DUE', 'UPCOMING', 'DUE', 'FOLLOW_UP', 'OVERDUE', 'RENEWED', 'DECLINED', 'EXPIRED']);
+const renewalOutcomes = new Set(['PENDING', 'WON', 'LOST']);
+const renewalTimingStatuses = new Set(['ON_TIME', 'LATE', 'OVERDUE_PENDING', 'UPCOMING']);
 const renewalRelationshipTypes = new Set(['CONTRACT', 'ONE_TIME', 'RECURRING', 'NEEDS_REVIEW']);
 const renewalDurationUnits = new Set(['DAY', 'MONTH', 'YEAR']);
 const renewalSqlDate = (value) => {
@@ -13404,10 +13407,165 @@ const renewalCleanStatus = (status) => {
   if (renewalStatusesNew.has(raw)) return raw;
   return 'DUE';
 };
+const renewalLegacyStatusForEdit = (status, fallback = 'DUE') => {
+  const raw = String(status || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (raw === 'WON' || raw === 'LOST') return null;
+  const cleaned = renewalCleanStatus(status || fallback);
+  if (!renewalLegacyEditableStatuses.has(cleaned)) return 'DUE';
+  return cleaned;
+};
 const renewalMoney = (value, fallback = null) => {
   if (value === null || value === undefined || value === '') return fallback;
   const amount = toNumber(value, Number.NaN);
   return Number.isFinite(amount) ? Number(amount.toFixed(2)) : fallback;
+};
+const normalizeRenewalOutcome = (value, fallback = 'PENDING') => {
+  const raw = String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (renewalOutcomes.has(raw)) return raw;
+  if (['DONE', 'RENEWED', 'CONFIRMED'].includes(raw)) return 'WON';
+  if (['DECLINED', 'LOST'].includes(raw)) return 'LOST';
+  return renewalOutcomes.has(fallback) ? fallback : 'PENDING';
+};
+const normalizeRenewalTiming = (value, fallback = '') => {
+  const raw = String(value || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (renewalTimingStatuses.has(raw)) return raw;
+  return renewalTimingStatuses.has(fallback) ? fallback : '';
+};
+const deriveRenewalOutcome = (row = {}) => {
+  const explicit = normalizeRenewalOutcome(row.renewal_outcome || row.renewalOutcome, '');
+  if (explicit) return explicit;
+  const status = renewalCleanStatus(row.renewal_status || row.renewalStatus || row.status);
+  if (status === 'RENEWED') return 'WON';
+  if (status === 'DECLINED') return 'LOST';
+  return 'PENDING';
+};
+const deriveRenewalTiming = (row = {}) => {
+  const explicit = normalizeRenewalTiming(row.renewal_timing || row.renewalTiming, '');
+  if (explicit) return explicit;
+  const outcome = deriveRenewalOutcome(row);
+  const expiry = parseDateOnly(row.previous_contract_end || row.previousContractEnd || row.renewal_due_date || row.renewalDueDate || row.contractEndDate);
+  const decision = parseDateOnly(row.outcome_decision_date || row.outcomeDecisionDate || row.agreement_date || row.agreementDate || row.renewed_at || row.renewedAt);
+  if (outcome === 'WON') {
+    if (expiry && decision) return decision.getTime() <= expiry.getTime() ? 'ON_TIME' : 'LATE';
+    return '';
+  }
+  if (outcome === 'LOST') return '';
+  const today = parseDateOnly(new Date());
+  if (expiry && today && expiry.getTime() < today.getTime()) return 'OVERDUE_PENDING';
+  return 'UPCOMING';
+};
+const renewalOutcomeLabel = (outcome) => ({
+  PENDING: 'Pending',
+  WON: 'Won',
+  LOST: 'Lost'
+})[normalizeRenewalOutcome(outcome)] || 'Pending';
+const renewalTimingLabel = (timing) => ({
+  ON_TIME: 'On Time',
+  LATE: 'Late',
+  OVERDUE_PENDING: 'Overdue Pending',
+  UPCOMING: 'Upcoming'
+})[normalizeRenewalTiming(timing)] || '';
+const validRenewalAmount = (value) => {
+  const amount = renewalMoney(value, null);
+  return amount !== null && amount >= 0 ? amount : null;
+};
+const renewalPriceDelta = (previousAmount, agreedAmount) => {
+  const previous = Math.max(0, renewalMoney(previousAmount, 0));
+  const agreed = Math.max(0, renewalMoney(agreedAmount, 0));
+  const difference = Number((agreed - previous).toFixed(2));
+  const percentage = previous > 0 ? Number(((difference / previous) * 100).toFixed(2)) : null;
+  return { previous, agreed, difference, percentage };
+};
+const renewalCents = (value) => Math.round(toNumber(value, 0) * 100);
+const renewalAmountsMatch = (first, second) => Math.abs(renewalCents(first) - renewalCents(second)) <= 1;
+const renewalInvoiceLineBase = (item = {}) => {
+  const quantity = Math.max(0, toNumber(item.quantity, 0));
+  const rate = Math.max(0, toNumber(item.rate, 0));
+  const explicitAmount = renewalMoney(item.amount, null);
+  if (explicitAmount !== null) return explicitAmount;
+  return Number((quantity * rate).toFixed(2));
+};
+const renewalInvoiceTypeKey = (value) => String(value || '').trim().toUpperCase() === 'NON GST' ? 'NON GST' : 'GST';
+const renewalInvoiceTotalsFromItems = (items = [], invoiceType = 'GST', discountValue = 0, roundOffValue = 0) => {
+  const type = renewalInvoiceTypeKey(invoiceType);
+  const discount = Math.max(0, renewalMoney(discountValue, 0));
+  const roundOff = renewalMoney(roundOffValue, 0);
+  const subtotal = Number(items.reduce((sum, item) => sum + renewalInvoiceLineBase(item), 0).toFixed(2));
+  const totalTax = type === 'NON GST'
+    ? 0
+    : Number(items.reduce((sum, item) => {
+      const taxRate = Math.max(0, toNumber(item.taxRate ?? item.gstPercentage ?? item.gst, 0));
+      return sum + (renewalInvoiceLineBase(item) * taxRate / 100);
+    }, 0).toFixed(2));
+  const total = Number((subtotal + totalTax - discount + roundOff).toFixed(2));
+  return { invoiceType: type, subtotal, totalTax, discount, roundOff, total };
+};
+const renewalContractItemPatch = (durationValue, durationUnit, nextStart, nextEnd) => ({
+  serviceRelationshipType: 'CONTRACT',
+  renewalEligible: true,
+  contractDurationValue: durationValue,
+  contractDurationUnit: durationUnit,
+  contractStartDate: nextStart,
+  contractEndDate: nextEnd,
+  serviceStartDate: nextStart,
+  serviceEndDate: nextEnd,
+  renewalDate: nextEnd
+});
+const buildRenewalInvoiceFinancials = ({
+  sourceInvoice = {},
+  lockedRenewal = {},
+  amount,
+  invoiceType = 'GST',
+  durationValue,
+  durationUnit,
+  nextStart,
+  nextEnd
+}) => {
+  const targetTotal = renewalMoney(amount, null);
+  if (targetTotal === null || targetTotal < 0) {
+    return { error: 'Amount must be numeric.' };
+  }
+  const type = renewalInvoiceTypeKey(invoiceType);
+  const sourceItems = Array.isArray(sourceInvoice.items) ? sourceInvoice.items : [];
+  const discount = Math.max(0, renewalMoney(sourceInvoice.discount ?? sourceInvoice.discountAmount ?? sourceInvoice.discount_amount, 0));
+  const roundOff = renewalMoney(sourceInvoice.roundOff ?? sourceInvoice.round_off, 0);
+  const contractPatch = renewalContractItemPatch(durationValue, durationUnit, nextStart, nextEnd);
+
+  if (sourceItems.length > 1) {
+    const preservedItems = sourceItems.map((item) => ({ ...item, ...contractPatch }));
+    const totals = renewalInvoiceTotalsFromItems(preservedItems, type, discount, roundOff);
+    if (!renewalAmountsMatch(totals.total, targetTotal)) {
+      return {
+        error: 'Revised pricing for multi-item renewals is not supported here because it would require changing item-level amounts. Please use the same price or create the new contract manually.'
+      };
+    }
+    return { items: preservedItems, ...totals };
+  }
+
+  const sourceItem = sourceItems[0] || {};
+  const sourceTaxRate = Math.max(0, toNumber(sourceItem.taxRate ?? sourceItem.gstPercentage ?? sourceItem.gst, 0));
+  const taxRate = type === 'NON GST' ? 0 : sourceTaxRate;
+  const taxableTarget = Number((targetTotal + discount - roundOff).toFixed(2));
+  const divisor = type === 'NON GST' ? 1 : (1 + (taxRate / 100));
+  const lineBase = Number((taxableTarget / divisor).toFixed(2));
+  if (!Number.isFinite(lineBase) || lineBase < 0) {
+    return { error: 'Unable to reconcile the revised renewal amount with invoice totals.' };
+  }
+  const item = {
+    ...sourceItem,
+    itemName: sourceItem.itemName || sourceItem.name || lockedRenewal.serviceType || 'Renewed Service Contract',
+    description: sourceItem.description || `Renewal for ${lockedRenewal.customerName || 'customer'}`,
+    quantity: 1,
+    rate: lineBase,
+    amount: lineBase,
+    taxRate,
+    ...contractPatch
+  };
+  const totals = renewalInvoiceTotalsFromItems([item], type, discount, roundOff);
+  if (!renewalAmountsMatch(totals.total, targetTotal)) {
+    return { error: 'Unable to reconcile the revised renewal amount with invoice totals.' };
+  }
+  return { items: [item], ...totals };
 };
 const renewalSourceInvoiceFrom = (merged = {}, payload = {}) => {
   const source = payload.sourceInvoice || merged.sourceInvoice || {};
@@ -13494,7 +13652,9 @@ const renewalUiStatus = (status) => ({
   FOLLOW_UP: 'Follow-up',
   OVERDUE: 'Overdue',
   RENEWED: 'Renewed',
+  WON: 'Won',
   DECLINED: 'Declined',
+  LOST: 'Lost',
   EXPIRED: 'Expired',
   Done: 'Renewed',
   Declined: 'Declined',
@@ -13519,6 +13679,15 @@ const deriveRenewalDuration = (startValue, endValue, periodValue = '') => {
   if (months >= 12 && months % 12 === 0) return { value: months / 12, unit: 'YEAR' };
   if (months > 1) return { value: months, unit: 'MONTH' };
   return { value: days, unit: 'DAY' };
+};
+const calculateRenewalContractEndDate = (startValue, durationValue = 12, durationUnit = 'MONTH') => {
+  const start = parseDateOnly(startValue);
+  if (!start) return null;
+  const value = Math.max(1, Number(durationValue || 1) || 1);
+  const unit = normalizeRenewalDurationUnit(durationUnit || 'MONTH');
+  if (unit === 'DAY') return addDays(start, value - 1);
+  const months = unit === 'YEAR' ? value * 12 : value;
+  return addDays(addMonthsClamped(start, months), -1);
 };
 const classifyRenewalSource = (invoice = {}) => {
   const lines = Array.isArray(invoice?.items) ? invoice.items : [];
@@ -13567,6 +13736,11 @@ const renewalPublicRow = (row = {}) => {
   const finance = deriveRenewalFinance({ merged, payload });
   const renewalId = String(merged.renewal_id || merged.renewalId || merged.external_id || merged._id || '').trim();
   const renewalDisplayId = String(merged.renewal_display_id || merged.renewalDisplayId || '').trim();
+  const outcome = deriveRenewalOutcome(merged);
+  const timing = deriveRenewalTiming(merged);
+  const agreedAmount = renewalMoney(merged.agreed_contract_amount ?? merged.agreedContractAmount ?? merged.final_renewal_amount ?? merged.finalRenewalAmount, null);
+  const previousContractAmount = renewalMoney(merged.previous_contract_amount ?? merged.previousContractAmount ?? merged.previous_amount ?? merged.previousAmount ?? finance.contractAmount, null);
+  const priceDelta = renewalPriceDelta(previousContractAmount, agreedAmount ?? merged.proposed_amount ?? merged.proposedAmount ?? 0);
   return {
     id: merged.id,
     _id: renewalId,
@@ -13612,9 +13786,28 @@ const renewalPublicRow = (row = {}) => {
     assignedSalesPersonName: merged.assigned_sales_person_name || merged.assignedSalesPersonName || '',
     renewedBySalesPersonId: merged.renewed_by_sales_person_id || merged.renewedBySalesPersonId || '',
     renewedBySalesPersonName: merged.renewed_by_sales_person_name || merged.renewedBySalesPersonName || '',
-    status: renewalUiStatus(computeRenewalStatus(merged)),
+    status: outcome === 'WON' ? 'Renewed' : outcome === 'LOST' ? 'Declined' : renewalUiStatus(computeRenewalStatus(merged)),
     storedStatus: renewalCleanStatus(merged.status),
     legacyStatus: merged.legacyStatus || merged.legacy_status || '',
+    renewalOutcome: outcome,
+    renewal_outcome: outcome,
+    outcomeLabel: renewalOutcomeLabel(outcome),
+    renewalTiming: timing,
+    renewal_timing: timing,
+    timingLabel: renewalTimingLabel(timing),
+    outcomeDecisionDate: renewalSqlDate(merged.outcome_decision_date || merged.outcomeDecisionDate || merged.agreement_date || merged.agreementDate || merged.renewed_at || merged.renewedAt),
+    outcomeRecordedAt: merged.outcome_recorded_at || merged.outcomeRecordedAt || '',
+    outcomeUpdatedBy: merged.outcome_updated_by || merged.outcomeUpdatedBy || '',
+    agreementDate: renewalSqlDate(merged.agreement_date || merged.agreementDate),
+    newContractStartDate: renewalSqlDate(merged.new_contract_start_date || merged.newContractStartDate),
+    newContractEndDate: renewalSqlDate(merged.new_contract_end_date || merged.newContractEndDate),
+    previousContractId: merged.previous_contract_id || merged.previousContractId || merged.contract_id || merged.contractId || '',
+    newContractId: merged.new_contract_id || merged.newContractId || merged.converted_contract_id || merged.convertedContractId || '',
+    previousContractAmount: previousContractAmount ?? 0,
+    agreedContractAmount: agreedAmount ?? 0,
+    priceDifference: priceDelta.difference,
+    priceChangePercent: priceDelta.percentage,
+    lostNotes: merged.lost_notes || merged.lostNotes || '',
     paymentStatus: merged.paymentStatus || merged.payment_status || 'Pending',
     followupDate: renewalSqlDate(merged.followup_date || merged.followupDate),
     lastFollowupNote: merged.last_followup_note || merged.lastFollowupNote || '',
@@ -13748,6 +13941,22 @@ const ensureRenewalTables = async (conn) => {
       assigned_sales_person_name VARCHAR(255) NULL,
       renewed_by_sales_person_id VARCHAR(100) NULL,
       renewed_by_sales_person_name VARCHAR(255) NULL,
+      renewal_outcome VARCHAR(20) NULL,
+      outcome_decision_date DATE NULL,
+      outcome_recorded_at DATETIME NULL,
+      renewal_timing VARCHAR(30) NULL,
+      previous_contract_id VARCHAR(100) NULL,
+      new_contract_id VARCHAR(100) NULL,
+      previous_contract_amount DECIMAL(12,2) NULL,
+      agreed_contract_amount DECIMAL(12,2) NULL,
+      price_difference DECIMAL(12,2) NULL,
+      price_change_percent DECIMAL(8,2) NULL,
+      agreement_date DATE NULL,
+      new_contract_start_date DATE NULL,
+      new_contract_end_date DATE NULL,
+      lost_reason VARCHAR(120) NULL,
+      lost_notes TEXT NULL,
+      outcome_updated_by VARCHAR(255) NULL,
       status VARCHAR(80) NULL,
       followup_date DATE NULL,
       last_followup_note TEXT NULL,
@@ -13792,6 +14001,22 @@ const ensureRenewalTables = async (conn) => {
     { name: 'assigned_sales_person_name', definition: 'VARCHAR(255) NULL' },
     { name: 'renewed_by_sales_person_id', definition: 'VARCHAR(100) NULL' },
     { name: 'renewed_by_sales_person_name', definition: 'VARCHAR(255) NULL' },
+    { name: 'renewal_outcome', definition: 'VARCHAR(20) NULL' },
+    { name: 'outcome_decision_date', definition: 'DATE NULL' },
+    { name: 'outcome_recorded_at', definition: 'DATETIME NULL' },
+    { name: 'renewal_timing', definition: 'VARCHAR(30) NULL' },
+    { name: 'previous_contract_id', definition: 'VARCHAR(100) NULL' },
+    { name: 'new_contract_id', definition: 'VARCHAR(100) NULL' },
+    { name: 'previous_contract_amount', definition: 'DECIMAL(12,2) NULL' },
+    { name: 'agreed_contract_amount', definition: 'DECIMAL(12,2) NULL' },
+    { name: 'price_difference', definition: 'DECIMAL(12,2) NULL' },
+    { name: 'price_change_percent', definition: 'DECIMAL(8,2) NULL' },
+    { name: 'agreement_date', definition: 'DATE NULL' },
+    { name: 'new_contract_start_date', definition: 'DATE NULL' },
+    { name: 'new_contract_end_date', definition: 'DATE NULL' },
+    { name: 'lost_reason', definition: 'VARCHAR(120) NULL' },
+    { name: 'lost_notes', definition: 'TEXT NULL' },
+    { name: 'outcome_updated_by', definition: 'VARCHAR(255) NULL' },
     { name: 'followup_date', definition: 'DATE NULL' },
     { name: 'last_followup_note', definition: 'TEXT NULL' },
     { name: 'decline_reason', definition: 'TEXT NULL' },
@@ -13861,6 +14086,8 @@ const ensureRenewalTables = async (conn) => {
   await ensureIndex('renewals', 'idx_renewals_relationship_type', 'CREATE INDEX idx_renewals_relationship_type ON renewals (service_relationship_type)');
   await ensureIndex('renewals', 'idx_renewals_renewal_status', 'CREATE INDEX idx_renewals_renewal_status ON renewals (renewal_status)');
   await ensureIndex('renewals', 'idx_renewals_eligible', 'CREATE INDEX idx_renewals_eligible ON renewals (renewal_eligible)');
+  await ensureIndex('renewals', 'idx_renewals_outcome', 'CREATE INDEX idx_renewals_outcome ON renewals (renewal_outcome)');
+  await ensureIndex('renewals', 'idx_renewals_timing', 'CREATE INDEX idx_renewals_timing ON renewals (renewal_timing)');
   await ensureIndex('renewal_followups', 'idx_renewal_followups_renewal_id', 'CREATE INDEX idx_renewal_followups_renewal_id ON renewal_followups (renewal_id)');
   await ensureIndex('renewal_letters', 'idx_renewal_letters_renewal_id', 'CREATE INDEX idx_renewal_letters_renewal_id ON renewal_letters (renewal_id)');
 };
@@ -13953,9 +14180,9 @@ const markMatchingRenewalCompleteForInvoice = async (invoice = {}) => {
       await ensureRenewalTables(conn);
       await conn.query(
         `UPDATE renewals
-         SET status = ?, renewal_status = ?, converted_contract_id = ?, renewed_at = COALESCE(renewed_at, ?), final_renewal_amount = CASE WHEN ? > 0 THEN ? ELSE final_renewal_amount END
+         SET status = ?, renewal_status = ?, renewal_outcome = ?, converted_contract_id = ?, renewed_at = COALESCE(renewed_at, ?), final_renewal_amount = CASE WHEN ? > 0 THEN ? ELSE final_renewal_amount END
          WHERE renewal_id = ?`,
-        ['Renewed', 'RENEWED', invoiceId, nowIso, finalAmount, finalAmount, renewal.renewalId]
+        ['Done', 'RENEWED', 'WON', invoiceId, nowIso, finalAmount, finalAmount, renewal.renewalId]
       );
     });
     return findRenewalRow(renewal.renewalId);
@@ -14385,7 +14612,30 @@ const summarizeRenewals = (rows = []) => {
   const bySales = new Map();
   const byMonth = new Map();
   const byYear = new Map();
+  const byService = new Map();
+  const byDuration = new Map();
+  const today = parseDateOnly(new Date());
+  const outcomeOf = (row) => normalizeRenewalOutcome(row.renewalOutcome || row.renewal_outcome || (row.status === 'Won' ? 'WON' : row.status === 'Lost' ? 'LOST' : ''), 'PENDING');
+  const timingOf = (row) => normalizeRenewalTiming(row.renewalTiming || row.renewal_timing || deriveRenewalTiming(row), '');
+  const reportDateOf = (row) => {
+    const outcome = outcomeOf(row);
+    if (outcome === 'WON') return parseDateOnly(row.outcomeDecisionDate || row.agreementDate || row.renewedAt);
+    if (outcome === 'LOST') return parseDateOnly(row.outcomeDecisionDate || row.updatedAt);
+    return parseDateOnly(row.renewalDueDate || row.previousContractEnd);
+  };
+  const addBucket = (map, key, patch) => {
+    const normalizedKey = String(key || 'Unspecified').trim() || 'Unspecified';
+    const current = map.get(normalizedKey) || { key: normalizedKey, name: normalizedKey, total: 0, won: 0, lost: 0, pending: 0, onTime: 0, late: 0, amount: 0, wonRevenue: 0, lostValue: 0, pendingValue: 0 };
+    Object.entries(patch).forEach(([field, value]) => {
+      current[field] = (current[field] || 0) + Number(value || 0);
+    });
+    map.set(normalizedKey, current);
+  };
   contractRows.forEach((row) => {
+    const outcome = outcomeOf(row);
+    const timing = timingOf(row);
+    const opportunityValue = toNumber(row.proposedAmount || row.previousAmount || row.contractAmount, 0);
+    const wonValue = toNumber(row.agreedContractAmount || row.finalRenewalAmount || row.proposedAmount, 0);
     const salesKey = String(row.assignedSalesPersonId || row.assignedSalesPersonName || 'Unassigned').trim() || 'Unassigned';
     const sales = bySales.get(salesKey) || {
       id: String(row.assignedSalesPersonId || '').trim(),
@@ -14398,41 +14648,79 @@ const summarizeRenewals = (rows = []) => {
     if (!sales.id && row.assignedSalesPersonId) sales.id = String(row.assignedSalesPersonId || '').trim();
     if (!sales.name || sales.name === 'Unassigned') sales.name = String(row.assignedSalesPersonName || salesKey || 'Unassigned').trim() || 'Unassigned';
     sales.total += 1;
-    if (row.status === 'Renewed') sales.done += 1;
-    if (!['Renewed', 'Declined'].includes(row.status)) sales.pending += 1;
-    sales.amount += toNumber(row.proposedAmount, 0);
+    if (outcome === 'WON') sales.done += 1;
+    if (outcome === 'PENDING') sales.pending += 1;
+    sales.amount += opportunityValue;
     bySales.set(salesKey, sales);
-    const due = parseDateOnly(row.renewalDueDate);
-    const monthKey = due ? `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, '0')}` : 'No date';
-    const yearKey = due ? String(due.getFullYear()) : 'No date';
-    const m = byMonth.get(monthKey) || { period: monthKey, count: 0, amount: 0 };
-    m.count += 1; m.amount += toNumber(row.proposedAmount, 0); byMonth.set(monthKey, m);
-    const y = byYear.get(yearKey) || { year: yearKey, count: 0, amount: 0 };
-    y.count += 1; y.amount += toNumber(row.proposedAmount, 0); byYear.set(yearKey, y);
+    const reportDate = reportDateOf(row);
+    const monthKey = reportDate ? `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}` : 'No date';
+    const yearKey = reportDate ? String(reportDate.getFullYear()) : 'No date';
+    const patch = {
+      total: 1,
+      won: outcome === 'WON' ? 1 : 0,
+      lost: outcome === 'LOST' ? 1 : 0,
+      pending: outcome === 'PENDING' ? 1 : 0,
+      onTime: outcome === 'WON' && timing === 'ON_TIME' ? 1 : 0,
+      late: outcome === 'WON' && timing === 'LATE' ? 1 : 0,
+      amount: opportunityValue,
+      wonRevenue: outcome === 'WON' ? wonValue : 0,
+      lostValue: outcome === 'LOST' ? opportunityValue : 0,
+      pendingValue: outcome === 'PENDING' ? opportunityValue : 0
+    };
+    addBucket(byMonth, monthKey, patch);
+    addBucket(byYear, yearKey, patch);
+    addBucket(byService, row.serviceType || 'Unspecified', patch);
+    addBucket(byDuration, contractDurationLabel(parseDateOnly(row.previousContractStart), parseDateOnly(row.previousContractEnd)) || `${row.contractDurationValue || '-'} ${row.contractDurationUnit || ''}`.trim(), patch);
   });
+  const wonRows = contractRows.filter((row) => outcomeOf(row) === 'WON');
+  const lostRows = contractRows.filter((row) => outcomeOf(row) === 'LOST');
+  const pendingRows = contractRows.filter((row) => outcomeOf(row) === 'PENDING');
+  const decidedCount = wonRows.length + lostRows.length;
+  const sortedValues = (map, labelField = 'name') => Array.from(map.values())
+    .map((entry) => ({
+      ...entry,
+      [labelField]: entry[labelField] || entry.name || entry.key,
+      conversionRate: (entry.won + entry.lost) > 0 ? Number(((entry.won / (entry.won + entry.lost)) * 100).toFixed(2)) : null
+    }))
+    .sort((a, b) => String(a.key || a.name).localeCompare(String(b.key || b.name)));
   return {
     totalRenewals: contractRows.length,
-    activeContractCount: contractRows.filter((row) => ['Not Due', 'Upcoming', 'Due', 'Follow-up'].includes(row.status)).length,
+    totalEligibleRenewalOpportunities: contractRows.length,
+    activeContractCount: pendingRows.filter((row) => ['Not Due', 'Upcoming', 'Due', 'Follow-up'].includes(row.status)).length,
     dueCount: contractRows.filter((row) => row.status === 'Due').length,
     dueIn30Count: contractRows.filter((row) => {
       const due = parseDateOnly(row.renewalDueDate);
-      const now = parseDateOnly(new Date());
+      const now = today;
       if (!due || !now) return false;
       const days = Math.round((due.getTime() - now.getTime()) / 86400000);
       return days >= 1 && days <= 30;
     }).length,
     oneTimeTreatmentCount: oneTimeRows.length,
     totalRenewalAmount: contractRows.reduce((sum, row) => sum + toNumber(row.proposedAmount || row.finalRenewalAmount, 0), 0),
+    wonRenewalRevenue: wonRows.reduce((sum, row) => sum + toNumber(row.agreedContractAmount || row.finalRenewalAmount || row.proposedAmount, 0), 0),
+    lostOpportunityValue: lostRows.reduce((sum, row) => sum + toNumber(row.proposedAmount || row.previousAmount || row.contractAmount, 0), 0),
+    pendingOpportunityValue: pendingRows.reduce((sum, row) => sum + toNumber(row.proposedAmount || row.previousAmount || row.contractAmount, 0), 0),
     customerCount: customers.size,
-    doneCount: contractRows.filter((row) => row.status === 'Renewed').length,
-    pendingCount: contractRows.filter((row) => ['Due', 'Upcoming', 'Not Due'].includes(row.status)).length,
-    declinedCount: contractRows.filter((row) => row.status === 'Declined').length,
-    followupCount: contractRows.filter((row) => row.status === 'Follow-up').length,
-    overdueCount: contractRows.filter((row) => row.status === 'Overdue').length,
+    doneCount: wonRows.length,
+    wonCount: wonRows.length,
+    pendingCount: pendingRows.length,
+    declinedCount: lostRows.length,
+    lostCount: lostRows.length,
+    followupCount: pendingRows.filter((row) => row.status === 'Follow-up').length,
+    overdueCount: pendingRows.filter((row) => row.status === 'Overdue' || timingOf(row) === 'OVERDUE_PENDING').length,
+    overduePendingCount: pendingRows.filter((row) => row.status === 'Overdue' || timingOf(row) === 'OVERDUE_PENDING').length,
+    onTimeWonCount: wonRows.filter((row) => timingOf(row) === 'ON_TIME').length,
+    lateWonCount: wonRows.filter((row) => timingOf(row) === 'LATE').length,
+    winRate: decidedCount > 0 ? Number(((wonRows.length / decidedCount) * 100).toFixed(2)) : null,
+    previousContractValue: contractRows.reduce((sum, row) => sum + toNumber(row.previousContractAmount || row.previousAmount || row.contractAmount, 0), 0),
+    newWonContractValue: wonRows.reduce((sum, row) => sum + toNumber(row.agreedContractAmount || row.finalRenewalAmount || row.proposedAmount, 0), 0),
+    priceDifferenceTotal: wonRows.reduce((sum, row) => sum + toNumber(row.priceDifference, 0), 0),
     assignedSalesPersonCount: new Set(contractRows.map((row) => row.assignedSalesPersonId || row.assignedSalesPersonName).filter(Boolean)).size,
     salespersonWiseSummary: Array.from(bySales.values()),
-    monthWiseSummary: Array.from(byMonth.values()).sort((a, b) => String(a.period).localeCompare(String(b.period))),
-    yearWiseSummary: Array.from(byYear.values()).sort((a, b) => String(a.year).localeCompare(String(b.year)))
+    monthWiseSummary: sortedValues(byMonth, 'period').map((entry) => ({ ...entry, period: entry.key })),
+    yearWiseSummary: sortedValues(byYear, 'year').map((entry) => ({ ...entry, year: entry.key })),
+    serviceWiseSummary: sortedValues(byService),
+    durationWiseSummary: sortedValues(byDuration)
   };
 };
 const sourceRenewalCandidates = async () => {
@@ -14604,8 +14892,16 @@ app.get('/api/renewals', async (req, res) => {
 
 app.get('/api/renewals/summary', async (req, res) => {
   try {
-    const rows = applyRenewalFilters(await loadRenewalRows(), req.query);
-    return res.json(summarizeRenewals(rows));
+    const allRows = await loadRenewalRows();
+    const filteredRows = applyRenewalFilters(allRows, req.query);
+    const filtered = summarizeRenewals(filteredRows);
+    const global = summarizeRenewals(allRows);
+    return res.json({
+      ...filtered,
+      filtered,
+      global,
+      summaryScope: 'filtered'
+    });
   } catch (error) {
     console.error('Renewals summary failed:', error.message);
     return res.status(500).json({ error: 'Unable to load renewal summary right now.' });
@@ -14847,6 +15143,8 @@ app.post('/api/renewals/:id/edit', async (req, res) => {
   if (!requireRenewalRecordAccess(req, res, renewal)) return;
   const proposedAmount = toNumber(req.body.proposedAmount, renewal.proposedAmount);
   if (proposedAmount < 0) return res.status(400).json({ error: 'Amount must be numeric.' });
+  const editableStatus = renewalLegacyStatusForEdit(req.body.status || renewal.renewalStatus || renewal.storedStatus || renewal.status, renewal.renewalStatus || renewal.storedStatus || renewal.status);
+  if (!editableStatus) return res.status(400).json({ error: 'Use Mark as Won/Lost actions for renewal outcome changes.' });
   try {
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
@@ -14859,9 +15157,9 @@ app.post('/api/renewals/:id/edit', async (req, res) => {
           String(req.body.serviceType || renewal.serviceType || '').trim(),
           renewalSqlDate(req.body.renewalDueDate || renewal.renewalDueDate),
           proposedAmount,
-          renewalUiStatus(renewalCleanStatus(req.body.status || renewal.renewalStatus || renewal.storedStatus || renewal.status)),
+          renewalUiStatus(editableStatus),
           String(req.body.note || renewal.lastFollowupNote || '').trim(),
-          renewalCleanStatus(req.body.status || renewal.renewalStatus || renewal.storedStatus || renewal.status),
+          editableStatus,
           renewal.renewalId
         ]
       );
@@ -15398,7 +15696,7 @@ app.post('/api/renewals/:id/mark-done', async (req, res) => {
       await ensureRenewalTables(conn);
       await conn.query(
         `UPDATE renewals
-         SET status = 'Renewed', renewal_status = 'RENEWED', final_renewal_amount = ?, renewed_by_sales_person_id = ?, renewed_by_sales_person_name = ?, renewed_at = ?, last_followup_note = ?
+         SET status = 'Done', renewal_status = 'RENEWED', renewal_outcome = 'WON', final_renewal_amount = ?, renewed_by_sales_person_id = ?, renewed_by_sales_person_name = ?, renewed_at = ?, last_followup_note = ?
          WHERE renewal_id = ?`,
         [
           finalAmount,
@@ -15422,17 +15720,52 @@ app.post('/api/renewals/:id/decline', async (req, res) => {
   const renewal = await findRenewalRow(req.params.id);
   if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
   if (!requireRenewalRecordAccess(req, res, renewal)) return;
-  const reason = String(req.body.reason || req.body.declineReason || '').trim();
+  if (renewal.convertedContractId || renewal.newContractId) return res.status(409).json({ error: 'Converted renewals cannot be marked lost without a controlled correction.' });
+  const reason = String(req.body.reason || req.body.declineReason || req.body.lostReason || '').trim();
+  const notes = String(req.body.notes || req.body.note || req.body.lostNotes || '').trim();
+  const decisionDate = renewalSqlDate(req.body.outcomeDecisionDate || req.body.decisionDate || new Date());
+  const previousAmount = toNumber(renewal.previousContractAmount || renewal.previousAmount || renewal.contractAmount || renewal.proposedAmount, 0);
   if (!reason) return res.status(400).json({ error: 'Decline reason is required.' });
   try {
     await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
-      await conn.query('UPDATE renewals SET status = ?, renewal_status = ?, decline_reason = ?, last_followup_note = ? WHERE renewal_id = ?', ['Declined', 'DECLINED', reason, reason, renewal.renewalId]);
+      await conn.query(
+        `UPDATE renewals
+         SET status = ?,
+             renewal_status = ?,
+             renewal_outcome = ?,
+             renewal_timing = NULL,
+             outcome_decision_date = ?,
+             outcome_recorded_at = ?,
+             previous_contract_id = ?,
+             previous_contract_amount = ?,
+             lost_reason = ?,
+             lost_notes = ?,
+             decline_reason = ?,
+             last_followup_note = ?,
+             outcome_updated_by = ?
+         WHERE renewal_id = ?`,
+        [
+          'Declined',
+          'DECLINED',
+          'LOST',
+          decisionDate,
+          renewalSqlDateTime(new Date()),
+          renewal.previousContractId || renewal.contractId || '',
+          previousAmount,
+          reason,
+          notes,
+          reason,
+          notes || reason,
+          readUserMeta(req),
+          renewal.renewalId
+        ]
+      );
       await insertRenewalAuditLog(conn, {
         renewalId: renewal.renewalId,
         action: 'decline_renewal',
-        previousValue: { status: renewal.status, renewalStatus: renewal.renewalStatus },
-        nextValue: { status: 'Declined', renewalStatus: 'DECLINED', reason },
+        previousValue: { status: renewal.status, renewalStatus: renewal.renewalStatus, renewalOutcome: renewal.renewalOutcome },
+        nextValue: { status: 'Declined', renewalStatus: 'DECLINED', renewalOutcome: 'LOST', reason, notes, outcomeDecisionDate: decisionDate },
         req
       });
     });
@@ -15463,17 +15796,15 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
     const invoices = await loadInvoicesForContext();
     const sourceInvoice = invoices.find((entry) => String(entry?._id || '') === String(renewal.contractId || '')) || {};
     const invoiceType = String(req.body.invoiceType || sourceInvoice.invoiceType || 'GST').trim() || 'GST';
-    const startBase = parseDateOnly(req.body.contractStartDate || renewal.previousContractEnd || new Date()) || new Date();
-    const nextStart = renewalSqlDate(req.body.contractStartDate || addMonthsClamped(startBase, 0));
     const durationValue = Math.max(1, toNumber(req.body.contractDurationValue || req.body.durationValue, 12));
     const durationUnit = normalizeRenewalDurationUnit(req.body.contractDurationUnit || req.body.durationUnit || 'MONTH');
-    const durationMonths = durationUnit === 'YEAR' ? durationValue * 12 : durationUnit === 'MONTH' ? durationValue : 0;
-    const durationEnd = durationUnit === 'DAY'
-      ? addDays(parseDateOnly(nextStart) || new Date(), durationValue - 1)
-      : addDays(addMonthsClamped(parseDateOnly(nextStart) || new Date(), durationMonths), -1);
+    const agreementDate = renewalSqlDate(req.body.agreementDate || req.body.outcomeDecisionDate || new Date());
+    const nextStart = renewalSqlDate(req.body.contractStartDate || agreementDate || new Date());
+    const durationEnd = calculateRenewalContractEndDate(nextStart, durationValue, durationUnit);
     const nextEnd = renewalSqlDate(req.body.contractEndDate || durationEnd);
-    const amount = toNumber(req.body.amount || renewal.finalRenewalAmount || renewal.proposedAmount, 0);
-    if (amount < 0) return res.status(400).json({ error: 'Amount must be numeric.' });
+    if (!nextStart || !nextEnd) return res.status(400).json({ error: 'New contract start and end dates are required.' });
+    const requestedAmount = req.body.amount ?? req.body.agreedContractAmount ?? req.body.finalAmount ?? null;
+    if (validRenewalAmount(requestedAmount) === null && requestedAmount != null && requestedAmount !== '') return res.status(400).json({ error: 'Amount must be numeric.' });
 
     await conn.beginTransaction();
     const [lockedRows] = await conn.query(
@@ -15500,6 +15831,23 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
       await conn.rollback();
       return res.status(400).json({ error: 'Renewal must be a one-time treatment or eligible contract before conversion.' });
     }
+    const previousContractAmount = toNumber(lockedRenewal.previousContractAmount || lockedRenewal.previousAmount || lockedRenewal.contractAmount || lockedRenewal.proposedAmount, 0);
+    const priceOption = String(req.body.priceOption || '').trim().toLowerCase();
+    const amount = priceOption === 'same' || requestedAmount == null || requestedAmount === ''
+      ? previousContractAmount
+      : toNumber(requestedAmount, previousContractAmount);
+    if (validRenewalAmount(amount) === null) {
+      await conn.rollback();
+      return res.status(400).json({ error: 'Amount must be numeric.' });
+    }
+    const priceDelta = renewalPriceDelta(previousContractAmount, amount);
+    const timing = deriveRenewalTiming({
+      renewal_outcome: 'WON',
+      outcome_decision_date: agreementDate,
+      agreement_date: agreementDate,
+      renewal_due_date: lockedRenewal.renewalDueDate,
+      previous_contract_end: lockedRenewal.previousContractEnd
+    });
 
     const lockedSettings = await readLockedSettingsForNumbering(conn);
     const requestedInvoiceNumber = String(req.body.invoiceNumber || '').trim();
@@ -15513,37 +15861,20 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
       return res.status(409).json({ error: 'Invoice number already exists. Please retry conversion.' });
     }
 
-    const sourceItems = Array.isArray(sourceInvoice.items) ? sourceInvoice.items : [];
-    const items = sourceItems.length ? sourceItems.map((item) => ({
-      ...item,
-      serviceRelationshipType: 'CONTRACT',
-      renewalEligible: true,
-      contractDurationValue: durationValue,
-      contractDurationUnit: durationUnit,
-      contractStartDate: nextStart,
-      contractEndDate: nextEnd,
-      serviceStartDate: nextStart,
-      serviceEndDate: nextEnd,
-      renewalDate: nextEnd,
-      rate: toNumber(item.rate, amount || item.rate),
-      amount: toNumber(item.amount, amount || item.amount)
-    })) : [{
-      itemName: lockedRenewal.serviceType || 'Renewed Service Contract',
-      description: `Renewal for ${lockedRenewal.customerName}`,
-      serviceRelationshipType: 'CONTRACT',
-      renewalEligible: true,
-      contractDurationValue: durationValue,
-      contractDurationUnit: durationUnit,
-      quantity: 1,
-      rate: amount,
+    const invoiceFinancials = buildRenewalInvoiceFinancials({
+      sourceInvoice,
+      lockedRenewal,
       amount,
-      taxRate: 0,
-      contractStartDate: nextStart,
-      contractEndDate: nextEnd,
-      serviceStartDate: nextStart,
-      serviceEndDate: nextEnd,
-      renewalDate: nextEnd
-    }];
+      invoiceType,
+      durationValue,
+      durationUnit,
+      nextStart,
+      nextEnd
+    });
+    if (invoiceFinancials.error) {
+      await conn.rollback();
+      return res.status(400).json({ error: invoiceFinancials.error });
+    }
 
     newInvoice = {
       ...sourceInvoice,
@@ -15562,11 +15893,24 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
       salesperson: req.body.salesPersonName || lockedRenewal.renewedBySalesPersonName || lockedRenewal.assignedSalesPersonName || sourceInvoice.salesperson || '',
       servicePeriodStart: nextStart,
       servicePeriodEnd: nextEnd,
-      items,
-      subtotal: amount,
-      total: amount,
-      amount,
-      balanceDue: amount,
+      previousContractId: lockedRenewal.previousContractId || lockedRenewal.contractId || '',
+      previousContractAmount,
+      renewalOutcome: 'WON',
+      renewalTiming: timing,
+      agreementDate,
+      newContractStartDate: nextStart,
+      newContractEndDate: nextEnd,
+      agreedContractAmount: amount,
+      priceDifference: priceDelta.difference,
+      priceChangePercent: priceDelta.percentage,
+      items: invoiceFinancials.items,
+      subtotal: invoiceFinancials.subtotal,
+      totalTax: invoiceFinancials.totalTax,
+      discount: invoiceFinancials.discount,
+      roundOff: invoiceFinancials.roundOff,
+      total: invoiceFinancials.total,
+      amount: invoiceFinancials.total,
+      balanceDue: invoiceFinancials.total,
       status: 'SENT',
       notes: String(req.body.notes || `Converted from renewal ${lockedRenewal.renewalId}`),
       createdAt: new Date().toISOString()
@@ -15578,12 +15922,53 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
     const [updateResult] = await conn.query(
       `UPDATE renewals
        SET converted_contract_id = ?,
-           status = CASE WHEN ? THEN 'Renewed' ELSE status END,
+           status = CASE WHEN ? THEN 'Done' ELSE status END,
            renewal_status = CASE WHEN ? THEN 'RENEWED' ELSE renewal_status END,
+           renewal_outcome = CASE WHEN ? THEN 'WON' ELSE renewal_outcome END,
+           renewal_timing = CASE WHEN ? THEN ? ELSE renewal_timing END,
+           outcome_decision_date = CASE WHEN ? THEN ? ELSE outcome_decision_date END,
+           outcome_recorded_at = CASE WHEN ? THEN ? ELSE outcome_recorded_at END,
+           agreement_date = CASE WHEN ? THEN ? ELSE agreement_date END,
+           new_contract_start_date = ?,
+           new_contract_end_date = ?,
+           previous_contract_id = ?,
+           new_contract_id = ?,
+           previous_contract_amount = ?,
+           agreed_contract_amount = ?,
+           price_difference = ?,
+           price_change_percent = ?,
+           outcome_updated_by = ?,
            renewed_at = CASE WHEN ? THEN ? ELSE renewed_at END,
            final_renewal_amount = CASE WHEN ? THEN ? ELSE final_renewal_amount END
        WHERE renewal_id = ? AND (converted_contract_id IS NULL OR converted_contract_id = '')`,
-      [newInvoice._id, isRenewableContract, isRenewableContract, isRenewableContract, renewalSqlDateTime(new Date()), isRenewableContract, amount, lockedRenewal.renewalId]
+      [
+        newInvoice._id,
+        isRenewableContract,
+        isRenewableContract,
+        isRenewableContract,
+        isRenewableContract,
+        timing,
+        isRenewableContract,
+        agreementDate,
+        isRenewableContract,
+        renewalSqlDateTime(new Date()),
+        isRenewableContract,
+        agreementDate,
+        nextStart,
+        nextEnd,
+        lockedRenewal.previousContractId || lockedRenewal.contractId || '',
+        newInvoice._id,
+        previousContractAmount,
+        amount,
+        priceDelta.difference,
+        priceDelta.percentage,
+        readUserMeta(req),
+        isRenewableContract,
+        renewalSqlDateTime(new Date()),
+        isRenewableContract,
+        amount,
+        lockedRenewal.renewalId
+      ]
     );
     if (Number(updateResult?.affectedRows || 0) !== 1) {
       await conn.rollback();
@@ -15592,8 +15977,8 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
     await insertRenewalAuditLog(conn, {
       renewalId: lockedRenewal.renewalId,
       action: lockedRenewal.serviceRelationshipType === 'ONE_TIME' ? 'one_time_convert_to_contract' : 'renewal_convert_to_contract',
-      previousValue: { status: lockedRenewal.status, renewalStatus: lockedRenewal.renewalStatus, convertedContractId: lockedRenewal.convertedContractId },
-      nextValue: { convertedContractId: newInvoice._id, contractStartDate: nextStart, contractEndDate: nextEnd, amount, invoiceNumber: newInvoice.invoiceNumber },
+      previousValue: { status: lockedRenewal.status, renewalStatus: lockedRenewal.renewalStatus, renewalOutcome: lockedRenewal.renewalOutcome, convertedContractId: lockedRenewal.convertedContractId },
+      nextValue: { convertedContractId: newInvoice._id, renewalOutcome: isRenewableContract ? 'WON' : lockedRenewal.renewalOutcome, renewalTiming: isRenewableContract ? timing : lockedRenewal.renewalTiming, agreementDate, contractStartDate: nextStart, contractEndDate: nextEnd, previousContractAmount, amount, priceDifference: priceDelta.difference, invoiceNumber: newInvoice.invoiceNumber },
       req
     });
 

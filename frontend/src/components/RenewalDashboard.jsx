@@ -102,22 +102,22 @@ const renewalColumnBounds = {
 const shell = {
   page: { display: 'grid', gap: 12, fontFamily: 'var(--font-sans)' },
   hero: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' },
-  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#111827' },
-  subtitle: { margin: '4px 0 0', color: '#64748b', fontSize: 13, fontWeight: 650 },
+  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: 0, color: 'var(--text-primary)' },
+  subtitle: { margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 13, fontWeight: 650 },
   actions: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' },
   primaryBtn: { minHeight: 34, height: 34, border: 'none', borderRadius: 9, padding: '0 12px', background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
   ghostBtn: { minHeight: 34, height: 34, border: '1px solid var(--border)', borderRadius: 9, padding: '0 12px', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer' },
-  dangerBtn: { minHeight: 34, border: '1px solid #fecaca', borderRadius: 9, padding: '0 12px', background: '#fff1f2', color: '#b91c1c', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
-  panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: '#fff', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.04)' },
+  dangerBtn: { minHeight: 34, border: '1px solid color-mix(in srgb, var(--color-danger) 34%, var(--color-border))', borderRadius: 9, padding: '0 12px', background: 'color-mix(in srgb, var(--color-danger) 12%, var(--surface-card))', color: 'var(--color-danger)', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
+  panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: 'var(--surface-card)', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)' },
   panelPad: { padding: 12 },
   stats: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: 7 },
-  stat: { border: '1px solid #e5e7eb', borderRadius: 9, padding: '8px 9px', background: '#fff', minHeight: 82, display: 'grid', alignContent: 'space-between', minWidth: 0 },
-  statLabel: { fontSize: 9.5, lineHeight: 1.25, textTransform: 'uppercase', color: '#64748b', fontWeight: 800, letterSpacing: 0, whiteSpace: 'normal', overflow: 'hidden' },
-  statValue: { marginTop: 4, fontSize: 20, lineHeight: 1.05, fontWeight: 850, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  stat: { border: '1px solid var(--color-border)', borderRadius: 9, padding: '8px 9px', background: 'var(--surface-card)', minHeight: 82, display: 'grid', alignContent: 'space-between', minWidth: 0 },
+  statLabel: { fontSize: 9.5, lineHeight: 1.25, textTransform: 'uppercase', color: 'var(--color-muted)', fontWeight: 800, letterSpacing: 0, whiteSpace: 'normal', overflow: 'hidden' },
+  statValue: { marginTop: 4, fontSize: 20, lineHeight: 1.05, fontWeight: 850, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   filters: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
   field: { display: 'grid', gap: 3 },
   label: { fontSize: 11, lineHeight: 1.1, color: 'var(--color-muted)', fontWeight: 700, letterSpacing: '0.01em', textTransform: 'uppercase' },
-  input: { width: '100%', minHeight: 34, height: 34, border: '1px solid #d1d5db', borderRadius: 11, background: '#fff', color: '#111827', fontSize: 14, fontWeight: 500, padding: '0 10px', boxSizing: 'border-box' },
+  input: { width: '100%', minHeight: 34, height: 34, border: '1px solid var(--color-border)', borderRadius: 11, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 500, padding: '0 10px', boxSizing: 'border-box' },
   tabs: { display: 'flex', gap: 6, padding: 8, overflowX: 'auto', borderBottom: '1px solid var(--card-header-border)', background: 'var(--table-header-bg)' },
   tabsMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, padding: 10, overflowX: 'visible', borderBottom: '1px solid var(--card-header-border)', background: 'var(--table-header-bg)' },
   tab: { flex: '0 0 auto', border: '1px solid rgba(255, 255, 255, 0.72)', borderRadius: 8, background: 'var(--color-white)', color: 'var(--text-primary)', minHeight: 30, padding: '0 10px', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.10)' },
@@ -126,30 +126,30 @@ const shell = {
   tableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
   table: { width: '100%', minWidth: 1080, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'left', padding: '8px 7px', fontSize: 11, color: 'var(--table-header-text)', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid var(--color-border)', background: 'var(--table-header-bg)', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', letterSpacing: '0.03em', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
-  td: { padding: '7px', fontSize: 11.5, color: '#1f2937', borderBottom: '1px solid #f1f5f9', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
+  td: { padding: '7px', fontSize: 11.5, color: 'var(--text-primary)', borderBottom: '1px solid var(--color-border)', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
   rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5, flexWrap: 'nowrap' },
   iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
-  miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 70px 90px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12 },
+  miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 70px 90px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: 12 },
   modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
   modal: { width: 'min(760px, 96vw)', maxHeight: '92vh', background: 'var(--surface-card)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: '0 24px 70px rgba(2,6,23,0.34)', overflow: 'hidden', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
   modalHead: { minHeight: 64, height: 64, boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid transparent', background: 'var(--card-header-bg)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 24, fontWeight: 800 },
   modalBody: { padding: 18, display: 'grid', gap: 12, overflowY: 'auto', background: 'var(--surface-card)', color: 'var(--text-primary)' },
   modalCloseBtn: { width: 40, height: 40, minWidth: 40, minHeight: 40, padding: 0, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 22, lineHeight: 1 },
-  mobileCard: { border: '1px solid #e5e7eb', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: '#fff' },
-  mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: '#475569' },
+  mobileCard: { border: '1px solid var(--color-border)', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: 'var(--surface-card)' },
+  mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: 'var(--color-muted)' },
   mobileCustomerStack: { display: 'grid', gap: 2, alignItems: 'start', minWidth: 0 },
   mobileCustomerName: { margin: 0, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' },
-  mobileCustomerMobile: { fontSize: 12, color: '#64748b', fontWeight: 700, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  mobileCustomerMobile: { fontSize: 12, color: 'var(--color-muted)', fontWeight: 700, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   searchRow: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   searchBox: { width: 'min(100%, 420px)', justifySelf: 'center' },
   searchWrap: { position: 'relative', display: 'block', alignItems: 'center', minWidth: 0, width: '100%', maxWidth: '100%', justifySelf: 'center' },
-  searchIcon: { position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' },
+  searchIcon: { position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted)', pointerEvents: 'none' },
   pagination: { padding: '10px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)' },
   paginationInfo: { color: 'var(--table-footer-text)', fontSize: 12, fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: 8 },
-  paginationBtn: { width: 34, minWidth: 34, minHeight: 32, height: 32, border: '1px solid #d1d5db', borderRadius: 8, background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+  paginationBtn: { width: 34, minWidth: 34, minHeight: 32, height: 32, border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--surface-card-elevated)', color: 'var(--color-primary)', padding: 0, fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
 };
 
@@ -167,6 +167,48 @@ const formatINR = (value) => {
   if (!Number.isFinite(amount)) return '₹0';
   const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
+const toDateInput = (value) => {
+  if (!value) return '';
+  const raw = String(value).slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? '' : parsed.toISOString().slice(0, 10);
+};
+const todayInput = () => new Date().toISOString().slice(0, 10);
+const addMonthsClampedInput = (date, months) => {
+  const source = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(source.getTime())) return '';
+  const day = source.getDate();
+  const target = new Date(source.getFullYear(), source.getMonth() + Number(months || 0), 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, lastDay));
+  return target.toISOString().slice(0, 10);
+};
+const addDaysInput = (date, days) => {
+  const source = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(source.getTime())) return '';
+  source.setDate(source.getDate() + Number(days || 0));
+  return source.toISOString().slice(0, 10);
+};
+const calculateContractEndInput = (startDate, durationValue, durationUnit) => {
+  const start = toDateInput(startDate);
+  if (!start) return '';
+  const value = Math.max(1, Number(durationValue || 1) || 1);
+  const unit = String(durationUnit || 'MONTH').toUpperCase();
+  if (unit === 'DAY') return addDaysInput(start, value - 1);
+  const months = unit === 'YEAR' ? value * 12 : value;
+  return addDaysInput(addMonthsClampedInput(start, months), -1);
+};
+const normalizeSummaryPayload = (payload = {}) => {
+  const source = payload && typeof payload === 'object' ? payload : {};
+  if (!source.filtered && !source.global) return source;
+  return {
+    ...(source.filtered || {}),
+    filtered: source.filtered || {},
+    global: source.global || {},
+    summaryScope: source.summaryScope || 'filtered'
+  };
 };
 const hasAmount = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
 const hasNumericValue = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
@@ -212,15 +254,17 @@ const serviceShort = (value) => {
 };
 const statusStyle = (status) => {
   const map = {
-    Done: ['#dcfce7', '#166534'],
-    Renewed: ['#dcfce7', '#166534'],
-    Declined: ['#fee2e2', '#991b1b'],
-    Overdue: ['#ffedd5', '#9a3412'],
-    'Follow-up': ['#dbeafe', '#1d4ed8'],
-    Upcoming: ['#eef2ff', '#3730a3'],
-    Due: ['#fef9c3', '#854d0e'],
-    'Not Due': ['#f1f5f9', '#334155'],
-    Pending: ['#f1f5f9', '#334155']
+    Done: ['color-mix(in srgb, var(--color-success) 16%, var(--surface-card))', 'var(--color-success)'],
+    Renewed: ['color-mix(in srgb, var(--color-success) 16%, var(--surface-card))', 'var(--color-success)'],
+    Won: ['color-mix(in srgb, var(--color-success) 16%, var(--surface-card))', 'var(--color-success)'],
+    Declined: ['color-mix(in srgb, var(--color-danger) 14%, var(--surface-card))', 'var(--color-danger)'],
+    Lost: ['color-mix(in srgb, var(--color-danger) 14%, var(--surface-card))', 'var(--color-danger)'],
+    Overdue: ['color-mix(in srgb, var(--color-warning) 18%, var(--surface-card))', 'var(--color-warning)'],
+    'Follow-up': ['color-mix(in srgb, var(--color-primary) 14%, var(--surface-card))', 'var(--color-primary)'],
+    Upcoming: ['color-mix(in srgb, var(--color-primary) 12%, var(--surface-card))', 'var(--color-primary)'],
+    Due: ['color-mix(in srgb, var(--color-warning) 14%, var(--surface-card))', 'var(--color-warning)'],
+    'Not Due': ['color-mix(in srgb, var(--color-muted) 12%, var(--surface-card))', 'var(--color-muted)'],
+    Pending: ['color-mix(in srgb, var(--color-muted) 12%, var(--surface-card))', 'var(--color-muted)']
   };
   const [bg, color] = map[status] || map.Pending;
   return { ...shell.status, background: bg, color };
@@ -272,7 +316,6 @@ const mergeRenewalDashboardCache = (patch) => {
 export default function RenewalDashboard() {
   const navigate = useNavigate();
   const autoSyncAttempted = useRef(false);
-  const autoGeneratedLetterIds = useRef(new Set());
   const renewalRowRefs = useRef(new Map());
   const focusHighlightTimerRef = useRef(null);
   const [cachedDashboard] = useState(() => readRenewalDashboardCache());
@@ -451,13 +494,8 @@ export default function RenewalDashboard() {
   }, [sortedLetters, rows]);
 
   const buildRenewalPdfUrl = (row) => {
-    const rawUrl = String(
-      row?.renewalLetterUrl
-        ? `${API_BASE}${row.renewalLetterUrl}`
-        : row?.pdf_url
-          ? `${API_BASE}${row.pdf_url}`
-          : ''
-    ).trim();
+    const sourceUrl = String(row?.renewalLetterUrl || row?.pdf_url || '').trim();
+    const rawUrl = sourceUrl && /^https?:\/\//i.test(sourceUrl) ? sourceUrl : sourceUrl ? `${API_BASE}${sourceUrl}` : '';
     if (!rawUrl) return '';
     const cacheBuster = String(
       row?.generated_at ||
@@ -483,25 +521,9 @@ export default function RenewalDashboard() {
 
 	  let sourceRow = row;
 	  let pdfUrl = buildRenewalPdfUrl(sourceRow);
-	  if (!pdfUrl && !isOneTimeTreatment) {
-      try {
-        const response = await axios.post(`${API_BASE}/api/renewals/${renewalId}/generate-letter`);
-        const nextRow = response?.data?.renewal || sourceRow;
-        sourceRow = {
-          ...nextRow,
-          renewalLetterUrl: response?.data?.pdfUrl || nextRow?.renewalLetterUrl || sourceRow?.renewalLetterUrl,
-          pdf_url: response?.data?.pdfUrl || nextRow?.pdf_url || sourceRow?.pdf_url
-        };
-        pdfUrl = buildRenewalPdfUrl(sourceRow);
-        void loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
-      } catch (error) {
-        console.error('Failed to generate renewal letter before WhatsApp share', error);
-        pdfUrl = buildRenewalPdfUrl(sourceRow);
-      }
-    }
 
 	  if (!pdfUrl && !isOneTimeTreatment) {
-	    setMessage('Unable to prepare the renewal letter PDF for WhatsApp.');
+	    setMessage('Generate the renewal letter explicitly before sharing it on WhatsApp.');
 	    return;
 	  }
 
@@ -576,13 +598,14 @@ export default function RenewalDashboard() {
       if (loadRequestRef.current !== requestId) return;
       const renewalRows = Array.isArray(renewalRes.data) ? renewalRes.data : [];
       const letterRows = Array.isArray(letterRes.data) ? letterRes.data : [];
+      const nextSummary = normalizeSummaryPayload(summaryRes.data || {});
       setRows(renewalRows);
-      setSummary(summaryRes.data || {});
+      setSummary(nextSummary);
       setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
       setLetters(letterRows);
       mergeRenewalDashboardCache({
         rows: renewalRows,
-        summary: summaryRes.data || {},
+        summary: nextSummary,
         employees: Array.isArray(employeeRes.data) ? employeeRes.data : [],
         letters: letterRows
       });
@@ -590,42 +613,6 @@ export default function RenewalDashboard() {
         autoSyncAttempted.current = true;
         await axios.post(`${API_BASE}/api/renewals/sync`);
         return loadData(overrideFilters, { autoSync: false });
-      }
-      if (options.autoGenerateLetters === true) {
-        const letterRenewalIds = new Set(letterRows.map((letter) => String(letter.renewal_id || letter.renewalId || '').trim()).filter(Boolean));
-	        const missingLetterRows = renewalRows.filter((row) => {
-	          const renewalId = String(row.renewalId || '').trim();
-	          if (!renewalId) return false;
-	          if (row.serviceRelationshipType !== 'CONTRACT' || !row.renewalEligible) return false;
-	          if (row.renewalLetterUrl || letterRenewalIds.has(renewalId)) return false;
-	          return !autoGeneratedLetterIds.current.has(renewalId);
-	        });
-        if (missingLetterRows.length > 0) {
-          missingLetterRows.forEach((row) => autoGeneratedLetterIds.current.add(String(row.renewalId || '').trim()));
-          const results = await Promise.allSettled(
-            missingLetterRows.map((row) => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/generate-letter`))
-          );
-          results.forEach((result, index) => {
-            if (result.status === 'rejected') {
-              autoGeneratedLetterIds.current.delete(String(missingLetterRows[index]?.renewalId || '').trim());
-            }
-          });
-          if (results.some((result) => result.status === 'fulfilled')) {
-            const [renewalRefresh, letterRefresh] = await Promise.all([
-              axios.get(`${API_BASE}/api/renewals`, { params: { ...overrideFilters, t: Date.now() } }),
-              axios.get(`${API_BASE}/api/renewals/letters`, { params: { ...overrideFilters, t: Date.now() } }).catch(() => ({ data: [] }))
-            ]);
-            if (loadRequestRef.current !== requestId) return;
-            setRows(Array.isArray(renewalRefresh.data) ? renewalRefresh.data : renewalRows);
-            setLetters(Array.isArray(letterRefresh.data) ? letterRefresh.data : letterRows);
-            mergeRenewalDashboardCache({
-              rows: Array.isArray(renewalRefresh.data) ? renewalRefresh.data : renewalRows,
-              summary: summaryRes.data || {},
-              employees: Array.isArray(employeeRes.data) ? employeeRes.data : [],
-              letters: Array.isArray(letterRefresh.data) ? letterRefresh.data : letterRows
-            });
-          }
-        }
       }
     } catch (error) {
       console.error('Renewal load failed', error);
@@ -640,55 +627,28 @@ export default function RenewalDashboard() {
     const fileLabel = String(row?.renewalDisplayId || row?.renewal_display_id || titleName || row?.renewalId || row?.renewal_id || 'renewal-letter').trim();
     const renewalId = String(row?.renewalId || row?.renewal_id || row?.id || '').trim();
     if (!renewalId) return;
-    try {
-      const response = await axios.post(`${API_BASE}/api/renewals/${renewalId}/generate-letter`);
-      const nextRow = response?.data?.renewal || row;
-      const pdfUrl = buildRenewalPdfUrl({
-        ...nextRow,
-        renewalLetterUrl: response?.data?.pdfUrl || nextRow?.renewalLetterUrl || row?.renewalLetterUrl,
-        pdf_url: response?.data?.pdfUrl || nextRow?.pdf_url || row?.pdf_url
-      });
-      if (!pdfUrl) return;
-      const downloadName = `REN-${titleName || fileLabel || 'Renewal'}.pdf`;
-      setPdfPreview({
-        open: true,
-        title: `Renewal Letter - ${titleName}`,
-        pdfUrl,
-        downloadFileName: downloadName,
-        publicShareUrl: pdfUrl,
-        renewalId,
-        shareContext: {
-          customerName: titleName,
-          customerEmail: String(nextRow?.email || row?.email || row?.customerEmail || row?.customer_email || '').trim(),
-          customerPhone: String(nextRow?.mobile || row?.mobile || row?.phone || '').trim(),
-          renewalDisplayId: fileLabel,
-          serviceType: String(nextRow?.serviceType || row?.serviceType || row?.service_type || 'Renewal Letter').trim() || 'Renewal Letter',
-          pdfUrl
-        }
-      });
-      void loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
-    } catch (error) {
-      console.error('Failed to regenerate renewal letter before preview', error);
-      const pdfUrl = buildRenewalPdfUrl(row);
-      if (!pdfUrl) return;
-      const downloadName = `REN-${titleName || fileLabel || 'Renewal'}.pdf`;
-      setPdfPreview({
-        open: true,
-        title: `Renewal Letter - ${titleName}`,
-        pdfUrl,
-        downloadFileName: downloadName,
-        publicShareUrl: pdfUrl,
-        renewalId,
-        shareContext: {
-          customerName: titleName,
-          customerEmail: String(row?.email || row?.customerEmail || row?.customer_email || '').trim(),
-          customerPhone: String(row?.mobile || row?.phone || '').trim(),
-          renewalDisplayId: fileLabel,
-          serviceType: String(row?.serviceType || row?.service_type || 'Renewal Letter').trim() || 'Renewal Letter',
-          pdfUrl
-        }
-      });
+    const pdfUrl = buildRenewalPdfUrl(row);
+    if (!pdfUrl) {
+      setMessage('Generate the renewal letter explicitly before previewing it.');
+      return;
     }
+    const downloadName = `REN-${titleName || fileLabel || 'Renewal'}.pdf`;
+    setPdfPreview({
+      open: true,
+      title: `Renewal Letter - ${titleName}`,
+      pdfUrl,
+      downloadFileName: downloadName,
+      publicShareUrl: pdfUrl,
+      renewalId,
+      shareContext: {
+        customerName: titleName,
+        customerEmail: String(row?.email || row?.customerEmail || row?.customer_email || '').trim(),
+        customerPhone: String(row?.mobile || row?.phone || '').trim(),
+        renewalDisplayId: fileLabel,
+        serviceType: String(row?.serviceType || row?.service_type || 'Renewal Letter').trim() || 'Renewal Letter',
+        pdfUrl
+      }
+    });
   };
 
   const shareRenewalLetterByEmail = async () => {
@@ -885,6 +845,11 @@ export default function RenewalDashboard() {
 
   const updateFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
   const openModal = (type, row) => {
+    const agreementDate = todayInput();
+    const durationValue = row?.contractDurationValue || 12;
+    const durationUnit = row?.contractDurationUnit || 'MONTH';
+    const previousAmount = row?.previousContractAmount || row?.previousAmount || row?.contractAmount || row?.proposedAmount || '';
+    const startDate = agreementDate;
     setModal({ type, row });
     setForm({
       salesPersonId: row?.assignedSalesPersonId || '',
@@ -895,20 +860,50 @@ export default function RenewalDashboard() {
       renewedBySalesPersonId: row?.assignedSalesPersonId || '',
       renewedBySalesPersonName: row?.assignedSalesPersonName || '',
       reason: '',
+      reasonCategory: '',
+      lostNotes: '',
+      outcomeDecisionDate: agreementDate,
+      agreementDate,
+      priceOption: 'same',
+      previousContractAmount: previousAmount,
       serviceType: row?.serviceType || '',
       renewalDueDate: row?.renewalDueDate || '',
       proposedAmount: row?.proposedAmount || '',
       status: row?.status || 'Pending',
-      contractDurationValue: row?.contractDurationValue || 12,
-      contractDurationUnit: row?.contractDurationUnit || 'MONTH',
-      contractStartDate: '',
-      contractEndDate: '',
-      amount: row?.finalRenewalAmount || row?.proposedAmount || ''
+      contractDurationValue: durationValue,
+      contractDurationUnit: durationUnit,
+      contractStartDate: startDate,
+      contractEndDate: calculateContractEndInput(startDate, durationValue, durationUnit),
+      amount: row?.agreedContractAmount || row?.finalRenewalAmount || previousAmount || ''
+    });
+  };
+  const updateConvertForm = (patch) => {
+    setForm((prev) => {
+      const next = { ...prev, ...patch };
+      if (Object.prototype.hasOwnProperty.call(patch, 'agreementDate') && !prev.contractStartTouched) {
+        next.contractStartDate = patch.agreementDate;
+      }
+      if (Object.prototype.hasOwnProperty.call(patch, 'contractStartDate')) next.contractStartTouched = true;
+      if (Object.prototype.hasOwnProperty.call(patch, 'priceOption') && patch.priceOption === 'same') {
+        next.amount = next.previousContractAmount || '';
+      }
+      if (['contractStartDate', 'contractDurationValue', 'contractDurationUnit', 'agreementDate'].some((key) => Object.prototype.hasOwnProperty.call(patch, key))) {
+        next.contractEndDate = calculateContractEndInput(next.contractStartDate || next.agreementDate, next.contractDurationValue, next.contractDurationUnit);
+      }
+      return next;
     });
   };
   const closeModal = () => setModal({ type: '', row: null });
   const handleConvertToContract = async () => {
     if (!modal.row?.renewalId) return;
+    const amount = Number(form.amount || 0);
+    if (!Number.isFinite(amount) || amount < 0) {
+      setMessage('Amount must be numeric.');
+      return;
+    }
+    const startLabel = formatDate(form.contractStartDate);
+    const endLabel = formatDate(form.contractEndDate);
+    if (!window.confirm(`Mark this renewal as won and create a new contract from ${startLabel} to ${endLabel} for ${formatINR(amount)}?`)) return;
     try {
       setBusy(true);
       const response = await axios.post(`${API_BASE}/api/renewals/${modal.row.renewalId}/convert-contract`, {
@@ -1003,15 +998,16 @@ export default function RenewalDashboard() {
     setFilters(next);
     loadData(next);
   };
-  const isFinalRow = (row) => ['Renewed', 'Declined'].includes(String(row?.status || ''));
+  const isFinalRow = (row) => ['Renewed', 'Declined', 'Won', 'Lost'].includes(String(row?.status || ''));
   const isOneTimeRow = (row) => row?.serviceRelationshipType === 'ONE_TIME';
   const canRenewRow = (row) => canUseAssignedRenewal(row) && row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isFinalRow(row);
   const canConvertOneTimeRow = (row) => canUseAssignedRenewal(row) && isOneTimeRow(row) && !row?.convertedContractId;
   const rowMoreItems = (row) => [
     { label: 'View Details', onClick: () => openModal('view', row) },
     canUseAssignedRenewal(row) && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Renewal Letter', onClick: () => openRenewalPdfPreview(row) } : null,
+    canUseAssignedRenewal(row) && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Regenerate Letter', onClick: () => runAction('Renewal letter regenerated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/generate-letter`)) } : null,
     canManageRenewals ? { label: 'Assign / Change Sales Person', onClick: () => openModal('assign', row) } : null,
-    canUseAssignedRenewal(row) && row.status !== 'Declined' && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Decline Renewal', onClick: () => openModal('decline', row) } : null
+    canUseAssignedRenewal(row) && !isFinalRow(row) && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Mark as Lost', onClick: () => openModal('decline', row) } : null
   ];
   const renderRowActions = (row, mobile = false) => {
     const buttonBase = mobile ? shell.ghostBtn : shell.iconBtn;
@@ -1032,11 +1028,11 @@ export default function RenewalDashboard() {
           <button
             className="crm-icon-action-btn"
             style={mobile ? shell.primaryBtn : shell.iconBtn}
-            title="Renew Contract"
-            aria-label="Renew Contract"
+            title="Mark as Won"
+            aria-label="Mark as Won"
             onClick={() => openModal('convert', row)}
           >
-            {mobile ? 'Renew Contract' : <CheckCircle2 size={15} />}
+            {mobile ? 'Mark as Won' : <CheckCircle2 size={15} />}
           </button>
         ) : null}
         {canConvertOneTimeRow(row) ? (
@@ -1071,15 +1067,21 @@ export default function RenewalDashboard() {
     return () => window.clearTimeout(timer);
   }, [filters.search, filters.searchScope]);
 
+  const filteredSummary = summary.filtered || summary;
+  const globalSummary = summary.global || summary;
   const stats = [
-    ['Active Contracts', summary.activeContractCount ?? summary.totalRenewals ?? 0],
-    ['Renewal Due', summary.dueCount ?? summary.pendingCount ?? 0],
-    ['Due in 30 Days', summary.dueIn30Count || 0],
-    ['Overdue', summary.overdueCount || 0],
-    ['Renewed', summary.doneCount || 0],
-    ['Declined', summary.declinedCount || 0],
-    ['Renewal Value', formatINR(summary.totalRenewalAmount || 0)],
-    ['One-Time Treatments', summary.oneTimeTreatmentCount || 0]
+    ['Eligible Opportunities', filteredSummary.totalEligibleRenewalOpportunities ?? filteredSummary.totalRenewals ?? 0],
+    ['Active Contracts', globalSummary.activeContractCount ?? filteredSummary.activeContractCount ?? 0],
+    ['Due in 30 Days', filteredSummary.dueIn30Count || 0],
+    ['Overdue Pending', filteredSummary.overduePendingCount ?? filteredSummary.overdueCount ?? 0],
+    ['Won', filteredSummary.wonCount ?? filteredSummary.doneCount ?? 0],
+    ['Lost', filteredSummary.lostCount ?? filteredSummary.declinedCount ?? 0],
+    ['Pending', filteredSummary.pendingCount || 0],
+    ['On-Time / Late', `${filteredSummary.onTimeWonCount || 0} / ${filteredSummary.lateWonCount || 0}`],
+    ['Won Revenue', formatINR(filteredSummary.wonRenewalRevenue || 0)],
+    ['Lost Value', formatINR(filteredSummary.lostOpportunityValue || 0)],
+    ['Pending Value', formatINR(filteredSummary.pendingOpportunityValue || 0)],
+    ['One-Time Treatments', filteredSummary.oneTimeTreatmentCount || 0]
   ];
 
   const headerSearchStyle = isMobile
@@ -1106,7 +1108,7 @@ export default function RenewalDashboard() {
     left: '12px',
     top: '50%',
     transform: 'translateY(-50%)',
-    color: '#94a3b8',
+    color: 'var(--color-muted)',
     pointerEvents: 'none'
   };
   const headerSearchActionsStyle = isMobile
@@ -1137,7 +1139,7 @@ export default function RenewalDashboard() {
     const displayRenewalId = (row) => row.renewalDisplayId || row.renewal_display_id || row.renewalId || row.renewal_id || '';
     if (pagedRows.length === 0) {
       return (
-        <div style={{ ...shell.panelPad, color: '#64748b', fontSize: 13, fontWeight: 700 }}>
+        <div style={{ ...shell.panelPad, color: 'var(--color-muted)', fontSize: 13, fontWeight: 700 }}>
           {rows.length === 0 ? 'No renewal records are available.' : 'No renewal records match the current filters.'}
         </div>
       );
@@ -1258,7 +1260,7 @@ export default function RenewalDashboard() {
   const renderSummaryList = (items, labelKey, valueKey = 'count', options = {}) => (
     <div style={shell.panel}>
       <div style={shell.panelPad}>
-        {(items || []).length === 0 ? <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>No records.</p> : items.map((item) => (
+        {(items || []).length === 0 ? <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 13 }}>No records.</p> : items.map((item) => (
           <div key={item[labelKey] || item.name} style={shell.miniRow}>
             <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item[labelKey] || item.name}</strong>
             <button
@@ -1268,7 +1270,7 @@ export default function RenewalDashboard() {
                 border: 'none',
                 background: 'transparent',
                 padding: 0,
-                color: options.onCountClick ? 'var(--color-primary-dark)' : '#111827',
+                color: options.onCountClick ? 'var(--color-primary-dark)' : 'var(--text-primary)',
                 fontWeight: 800,
                 textAlign: 'right',
                 cursor: options.onCountClick ? 'pointer' : 'default',
@@ -1338,7 +1340,7 @@ export default function RenewalDashboard() {
               </table>
             </div>
           </>
-        ) : auditSummary ? <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>No audit rows found.</p> : null}
+        ) : auditSummary ? <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 13 }}>No audit rows found.</p> : null}
       </div>
     </div>
   );
@@ -1353,10 +1355,10 @@ export default function RenewalDashboard() {
       assign: 'Assign Sales Person',
       followup: 'Log Follow-up',
       done: row.status === 'Renewed' ? 'Renewal Done' : 'Renew Contract',
-      decline: row.status === 'Declined' ? 'Renewal Declined' : 'Decline Renewal',
-      convert: row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Renew Contract'
+      decline: row.status === 'Lost' || row.status === 'Declined' ? 'Renewal Lost' : 'Mark as Lost',
+      convert: row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'
     };
-    const declineReasons = ['Price', 'Not Required', 'Using Competitor', 'Service Issue', 'Customer Unreachable', 'Business Closed', 'Other'];
+    const declineReasons = ['Price too high', 'Competitor selected', 'Customer no longer requires service', 'Customer dissatisfied with previous service', 'Property vacated or closed', 'Budget unavailable', 'Customer unreachable', 'Service no longer applicable', 'Other'];
     return (
       <div style={shell.modalOverlay}>
         <div style={shell.modal}>
@@ -1392,13 +1394,7 @@ export default function RenewalDashboard() {
                 <button
                   style={shell.primaryBtn}
                   disabled={busy}
-                  onClick={() => runAction('Renewal updated', async () => {
-                    const editResponse = await axios.post(`${API_BASE}/api/renewals/${row.renewalId}/edit`, form);
-                    await axios.post(`${API_BASE}/api/renewals/${row.renewalId}/generate-letter`).catch((error) => {
-                      console.error('Failed to regenerate renewal letter after edit', error);
-                    });
-                    return editResponse;
-                  })}
+                  onClick={() => runAction('Renewal updated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/edit`, form))}
                 >
                   Save Renewal
                 </button>
@@ -1434,10 +1430,10 @@ export default function RenewalDashboard() {
             {modal.type === 'done' && (
               row.status === 'Done' ? (
                 <div style={{ display: 'grid', gap: 10 }}>
-                  <div style={{ padding: '14px 16px', borderRadius: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', fontWeight: 800, fontSize: 16 }}>
+                  <div style={{ padding: '14px 16px', borderRadius: 12, background: 'color-mix(in srgb, var(--color-success) 14%, var(--surface-card))', border: '1px solid color-mix(in srgb, var(--color-success) 34%, var(--color-border))', color: 'var(--color-success)', fontWeight: 800, fontSize: 16 }}>
                     Renewal Done
                   </div>
-                  <div style={{ display: 'grid', gap: 6, fontSize: 13, color: '#334155' }}>
+                  <div style={{ display: 'grid', gap: 6, fontSize: 13, color: 'var(--text-primary)' }}>
                     <span><strong>Final Amount:</strong> {formatINR(row.finalRenewalAmount || row.finalAmount || row.proposedAmount)}</span>
                     <span><strong>Notes:</strong> {String(row.renewalNotes || row.notes || row.lastNote || '-')}</span>
                   </div>
@@ -1452,24 +1448,27 @@ export default function RenewalDashboard() {
               )
             )}
             {modal.type === 'decline' && (
-              row.status === 'Declined' ? (
+              row.status === 'Declined' || row.status === 'Lost' ? (
                 <div style={{ display: 'grid', gap: 10 }}>
-                  <div style={{ padding: '14px 16px', borderRadius: 12, background: '#fff1f2', border: '1px solid #fecaca', color: '#991b1b', fontWeight: 800, fontSize: 16 }}>
-                    Renewal Declined
+                  <div style={{ padding: '14px 16px', borderRadius: 12, background: 'color-mix(in srgb, var(--color-danger) 12%, var(--surface-card))', border: '1px solid color-mix(in srgb, var(--color-danger) 34%, var(--color-border))', color: 'var(--color-danger)', fontWeight: 800, fontSize: 16 }}>
+                    Renewal Lost
                   </div>
-                  <div style={{ display: 'grid', gap: 6, fontSize: 13, color: '#334155' }}>
-                    <span><strong>Reason:</strong> {String(row.declineReason || row.reason || row.remarks || '-')}</span>
+                  <div style={{ display: 'grid', gap: 6, fontSize: 13, color: 'var(--text-primary)' }}>
+                    <span><strong>Reason:</strong> {String(row.lostReason || row.declineReason || row.reason || row.remarks || '-')}</span>
+                    <span><strong>Notes:</strong> {String(row.lostNotes || row.lastFollowupNote || '-')}</span>
                   </div>
                   <button style={shell.ghostBtn} onClick={closeModal}>Close</button>
                 </div>
               ) : (
                 <>
-                  <label style={shell.field}><span style={shell.label}>Decline Reason</span><select style={shell.input} value={form.reasonCategory || ''} onChange={(e) => setForm((p) => ({ ...p, reasonCategory: e.target.value, reason: e.target.value === 'Other' ? p.reason : e.target.value }))}><option value="">Select reason</option>{declineReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label>
-                  {form.reasonCategory === 'Other' ? <label style={shell.field}><span style={shell.label}>Other Note</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label> : null}
+                  <label style={shell.field}><span style={shell.label}>Decision Date</span><input type="date" style={shell.input} value={form.outcomeDecisionDate || ''} onChange={(e) => setForm((p) => ({ ...p, outcomeDecisionDate: e.target.value }))} /></label>
+                  <label style={shell.field}><span style={shell.label}>Lost Reason</span><select style={shell.input} value={form.reasonCategory || ''} onChange={(e) => setForm((p) => ({ ...p, reasonCategory: e.target.value, reason: e.target.value === 'Other' ? p.reason : e.target.value }))}><option value="">Select reason</option>{declineReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label>
+                  {form.reasonCategory === 'Other' ? <label style={shell.field}><span style={shell.label}>Other Reason</span><input style={shell.input} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label> : null}
+                  <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.lostNotes || ''} onChange={(e) => setForm((p) => ({ ...p, lostNotes: e.target.value, notes: e.target.value }))} /></label>
                   <button style={shell.dangerBtn} disabled={busy} onClick={() => {
-                    if (!window.confirm('Mark this renewal as declined?')) return;
-                    runAction('Renewal declined', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form));
-                  }}>Mark Declined</button>
+                    if (!window.confirm('Mark this renewal as lost?')) return;
+                    runAction('Renewal marked lost', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form));
+                  }}>Mark as Lost</button>
                 </>
               )
             )}
@@ -1477,18 +1476,23 @@ export default function RenewalDashboard() {
               <>
                 <div style={{ display: 'grid', gap: 4, fontSize: 13 }}>
                   <strong>{row.customerName}</strong>
-                  <span>{row.serviceRelationshipType === 'ONE_TIME' ? 'Create a new contract from this one-time treatment.' : 'Renew this contract by creating a new linked contract.'}</span>
+                  <span>{row.serviceRelationshipType === 'ONE_TIME' ? 'Create a new contract from this one-time treatment.' : 'Mark this renewal as won and create a linked new contract.'}</span>
+                  <span><strong>Previous Contract:</strong> {row.invoiceNumber || row.contractId || '-'}</span>
+                  <span><strong>Previous Period:</strong> {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}</span>
+                  <span><strong>Previous Amount:</strong> {formatOptionalINR(form.previousContractAmount)}</span>
                 </div>
-                <label style={shell.field}><span style={shell.label}>New Contract Start</span><input type="date" style={shell.input} value={form.contractStartDate} onChange={(e) => setForm((p) => ({ ...p, contractStartDate: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Agreement Date</span><input type="date" style={shell.input} value={form.agreementDate || ''} onChange={(e) => updateConvertForm({ agreementDate: e.target.value })} /></label>
+                <label style={shell.field}><span style={shell.label}>New Contract Start</span><input type="date" style={shell.input} value={form.contractStartDate} onChange={(e) => updateConvertForm({ contractStartDate: e.target.value })} /></label>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 8 }}>
-                  <label style={shell.field}><span style={shell.label}>Duration</span><input style={shell.input} value={form.contractDurationValue || ''} onChange={(e) => setForm((p) => ({ ...p, contractDurationValue: e.target.value }))} /></label>
-                  <label style={shell.field}><span style={shell.label}>Duration Unit</span><select style={shell.input} value={form.contractDurationUnit || 'MONTH'} onChange={(e) => setForm((p) => ({ ...p, contractDurationUnit: e.target.value }))}><option value="DAY">Day</option><option value="MONTH">Month</option><option value="YEAR">Year</option></select></label>
+                  <label style={shell.field}><span style={shell.label}>Duration</span><input style={shell.input} value={form.contractDurationValue || ''} onChange={(e) => updateConvertForm({ contractDurationValue: e.target.value })} /></label>
+                  <label style={shell.field}><span style={shell.label}>Duration Unit</span><select style={shell.input} value={form.contractDurationUnit || 'MONTH'} onChange={(e) => updateConvertForm({ contractDurationUnit: e.target.value })}><option value="DAY">Day</option><option value="MONTH">Month</option><option value="YEAR">Year</option></select></label>
                 </div>
                 <label style={shell.field}><span style={shell.label}>New Contract End</span><input type="date" style={shell.input} value={form.contractEndDate} onChange={(e) => setForm((p) => ({ ...p, contractEndDate: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Service</span><input style={shell.input} value={form.serviceType} onChange={(e) => setForm((p) => ({ ...p, serviceType: e.target.value }))} /></label>
-                <label style={shell.field}><span style={shell.label}>Amount</span><input style={shell.input} value={form.amount} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))} /></label>
+                <label style={shell.field}><span style={shell.label}>Price</span><select style={shell.input} value={form.priceOption || 'same'} onChange={(e) => updateConvertForm({ priceOption: e.target.value })}><option value="same">Same as previous contract</option><option value="revised">Revised price</option></select></label>
+                <label style={shell.field}><span style={shell.label}>Agreed Amount</span><input style={shell.input} value={form.amount} readOnly={form.priceOption === 'same'} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value, priceOption: 'revised' }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 70, paddingTop: 8 }} value={form.note || ''} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
-                <button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract}>{row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Renew Contract'}</button>
+                <button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract}>{row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'}</button>
               </>
             )}
           </div>
@@ -1555,14 +1559,16 @@ export default function RenewalDashboard() {
         {!loading && activeTab === 'Reports' ? (
           <div style={{ ...shell.chartGrid, padding: 12 }}>
             {canAdminRenewals ? renderAuditPanel() : null}
-            {renderSummaryList(summary.monthWiseSummary, 'period')}
-            {renderSummaryList(summary.yearWiseSummary, 'year')}
-            {renderSummaryList(summary.salespersonWiseSummary, 'name', 'total', { onCountClick: drillDownBySalesPerson })}
+            {renderSummaryList(filteredSummary.monthWiseSummary, 'period')}
+            {renderSummaryList(filteredSummary.yearWiseSummary, 'year')}
+            {renderSummaryList(filteredSummary.serviceWiseSummary, 'name')}
+            {renderSummaryList(filteredSummary.durationWiseSummary, 'name')}
+            {renderSummaryList(filteredSummary.salespersonWiseSummary, 'name', 'total', { onCountClick: drillDownBySalesPerson })}
           </div>
         ) : null}
         {!loading && activeTab === 'Renewal Letters' ? (
           <div style={shell.panelPad}>
-            {(visibleLetterRows || []).length === 0 ? <p style={{ margin: 0, color: '#64748b' }}>No renewal letters generated yet.</p> : visibleLetterRows.map((letter) => (
+            {(visibleLetterRows || []).length === 0 ? <p style={{ margin: 0, color: 'var(--color-muted)' }}>No renewal letters generated yet.</p> : visibleLetterRows.map((letter) => (
               <div key={letter.id || letter.pdf_url} style={shell.miniRow}>
                 <strong>{letter.customer_name || '-'}</strong>
                 <span>{formatDate(letter.conclude_date || letter.concludeDate || letter.generated_at)}</span>
@@ -1651,7 +1657,7 @@ export default function RenewalDashboard() {
           padding: '12px 14px',
           borderRadius: '12px',
           background: 'rgba(254, 226, 226, 0.98)',
-          color: '#991b1b',
+          color: 'var(--color-danger)',
           border: '1px solid rgba(239, 68, 68, 0.24)',
           boxShadow: '0 12px 30px rgba(15,23,42,0.18)',
           fontSize: '13px',
