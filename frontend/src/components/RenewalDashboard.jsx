@@ -121,10 +121,11 @@ const shell = {
   dangerBtn: { minHeight: 34, border: '1px solid color-mix(in srgb, var(--color-danger) 34%, var(--color-border))', borderRadius: 9, padding: '0 12px', background: 'color-mix(in srgb, var(--color-danger) 12%, var(--surface-card))', color: 'var(--color-danger)', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: 'var(--surface-card)', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)' },
   panelPad: { padding: 12 },
-  stats: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(0, 1fr))', gap: 7 },
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 7 },
   stat: { border: '1px solid var(--color-border)', borderRadius: 9, padding: '8px 9px', background: 'var(--surface-card)', minHeight: 82, display: 'grid', alignContent: 'space-between', minWidth: 0 },
   statLabel: { fontSize: 9.5, lineHeight: 1.25, textTransform: 'uppercase', color: 'var(--color-muted)', fontWeight: 800, letterSpacing: 0, whiteSpace: 'normal', overflow: 'hidden' },
   statValue: { marginTop: 4, fontSize: 20, lineHeight: 1.05, fontWeight: 850, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  statMeta: { marginTop: 4, fontSize: 12, lineHeight: 1.2, fontWeight: 800, color: 'var(--color-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   filters: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
   field: { display: 'grid', gap: 3 },
   label: { fontSize: 11, lineHeight: 1.1, color: 'var(--color-muted)', fontWeight: 700, letterSpacing: '0.01em', textTransform: 'uppercase' },
@@ -437,6 +438,7 @@ export default function RenewalDashboard() {
   });
   const loadRequestRef = useRef(0);
   const initialSearchSyncRef = useRef(true);
+  const initialFilterSyncRef = useRef(true);
   const skipNextSearchSyncRef = useRef(false);
   const toastTimerRef = useRef(null);
 
@@ -1081,7 +1083,6 @@ export default function RenewalDashboard() {
       setBusy(false);
     }
   };
-  const syncRenewals = () => runAction('Renewal synced successfully', () => axios.post(`${API_BASE}/api/renewals/sync`));
   const loadRenewalAudit = async () => {
     try {
       setBusy(true);
@@ -1210,6 +1211,29 @@ export default function RenewalDashboard() {
     return () => window.clearTimeout(timer);
   }, [filters.search, filters.searchScope]);
 
+  useEffect(() => {
+    if (initialFilterSyncRef.current) {
+      initialFilterSyncRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setPage(1);
+      loadData({ ...filters }, { silent: true, autoSync: false, autoGenerateLetters: false });
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [
+    filters.range,
+    filters.month,
+    filters.year,
+    filters.fromDate,
+    filters.toDate,
+    filters.status,
+    filters.relationshipType,
+    filters.duration,
+    filters.serviceType,
+    filters.assignedSalesPersonId
+  ]);
+
   const clientSummary = useMemo(() => {
     const merged = new Map();
     [...rows, ...visibleLetterRows].forEach((row, index) => {
@@ -1223,6 +1247,7 @@ export default function RenewalDashboard() {
     const pendingRows = contractRows.filter(isPendingRenewal);
     const wonRows = contractRows.filter(isWonRenewal);
     const lostRows = contractRows.filter(isLostRenewal);
+    const jobbingRows = summaryRows.filter(isJobbingRow);
     const today = parseDateInput(todayInput());
     const amountFor = (row) => numericAmount(renewalAmountValue(row));
     const wonAmountFor = (row) => numericAmount(row?.agreedContractAmount || row?.finalRenewalAmount || renewalAmountValue(row));
@@ -1237,11 +1262,14 @@ export default function RenewalDashboard() {
       const days = Math.round((dueDate.getTime() - today.getTime()) / 86400000);
       return days >= 0 && days <= 30;
     };
+    const overdueRows = pendingRows.filter(isOverdue);
     return {
       totalEligibleRenewalOpportunities: contractRows.length,
+      totalRenewalContractValue: contractRows.reduce((sum, row) => sum + amountFor(row), 0),
       activeContractCount: pendingRows.length,
       dueIn30Count: pendingRows.filter(isDueIn30).length,
-      overduePendingCount: pendingRows.filter(isOverdue).length,
+      overduePendingCount: overdueRows.length,
+      overduePendingValue: overdueRows.reduce((sum, row) => sum + amountFor(row), 0),
       wonCount: wonRows.length,
       lostCount: lostRows.length,
       pendingCount: pendingRows.length,
@@ -1250,24 +1278,21 @@ export default function RenewalDashboard() {
       wonRenewalRevenue: wonRows.reduce((sum, row) => sum + wonAmountFor(row), 0),
       lostOpportunityValue: lostRows.reduce((sum, row) => sum + amountFor(row), 0),
       pendingOpportunityValue: pendingRows.reduce((sum, row) => sum + amountFor(row), 0),
-      oneTimeTreatmentCount: summaryRows.filter(isJobbingRow).length
+      oneTimeTreatmentCount: jobbingRows.length,
+      oneTimeTreatmentValue: jobbingRows.reduce((sum, row) => sum + amountFor(row), 0)
     };
   }, [rows, visibleLetterRows]);
   const filteredSummary = { ...(summary.filtered || summary), ...clientSummary };
-  const globalSummary = summary.global || summary;
   const stats = [
-    ['Eligible Opportunities', filteredSummary.totalEligibleRenewalOpportunities ?? filteredSummary.totalRenewals ?? 0],
-    ['Active Contracts', filteredSummary.activeContractCount ?? globalSummary.activeContractCount ?? 0],
-    ['Due in 30 Days', filteredSummary.dueIn30Count || 0],
-    ['Overdue Pending', filteredSummary.overduePendingCount ?? filteredSummary.overdueCount ?? 0],
-    ['Won', filteredSummary.wonCount ?? filteredSummary.doneCount ?? 0],
-    ['Lost', filteredSummary.lostCount ?? filteredSummary.declinedCount ?? 0],
-    ['Pending', filteredSummary.pendingCount || 0],
-    ['On-Time / Late', `${filteredSummary.onTimeWonCount || 0} / ${filteredSummary.lateWonCount || 0}`],
-    ['Won Revenue', formatINR(filteredSummary.wonRenewalRevenue || 0)],
-    ['Lost Value', formatINR(filteredSummary.lostOpportunityValue || 0)],
-    ['Pending Value', formatINR(filteredSummary.pendingOpportunityValue || 0)],
-    ['Jobbing', filteredSummary.oneTimeTreatmentCount || 0]
+    {
+      label: 'Total No of Renewal Contract',
+      count: filteredSummary.totalEligibleRenewalOpportunities ?? filteredSummary.totalRenewals ?? 0,
+      value: filteredSummary.totalRenewalContractValue ?? filteredSummary.totalRenewalAmount ?? 0
+    },
+    { label: 'Won Contract', count: filteredSummary.wonCount ?? filteredSummary.doneCount ?? 0, value: filteredSummary.wonRenewalRevenue || 0 },
+    { label: 'Lost Contract', count: filteredSummary.lostCount ?? filteredSummary.declinedCount ?? 0, value: filteredSummary.lostOpportunityValue || 0 },
+    { label: 'Overdue Contract', count: filteredSummary.overduePendingCount ?? filteredSummary.overdueCount ?? 0, value: filteredSummary.overduePendingValue || 0 },
+    { label: 'Jobbing', count: filteredSummary.oneTimeTreatmentCount || 0, value: filteredSummary.oneTimeTreatmentValue || 0 }
   ];
 
   const headerSearchStyle = isMobile
@@ -1763,14 +1788,21 @@ export default function RenewalDashboard() {
         </div>
         <div style={shell.actions}>
           <button type="button" style={shell.ghostBtn} onClick={() => loadData(filters, { autoSync: false, autoGenerateLetters: false })}><RefreshCw size={15} />Refresh</button>
-          {canAdminRenewals ? <button type="button" style={shell.primaryBtn} onClick={syncRenewals}><RefreshCw size={15} />Sync Renewals</button> : null}
         </div>
       </div>
 
       {message ? <div style={{ ...shell.panelPad, border: '1px solid var(--color-primary-soft)', borderRadius: 10, background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', fontSize: 13, fontWeight: 800 }}>{message}</div> : null}
 
       <section style={isMobile ? { ...shell.stats, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.stats}>
-        {stats.map(([label, value]) => <div key={label} style={shell.stat}><div style={shell.statLabel}>{label}</div><div style={shell.statValue}>{value}</div></div>)}
+        {stats.map((item) => (
+          <div key={item.label} style={shell.stat}>
+            <div style={shell.statLabel}>{item.label}</div>
+            <div>
+              <div style={shell.statValue}>{item.count}</div>
+              <div style={shell.statMeta}>{formatINR(item.value || 0)}</div>
+            </div>
+          </div>
+        ))}
       </section>
 
       {renderFilters()}
