@@ -117,11 +117,11 @@ const shell = {
   dangerBtn: { minHeight: 34, border: '1px solid color-mix(in srgb, var(--color-danger) 34%, var(--color-border))', borderRadius: 9, padding: '0 12px', background: 'color-mix(in srgb, var(--color-danger) 12%, var(--surface-card))', color: 'var(--color-danger)', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: 'var(--surface-card)', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)' },
   panelPad: { padding: 12 },
-  stats: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 6, justifyContent: 'stretch', alignItems: 'stretch' },
-  stat: { border: '1px solid var(--color-border)', borderRadius: 8, padding: '7px 10px', background: 'var(--surface-card)', minHeight: 54, display: 'grid', alignContent: 'center', justifyItems: 'stretch', gap: 2, minWidth: 0, outline: 'none' },
-  statLabel: { width: '100%', textAlign: 'left', fontSize: 9, lineHeight: 1.1, textTransform: 'uppercase', color: 'var(--color-muted)', fontWeight: 850, letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', cursor: 'pointer' },
-  statValue: { width: '100%', textAlign: 'left', marginTop: 1, fontSize: 17, lineHeight: 1, fontWeight: 850, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  statMeta: { marginTop: 0, fontSize: 11, lineHeight: 1.1, fontWeight: 800, color: 'var(--color-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 12, justifyContent: 'stretch', alignItems: 'stretch' },
+  stat: { border: '1px solid var(--color-border)', borderRadius: 8, padding: '12px 14px', background: 'var(--surface-card-elevated)', minHeight: 96, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, minWidth: 0, outline: 'none', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)' },
+  statLabel: { width: '100%', textAlign: 'left', fontSize: 11, lineHeight: 1.25, textTransform: 'uppercase', color: 'var(--color-muted)', fontWeight: 800, letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', cursor: 'pointer' },
+  statValue: { width: '100%', textAlign: 'left', marginTop: 0, fontSize: 24, lineHeight: 1.05, fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  statMeta: { marginTop: 0, fontSize: 12, lineHeight: 1.35, fontWeight: 700, color: 'var(--color-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   filters: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
   field: { display: 'grid', gap: 3 },
   label: { fontSize: 11, lineHeight: 1.1, color: 'var(--color-muted)', fontWeight: 700, letterSpacing: '0.01em', textTransform: 'uppercase' },
@@ -1421,14 +1421,11 @@ export default function RenewalDashboard() {
 
   const renderFilters = () => (
     <div style={shell.panel}>
-      <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : shell.filters.gridTemplateColumns, padding: '10px 12px 12px' }}>
+      <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : 'repeat(6, minmax(118px, 1fr)) auto', padding: '10px 12px 12px' }}>
         <label style={shell.field}><span style={shell.label}>Range</span><select style={shell.input} value={filters.range} onChange={(e) => updateFilter('range', e.target.value)}>{ranges.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>{statuses.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Relationship Type</span><select style={shell.input} value={filters.relationshipType} onChange={(e) => updateFilter('relationshipType', e.target.value)}>{relationshipTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Duration</span><select style={shell.input} value={filters.duration || ''} onChange={(e) => updateFilter('duration', e.target.value)}>{durationFilters.map((duration) => <option key={duration.value} value={duration.value}>{duration.label}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Service</span><select style={shell.input} value={filters.serviceType || ''} onChange={(e) => updateFilter('serviceType', e.target.value)}><option value="">All Services</option>{serviceOptions.map((service) => <option key={service} value={service}>{service}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>All Fields</span><select style={shell.input} value={filters.searchScope} onChange={(e) => updateFilter('searchScope', e.target.value)}>{searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}</select></label>
         <div style={headerSearchActionsStyle}>
