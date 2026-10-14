@@ -250,9 +250,12 @@ const renewalAmountValue = (row) => (
 );
 const isJobbingRow = (row) => {
   const period = String(row?.contractPeriod || row?.contract_period || '').trim().toLowerCase();
+  const serviceType = String(row?.serviceType || row?.service_type || '').trim().toLowerCase();
   const sourceItems = Array.isArray(row?.sourceInvoiceItems) ? row.sourceInvoiceItems : [];
   return row?.serviceRelationshipType === 'ONE_TIME' ||
     jobbingContractPeriods.has(period) ||
+    /single\s*time/.test(period) ||
+    /single\s*time/.test(serviceType) ||
     sourceItems.some((item) => jobbingContractPeriods.has(String(item?.contractPeriod || item?.contract_period || '').trim().toLowerCase()));
 };
 const isReviewRow = (row) => (
@@ -1243,7 +1246,12 @@ export default function RenewalDashboard() {
       merged.set(key, existing ? { ...existing, ...row } : row);
     });
     const summaryRows = Array.from(merged.values());
-    const contractRows = summaryRows.filter((row) => row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible && !isJobbingRow(row) && !isReviewRow(row));
+    const isRenewalContractSummaryRow = (row) => {
+      if (isJobbingRow(row)) return false;
+      if (isLetterRow(row)) return row?.serviceRelationshipType !== 'ONE_TIME';
+      return row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible && !isReviewRow(row);
+    };
+    const contractRows = summaryRows.filter(isRenewalContractSummaryRow);
     const pendingRows = contractRows.filter(isPendingRenewal);
     const wonRows = contractRows.filter(isWonRenewal);
     const lostRows = contractRows.filter(isLostRenewal);
