@@ -16021,6 +16021,8 @@ app.get('/api/renewals/letters', async (req, res) => {
           rl.pdf_url,
           rl.customer_name,
           rl.generated_at,
+          r.previous_contract_start AS contract_start_date,
+          r.previous_contract_end AS contract_end_date,
           COALESCE(r.previous_contract_end, r.renewal_due_date) AS conclude_date,
           r.customer_name AS renewal_customer_name,
           r.mobile AS renewal_mobile,
@@ -16048,6 +16050,8 @@ app.get('/api/renewals/letters', async (req, res) => {
         status: renewalUiStatus(renewalCleanStatus(row.renewal_status || 'Pending')),
         assignedSalesPersonId: row.renewal_assigned_sales_person_id || '',
         assignedSalesPersonName: row.renewal_assigned_sales_person_name || '',
+        previousContractStart: row.contract_start_date || '',
+        previousContractEnd: row.contract_end_date || row.conclude_date || '',
         renewalDueDate: row.conclude_date || '',
         concludeDate: row.conclude_date || ''
       }));

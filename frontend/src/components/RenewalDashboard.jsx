@@ -134,11 +134,13 @@ const shell = {
   status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
   miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) 64px minmax(92px, auto)', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: 12 },
-  letterTable: { width: '100%', minWidth: 620, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  letterCustomerCell: { width: '40%' },
-  letterDateCell: { width: '22%' },
-  letterPdfCell: { width: '18%', textAlign: 'center' },
-  letterActionsCell: { width: '20%', textAlign: 'left' },
+  letterTable: { width: '100%', minWidth: 760, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
+  letterCustomerCell: { width: '24%' },
+  letterServiceCell: { width: '18%' },
+  letterDateCell: { width: '13%' },
+  letterPeriodCell: { width: '23%', textAlign: 'center' },
+  letterPdfCell: { width: '10%', textAlign: 'center' },
+  letterActionsCell: { width: '12%', textAlign: 'left' },
   modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
   modal: { width: 'min(760px, 96vw)', maxHeight: '92vh', background: 'var(--surface-card)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: '0 24px 70px rgba(2,6,23,0.34)', overflow: 'hidden', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
   modalHead: { minHeight: 64, height: 64, boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid var(--card-header-border)', background: 'var(--card-header-bg)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 24, fontWeight: 800 },
@@ -174,6 +176,10 @@ const formatINR = (value) => {
   if (!Number.isFinite(amount)) return '₹0';
   const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
+};
+const numericAmount = (value) => {
+  const amount = Number(value || 0);
+  return Number.isFinite(amount) ? amount : 0;
 };
 const toDateInput = (value) => {
   if (!value) return '';
@@ -513,6 +519,8 @@ export default function RenewalDashboard() {
         pdf_url: pdfUrl,
         conclude_date: concludeDate,
         concludeDate,
+        previousContractStart: row?.previousContractStart || row?.previous_contract_start || row?.contract_start_date || '',
+        previousContractEnd: row?.previousContractEnd || row?.previous_contract_end || row?.contract_end_date || row?.concludeDate || row?.conclude_date || '',
         customer_name: String(row?.customer_name || row?.customerName || '').trim(),
         customerName: String(row?.customerName || row?.customer_name || '').trim(),
         mobile: String(row?.mobile || '').trim(),
@@ -530,6 +538,8 @@ export default function RenewalDashboard() {
         renewalLetterUrl: next.renewalLetterUrl || existing.renewalLetterUrl,
         conclude_date: next.conclude_date || existing.conclude_date,
         concludeDate: next.concludeDate || existing.concludeDate,
+        previousContractStart: next.previousContractStart || existing.previousContractStart,
+        previousContractEnd: next.previousContractEnd || existing.previousContractEnd,
         customerName: next.customerName || existing.customerName,
         customer_name: next.customer_name || existing.customer_name,
         mobile: next.mobile || existing.mobile,
@@ -1151,11 +1161,46 @@ export default function RenewalDashboard() {
     return () => window.clearTimeout(timer);
   }, [filters.search, filters.searchScope]);
 
-  const filteredSummary = summary.filtered || summary;
+  const clientSummary = useMemo(() => {
+    const contractRows = rows.filter((row) => row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible && !isJobbingRow(row) && !isReviewRow(row));
+    const pendingRows = contractRows.filter(isPendingRenewal);
+    const wonRows = contractRows.filter(isWonRenewal);
+    const lostRows = contractRows.filter(isLostRenewal);
+    const today = parseDateInput(todayInput());
+    const amountFor = (row) => numericAmount(row?.proposedAmount || row?.previousAmount || row?.contractAmount);
+    const wonAmountFor = (row) => numericAmount(row?.agreedContractAmount || row?.finalRenewalAmount || row?.proposedAmount || row?.contractAmount);
+    const timingText = (row) => String(row?.renewalTiming || row?.renewal_timing || '').trim().toUpperCase();
+    const isOverdue = (row) => {
+      const dueDate = parseDateInput(renewalDateValue(row));
+      return rowStatusText(row) === 'Overdue' || rowStatusText(row) === 'Follow-up' || (dueDate && today && dueDate.getTime() < today.getTime());
+    };
+    const isDueIn30 = (row) => {
+      const dueDate = parseDateInput(renewalDateValue(row));
+      if (!dueDate || !today) return false;
+      const days = Math.round((dueDate.getTime() - today.getTime()) / 86400000);
+      return days >= 0 && days <= 30;
+    };
+    return {
+      totalEligibleRenewalOpportunities: contractRows.length,
+      activeContractCount: pendingRows.length,
+      dueIn30Count: pendingRows.filter(isDueIn30).length,
+      overduePendingCount: pendingRows.filter(isOverdue).length,
+      wonCount: wonRows.length,
+      lostCount: lostRows.length,
+      pendingCount: pendingRows.length,
+      onTimeWonCount: wonRows.filter((row) => timingText(row) === 'ON_TIME' || timingText(row) === 'ON TIME').length,
+      lateWonCount: wonRows.filter((row) => timingText(row) === 'LATE').length,
+      wonRenewalRevenue: wonRows.reduce((sum, row) => sum + wonAmountFor(row), 0),
+      lostOpportunityValue: lostRows.reduce((sum, row) => sum + amountFor(row), 0),
+      pendingOpportunityValue: pendingRows.reduce((sum, row) => sum + amountFor(row), 0),
+      oneTimeTreatmentCount: rows.filter(isJobbingRow).length
+    };
+  }, [rows]);
+  const filteredSummary = { ...(summary.filtered || summary), ...clientSummary };
   const globalSummary = summary.global || summary;
   const stats = [
     ['Eligible Opportunities', filteredSummary.totalEligibleRenewalOpportunities ?? filteredSummary.totalRenewals ?? 0],
-    ['Active Contracts', globalSummary.activeContractCount ?? filteredSummary.activeContractCount ?? 0],
+    ['Active Contracts', filteredSummary.activeContractCount ?? globalSummary.activeContractCount ?? 0],
     ['Due in 30 Days', filteredSummary.dueIn30Count || 0],
     ['Overdue Pending', filteredSummary.overduePendingCount ?? filteredSummary.overdueCount ?? 0],
     ['Won', filteredSummary.wonCount ?? filteredSummary.doneCount ?? 0],
@@ -1667,7 +1712,9 @@ export default function RenewalDashboard() {
                   <thead>
                     <tr>
                       <th style={{ ...shell.th, ...shell.letterCustomerCell }}>Customer</th>
+                      <th style={{ ...shell.th, ...shell.letterServiceCell }}>Service</th>
                       <th style={{ ...shell.th, ...shell.letterDateCell }}>Letter Date</th>
+                      <th style={{ ...shell.th, ...shell.letterPeriodCell }}>Contract Period</th>
                       <th style={{ ...shell.th, ...shell.letterPdfCell }}>PDF</th>
                       <th style={{ ...shell.th, ...shell.letterActionsCell }}>Actions</th>
                     </tr>
@@ -1678,8 +1725,14 @@ export default function RenewalDashboard() {
                         <td style={{ ...shell.td, ...shell.letterCustomerCell }} title={letter.customerName || letter.customer_name || ''}>
                           <strong>{letter.customerName || letter.customer_name || '-'}</strong>
                         </td>
+                        <td style={{ ...shell.td, ...shell.letterServiceCell }} title={letter.serviceType || ''}>
+                          {letter.serviceType || '-'}
+                        </td>
                         <td style={{ ...shell.td, ...shell.letterDateCell }}>
                           {formatDate(letter.conclude_date || letter.concludeDate || letter.generated_at)}
+                        </td>
+                        <td style={{ ...shell.td, ...shell.letterPeriodCell }} title={`${formatDate(letter.previousContractStart)} - ${formatDate(letter.previousContractEnd)}`}>
+                          {formatDate(letter.previousContractStart)} - {formatDate(letter.previousContractEnd)}
                         </td>
                         <td style={{ ...shell.td, ...shell.letterPdfCell }}>
                           <a href={buildRenewalPdfUrl(letter)} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(letter); }} rel="noreferrer">Open PDF</a>
