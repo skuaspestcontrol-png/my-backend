@@ -1199,7 +1199,7 @@ export default function RenewalDashboard() {
     return (
       <div style={shell.tableWrap}>
         <div style={renewalTableContentStyle}>
-          <table className="crm-compact-table" style={renewalTableStyle}>
+          <table className="crm-compact-table renewal-dashboard-table" style={renewalTableStyle}>
             <colgroup>
               {renewalColumns.map((column) => (
                 <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />

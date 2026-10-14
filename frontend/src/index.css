@@ -5711,3 +5711,10 @@ body .crm-compact-table select[size="1"] {
 .payment-received-page .responsive-table table thead th span {
   line-height: 1.2 !important;
 }
+
+.crm-compact-table.renewal-dashboard-table thead th {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
+  border-color: var(--color-border) !important;
+}
