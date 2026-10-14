@@ -121,10 +121,10 @@ const shell = {
   dangerBtn: { minHeight: 34, border: '1px solid color-mix(in srgb, var(--color-danger) 34%, var(--color-border))', borderRadius: 9, padding: '0 12px', background: 'color-mix(in srgb, var(--color-danger) 12%, var(--surface-card))', color: 'var(--color-danger)', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: 'var(--surface-card)', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)' },
   panelPad: { padding: 12 },
-  stats: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 6 },
-  stat: { border: '1px solid var(--color-border)', borderRadius: 8, padding: '7px 10px', background: 'var(--surface-card)', minHeight: 58, display: 'grid', alignContent: 'center', gap: 2, minWidth: 0 },
-  statLabel: { fontSize: 9.5, lineHeight: 1.15, textTransform: 'uppercase', color: 'var(--color-muted)', fontWeight: 800, letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  statValue: { marginTop: 1, fontSize: 18, lineHeight: 1, fontWeight: 850, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(5, 188px)', gap: 6, justifyContent: 'start', alignItems: 'stretch' },
+  stat: { border: '1px solid var(--color-border)', borderRadius: 8, padding: '7px 10px', background: 'var(--surface-card)', minHeight: 54, display: 'grid', alignContent: 'center', justifyItems: 'start', gap: 2, minWidth: 0 },
+  statLabel: { fontSize: 9, lineHeight: 1.1, textTransform: 'uppercase', color: 'var(--color-muted)', fontWeight: 850, letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', cursor: 'pointer' },
+  statValue: { marginTop: 1, fontSize: 17, lineHeight: 1, fontWeight: 850, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   statMeta: { marginTop: 0, fontSize: 11, lineHeight: 1.1, fontWeight: 800, color: 'var(--color-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   filters: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
   field: { display: 'grid', gap: 3 },
@@ -266,14 +266,14 @@ const wonContractStartValue = (row) => (
   row?.new_contract_start_date ||
   row?.contractStartDate ||
   row?.contract_start_date ||
-  ''
+  fallbackWonContractStartValue(row)
 );
 const wonContractEndValue = (row) => (
   row?.newContractEndDate ||
   row?.new_contract_end_date ||
   row?.contractEndDate ||
   row?.contract_end_date ||
-  ''
+  fallbackWonContractEndValue(row)
 );
 const wonContractIdValue = (row) => (
   row?.newContractId ||
@@ -327,6 +327,15 @@ const calculateContractEndInput = (startDate, durationValue, durationUnit) => {
   if (unit === 'DAY') return addDaysInput(start, value - 1);
   const months = unit === 'YEAR' ? value * 12 : value;
   return addDaysInput(addMonthsClampedInput(start, months), -1);
+};
+const fallbackWonContractStartValue = (row) => {
+  const previousEnd = toDateInput(row?.previousContractEnd || row?.previous_contract_end || row?.renewalDueDate || row?.renewal_due_date);
+  return previousEnd ? addDaysInput(previousEnd, 1) : '';
+};
+const fallbackWonContractEndValue = (row) => {
+  const start = fallbackWonContractStartValue(row);
+  if (!start) return '';
+  return calculateContractEndInput(start, row?.contractDurationValue || row?.contract_duration_value || 12, row?.contractDurationUnit || row?.contract_duration_unit || 'MONTH');
 };
 const normalizeSummaryPayload = (payload = {}) => {
   const source = payload && typeof payload === 'object' ? payload : {};
@@ -1928,6 +1937,7 @@ export default function RenewalDashboard() {
             type="button"
             style={{ ...shell.stat, width: '100%', textAlign: 'left', cursor: 'pointer' }}
             onClick={() => openSummaryCard(item.targetTab)}
+            aria-label={`Open ${item.label}`}
             title={`Open ${item.label}`}
           >
             <div style={shell.statLabel}>{item.label}</div>
