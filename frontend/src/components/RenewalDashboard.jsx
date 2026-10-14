@@ -125,18 +125,18 @@ const shell = {
   activeTab: { background: 'var(--color-primary)', color: '#fff', borderColor: 'var(--color-primary)', fontWeight: 900, boxShadow: '0 0 0 2px var(--color-primary-soft), 0 4px 10px rgba(15, 23, 42, 0.22)' },
   tableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
   table: { width: '100%', minWidth: 1080, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  th: { textAlign: 'left', padding: '8px 7px', fontSize: 11, color: 'var(--table-header-text)', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid var(--color-border)', background: 'var(--table-header-bg)', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', letterSpacing: '0.03em', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
+  th: { textAlign: 'left', padding: '8px 7px', fontSize: 11, color: 'var(--table-header-text)', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1px solid var(--color-border)', background: 'var(--table-header-bg)', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', letterSpacing: '0.03em', lineHeight: 1.25, minHeight: '42px', height: 'auto', textShadow: '0 1px 1px rgba(15, 23, 42, 0.25)' },
   td: { padding: '7px', fontSize: 11.5, color: 'var(--text-primary)', borderBottom: '1px solid var(--color-border)', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.25 },
   rowActions: { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 5, flexWrap: 'nowrap' },
   iconBtn: { width: 30, height: 30, minWidth: 30, minHeight: 30, padding: 0, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   status: { display: 'inline-flex', alignItems: 'center', minHeight: 24, borderRadius: 999, padding: '0 8px', fontSize: 11, fontWeight: 850 },
   chartGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 },
-  miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 70px 90px', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: 12 },
+  miniRow: { display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) 64px minmax(92px, auto)', gap: 8, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: 12 },
   modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
   modal: { width: 'min(760px, 96vw)', maxHeight: '92vh', background: 'var(--surface-card)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: '0 24px 70px rgba(2,6,23,0.34)', overflow: 'hidden', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
-  modalHead: { minHeight: 64, height: 64, boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid transparent', background: 'var(--card-header-bg)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 24, fontWeight: 800 },
+  modalHead: { minHeight: 64, height: 64, boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid var(--card-header-border)', background: 'var(--card-header-bg)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 24, fontWeight: 800 },
   modalBody: { padding: 18, display: 'grid', gap: 12, overflowY: 'auto', background: 'var(--surface-card)', color: 'var(--text-primary)' },
-  modalCloseBtn: { width: 40, height: 40, minWidth: 40, minHeight: 40, padding: 0, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 22, lineHeight: 1 },
+  modalCloseBtn: { width: 40, height: 40, minWidth: 40, minHeight: 40, padding: 0, border: '1px solid rgba(255,255,255,0.34)', borderRadius: 10, background: 'rgba(255,255,255,0.14)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 22, lineHeight: 1, boxShadow: '0 1px 0 rgba(255,255,255,0.12) inset' },
   mobileCard: { border: '1px solid var(--color-border)', borderRadius: 10, padding: 10, display: 'grid', gap: 8, background: 'var(--surface-card)' },
   mobileMeta: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12, color: 'var(--color-muted)' },
   mobileCustomerStack: { display: 'grid', gap: 2, alignItems: 'start', minWidth: 0 },
@@ -828,14 +828,21 @@ export default function RenewalDashboard() {
     minWidth: '100%',
     width: '100%'
   };
-  const renewalHeadCellStyle = (key, align = 'left') => ({
-    ...shell.th,
-    position: 'relative',
-    width: `${getColumnWidth(key)}px`,
-    minWidth: `${getColumnWidth(key)}px`,
-    maxWidth: `${getColumnWidth(key)}px`,
-    textAlign: align
-  });
+  const renewalHeadCellStyle = (key, align = 'left') => {
+    const isActions = key === 'actions';
+    return {
+      ...shell.th,
+      position: isActions ? 'sticky' : 'relative',
+      right: isActions ? 0 : undefined,
+      zIndex: isActions ? 4 : undefined,
+      width: `${getColumnWidth(key)}px`,
+      minWidth: `${getColumnWidth(key)}px`,
+      maxWidth: `${getColumnWidth(key)}px`,
+      textAlign: align,
+      background: 'var(--table-header-bg)',
+      boxShadow: isActions ? '-1px 0 0 var(--color-border)' : undefined
+    };
+  };
   const renewalBodyCellStyle = (key, align = 'left') => ({
     ...shell.td,
     width: `${getColumnWidth(key)}px`,
@@ -845,6 +852,11 @@ export default function RenewalDashboard() {
   });
   const renewalActionCellStyle = {
     ...renewalBodyCellStyle('actions', 'left'),
+    position: 'sticky',
+    right: 0,
+    zIndex: 2,
+    background: 'var(--surface-card)',
+    boxShadow: '-1px 0 0 var(--color-border)',
     overflow: 'visible'
   };
 
@@ -1269,7 +1281,7 @@ export default function RenewalDashboard() {
       <div style={shell.panelPad}>
         {(items || []).length === 0 ? <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 13 }}>No records.</p> : items.map((item) => (
           <div key={item[labelKey] || item.name} style={shell.miniRow}>
-            <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item[labelKey] || item.name}</strong>
+            <strong style={{ minWidth: 0, overflowWrap: 'anywhere', whiteSpace: 'normal', lineHeight: 1.25 }}>{item[labelKey] || item.name}</strong>
             <button
               type="button"
               onClick={() => options.onCountClick?.(item)}
@@ -1286,7 +1298,7 @@ export default function RenewalDashboard() {
             >
               {item[valueKey] ?? item.total ?? 0}
             </button>
-            <span>{formatINR(item.amount || 0)}</span>
+            <span style={{ textAlign: 'right', overflowWrap: 'anywhere' }}>{formatINR(item.amount || 0)}</span>
           </div>
         ))}
       </div>
@@ -1309,6 +1321,11 @@ export default function RenewalDashboard() {
               ['Needs Review', auditSummary.needsReview || 0]
             ].map(([label, value]) => <div key={label} style={shell.stat}><div style={shell.statLabel}>{label}</div><div style={shell.statValue}>{value}</div></div>)}
           </div>
+        ) : null}
+        {!auditSummary ? (
+          <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 13, lineHeight: 1.4 }}>
+            Click Scan Records to run a read-only renewal classification check. Records are changed only after selecting rows and applying an audit action.
+          </p>
         ) : null}
         {auditRows.length > 0 ? (
           <>

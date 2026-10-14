@@ -5,6 +5,7 @@ const path = require('path');
 
 const source = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
 const renewalDashboardSource = fs.readFileSync(path.join(__dirname, '../../frontend/src/components/RenewalDashboard.jsx'), 'utf8');
+const actionMenuSource = fs.readFileSync(path.join(__dirname, '../../frontend/src/components/ui/ActionMenu.jsx'), 'utf8');
 
 function routeBlock(method, route) {
   const start = source.indexOf(`app.${method}('${route}'`);
@@ -127,6 +128,72 @@ test('renewal lost outcome stores reason, decision date, and audit trail', () =>
   assert.match(block, /lost_reason/);
   assert.match(block, /lost_notes/);
   assert.match(block, /insertRenewalAuditLog/);
+});
+
+test('renewal won and lost actions stay available only for authorized eligible rows', () => {
+  const canRenewStart = renewalDashboardSource.indexOf('const canRenewRow = (row) =>');
+  const canRenewEnd = renewalDashboardSource.indexOf('\n  const canConvertOneTimeRow', canRenewStart);
+  const rowMoreStart = renewalDashboardSource.indexOf('const rowMoreItems = (row) =>');
+  const rowMoreEnd = renewalDashboardSource.indexOf('const renderRowActions = (row, mobile = false) =>', rowMoreStart);
+  const rowActionsStart = renewalDashboardSource.indexOf('const renderRowActions = (row, mobile = false) =>');
+  const rowActionsEnd = renewalDashboardSource.indexOf('\n\n  useEffect(() => {', rowActionsStart);
+  assert.ok(canRenewStart > -1 && canRenewEnd > canRenewStart, 'canRenewRow block not found');
+  assert.ok(rowMoreStart > -1 && rowMoreEnd > rowMoreStart, 'rowMoreItems block not found');
+  assert.ok(rowActionsStart > -1 && rowActionsEnd > rowActionsStart, 'renderRowActions block not found');
+  const canRenewBlock = renewalDashboardSource.slice(canRenewStart, canRenewEnd);
+  const rowMoreBlock = renewalDashboardSource.slice(rowMoreStart, rowMoreEnd);
+  const rowActionsBlock = renewalDashboardSource.slice(rowActionsStart, rowActionsEnd);
+
+  assert.match(canRenewBlock, /canUseAssignedRenewal\(row\)/);
+  assert.match(canRenewBlock, /row\?\.serviceRelationshipType === 'CONTRACT'/);
+  assert.match(canRenewBlock, /row\?\.renewalEligible/);
+  assert.match(canRenewBlock, /!isFinalRow\(row\)/);
+  assert.match(rowActionsBlock, /canRenewRow\(row\)[\s\S]+title="Mark as Won"/);
+  assert.match(rowActionsBlock, /onClick=\{\(\) => openModal\('convert', row\)\}/);
+  assert.match(rowMoreBlock, /canUseAssignedRenewal\(row\)[\s\S]+!isFinalRow\(row\)[\s\S]+row\.serviceRelationshipType === 'CONTRACT'[\s\S]+\{ label: 'Mark as Lost'/);
+  assert.match(rowMoreBlock, /onClick: \(\) => openModal\('decline', row\)/);
+});
+
+test('renewal details view does not silently convert contracts or regenerate letters', () => {
+  const viewStart = renewalDashboardSource.indexOf("{modal.type === 'view'");
+  const viewEnd = renewalDashboardSource.indexOf("{modal.type === 'edit'", viewStart);
+  assert.ok(viewStart > -1 && viewEnd > viewStart, 'view modal block not found');
+  const viewBlock = renewalDashboardSource.slice(viewStart, viewEnd);
+
+  assert.doesNotMatch(viewBlock, /convert-contract/);
+  assert.doesNotMatch(viewBlock, /\/decline/);
+  assert.doesNotMatch(viewBlock, /generate-letter/);
+  assert.match(viewBlock, /openRenewalPdfPreview\(row\)/);
+});
+
+test('renewal decline does not create contracts or invoices', () => {
+  const block = routeBlock('post', '/api/renewals/:id/decline');
+
+  assert.doesNotMatch(block, /syncInvoiceToMysqlOnConnection/);
+  assert.doesNotMatch(block, /createNextInvoiceNumber/);
+  assert.doesNotMatch(block, /const newInvoice/);
+  assert.doesNotMatch(block, /converted_contract_id = \?/);
+});
+
+test('renewal audit scan is read-only until an explicit audit action is submitted', () => {
+  const scanBlock = routeBlock('get', '/api/renewals/audit');
+  const actionBlock = routeBlock('post', '/api/renewals/audit/classify');
+
+  assert.doesNotMatch(scanBlock, /\bUPDATE\b/i);
+  assert.doesNotMatch(scanBlock, /\bINSERT\b/i);
+  assert.doesNotMatch(scanBlock, /\bDELETE\b/i);
+  assert.doesNotMatch(scanBlock, /syncRenewalToMysql/);
+  assert.match(actionBlock, /UPDATE renewals/);
+  assert.match(renewalDashboardSource, /Click Scan Records to run a read-only renewal classification check/);
+});
+
+test('renewal table keeps row actions accessible and menus outside overflow clipping', () => {
+  assert.match(renewalDashboardSource, /const renewalTableContentStyle = \{/);
+  assert.match(renewalDashboardSource, /const renewalActionCellStyle = \{[\s\S]+position: 'sticky'[\s\S]+right: 0[\s\S]+overflow: 'visible'/);
+  assert.match(renewalDashboardSource, /const renewalHeadCellStyle = \(key, align = 'left'\) => \{[\s\S]+key === 'actions'[\s\S]+position: isActions \? 'sticky'/);
+  assert.match(actionMenuSource, /createPortal\(/);
+  assert.match(actionMenuSource, /document\.body/);
+  assert.match(actionMenuSource, /position: 'fixed'/);
 });
 
 test('renewal letter preview and WhatsApp share do not silently regenerate PDFs', () => {
