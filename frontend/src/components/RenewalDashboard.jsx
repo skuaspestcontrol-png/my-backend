@@ -248,6 +248,7 @@ const renewalAmountValue = (row) => (
   row?.amount ||
   0
 );
+const isLetterRow = (row) => Boolean(row?.renewalLetterUrl || row?.pdf_url);
 const isJobbingRow = (row) => {
   const period = String(row?.contractPeriod || row?.contract_period || '').trim().toLowerCase();
   const serviceType = String(row?.serviceType || row?.service_type || '').trim().toLowerCase();
@@ -264,6 +265,11 @@ const isReviewRow = (row) => (
   (!isJobbingRow(row) && row?.serviceRelationshipType !== 'CONTRACT') ||
   (!isJobbingRow(row) && row?.serviceRelationshipType !== 'ONE_TIME' && !row?.renewalEligible)
 );
+const isRenewalContractSummaryRow = (row) => {
+  if (isJobbingRow(row)) return false;
+  if (isLetterRow(row)) return row?.serviceRelationshipType !== 'ONE_TIME';
+  return row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isReviewRow(row);
+};
 const addMonthsClampedInput = (date, months) => {
   const source = new Date(`${date}T00:00:00`);
   if (Number.isNaN(source.getTime())) return '';
@@ -868,7 +874,7 @@ export default function RenewalDashboard() {
     return Array.from(merged.values());
   }, [rows, visibleLetterRows]);
   const visibleRows = useMemo(() => {
-    const onlyContracts = (row) => row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible && !isJobbingRow(row) && !isReviewRow(row);
+    const onlyContracts = isRenewalContractSummaryRow;
     const nextMonth = addMonthsDate(new Date(), 1);
     if (activeTab === 'Jobbing') return mergedVisibleRows.filter(isJobbingRow);
     if (activeTab === 'Needs Review') return mergedVisibleRows.filter(isReviewRow);
@@ -1144,7 +1150,6 @@ export default function RenewalDashboard() {
   };
   const isFinalRow = (row) => ['Renewed', 'Declined', 'Won', 'Lost'].includes(String(row?.status || ''));
   const isOneTimeRow = (row) => row?.serviceRelationshipType === 'ONE_TIME';
-  const isLetterRow = (row) => Boolean(row?.renewalLetterUrl || row?.pdf_url);
   const canRenewRow = (row) => canUseAssignedRenewal(row) && row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isFinalRow(row);
   const canWinLetterRow = (row) => isLetterRow(row) && String(row?.renewalId || row?.renewal_id || '').trim() && !isFinalRow(row);
   const canConvertOneTimeRow = (row) => canUseAssignedRenewal(row) && isOneTimeRow(row) && !row?.convertedContractId;
@@ -1246,11 +1251,6 @@ export default function RenewalDashboard() {
       merged.set(key, existing ? { ...existing, ...row } : row);
     });
     const summaryRows = Array.from(merged.values());
-    const isRenewalContractSummaryRow = (row) => {
-      if (isJobbingRow(row)) return false;
-      if (isLetterRow(row)) return row?.serviceRelationshipType !== 'ONE_TIME';
-      return row.serviceRelationshipType === 'CONTRACT' && row.renewalEligible && !isReviewRow(row);
-    };
     const contractRows = summaryRows.filter(isRenewalContractSummaryRow);
     const pendingRows = contractRows.filter(isPendingRenewal);
     const wonRows = contractRows.filter(isWonRenewal);
@@ -1295,13 +1295,19 @@ export default function RenewalDashboard() {
     {
       label: 'Total No of Renewal Contract',
       count: filteredSummary.totalEligibleRenewalOpportunities ?? filteredSummary.totalRenewals ?? 0,
-      value: filteredSummary.totalRenewalContractValue ?? filteredSummary.totalRenewalAmount ?? 0
+      value: filteredSummary.totalRenewalContractValue ?? filteredSummary.totalRenewalAmount ?? 0,
+      targetTab: 'Renewal Letters'
     },
-    { label: 'Won Contract', count: filteredSummary.wonCount ?? filteredSummary.doneCount ?? 0, value: filteredSummary.wonRenewalRevenue || 0 },
-    { label: 'Lost Contract', count: filteredSummary.lostCount ?? filteredSummary.declinedCount ?? 0, value: filteredSummary.lostOpportunityValue || 0 },
-    { label: 'Overdue Contract', count: filteredSummary.overduePendingCount ?? filteredSummary.overdueCount ?? 0, value: filteredSummary.overduePendingValue || 0 },
-    { label: 'Jobbing', count: filteredSummary.oneTimeTreatmentCount || 0, value: filteredSummary.oneTimeTreatmentValue || 0 }
+    { label: 'Won Contract', count: filteredSummary.wonCount ?? filteredSummary.doneCount ?? 0, value: filteredSummary.wonRenewalRevenue || 0, targetTab: 'Won' },
+    { label: 'Lost Contract', count: filteredSummary.lostCount ?? filteredSummary.declinedCount ?? 0, value: filteredSummary.lostOpportunityValue || 0, targetTab: 'Lost' },
+    { label: 'Overdue Contract', count: filteredSummary.overduePendingCount ?? filteredSummary.overdueCount ?? 0, value: filteredSummary.overduePendingValue || 0, targetTab: 'Overdue' },
+    { label: 'Jobbing', count: filteredSummary.oneTimeTreatmentCount || 0, value: filteredSummary.oneTimeTreatmentValue || 0, targetTab: 'Jobbing' }
   ];
+  const openSummaryCard = (targetTab) => {
+    if (!targetTab) return;
+    setActiveTab(targetTab);
+    setPage(1);
+  };
 
   const headerSearchStyle = isMobile
     ? { width: '100%', maxWidth: '100%' }
@@ -1803,13 +1809,19 @@ export default function RenewalDashboard() {
 
       <section style={isMobile ? { ...shell.stats, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.stats}>
         {stats.map((item) => (
-          <div key={item.label} style={shell.stat}>
+          <button
+            key={item.label}
+            type="button"
+            style={{ ...shell.stat, width: '100%', textAlign: 'left', cursor: 'pointer' }}
+            onClick={() => openSummaryCard(item.targetTab)}
+            title={`Open ${item.label}`}
+          >
             <div style={shell.statLabel}>{item.label}</div>
             <div>
               <div style={shell.statValue}>{item.count}</div>
               <div style={shell.statMeta}>{formatINR(item.value || 0)}</div>
             </div>
-          </div>
+          </button>
         ))}
       </section>
 
