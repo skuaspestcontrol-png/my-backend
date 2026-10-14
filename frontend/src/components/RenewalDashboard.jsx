@@ -121,11 +121,11 @@ const shell = {
   dangerBtn: { minHeight: 34, border: '1px solid color-mix(in srgb, var(--color-danger) 34%, var(--color-border))', borderRadius: 9, padding: '0 12px', background: 'color-mix(in srgb, var(--color-danger) 12%, var(--surface-card))', color: 'var(--color-danger)', fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   panel: { border: '1px solid var(--color-border)', borderRadius: 12, background: 'var(--surface-card)', overflow: 'hidden', boxShadow: '0 10px 28px rgba(15, 23, 42, 0.08)' },
   panelPad: { padding: 12 },
-  stats: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 7 },
-  stat: { border: '1px solid var(--color-border)', borderRadius: 9, padding: '8px 9px', background: 'var(--surface-card)', minHeight: 82, display: 'grid', alignContent: 'space-between', minWidth: 0 },
-  statLabel: { fontSize: 9.5, lineHeight: 1.25, textTransform: 'uppercase', color: 'var(--color-muted)', fontWeight: 800, letterSpacing: 0, whiteSpace: 'normal', overflow: 'hidden' },
-  statValue: { marginTop: 4, fontSize: 20, lineHeight: 1.05, fontWeight: 850, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  statMeta: { marginTop: 4, fontSize: 12, lineHeight: 1.2, fontWeight: 800, color: 'var(--color-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 6 },
+  stat: { border: '1px solid var(--color-border)', borderRadius: 8, padding: '7px 10px', background: 'var(--surface-card)', minHeight: 58, display: 'grid', alignContent: 'center', gap: 2, minWidth: 0 },
+  statLabel: { fontSize: 9.5, lineHeight: 1.15, textTransform: 'uppercase', color: 'var(--color-muted)', fontWeight: 800, letterSpacing: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  statValue: { marginTop: 1, fontSize: 18, lineHeight: 1, fontWeight: 850, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+  statMeta: { marginTop: 0, fontSize: 11, lineHeight: 1.1, fontWeight: 800, color: 'var(--color-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   filters: { display: 'grid', gridTemplateColumns: 'repeat(8, minmax(120px, 1fr))', gap: 8, alignItems: 'end' },
   field: { display: 'grid', gap: 3 },
   label: { fontSize: 11, lineHeight: 1.1, color: 'var(--color-muted)', fontWeight: 700, letterSpacing: '0.01em', textTransform: 'uppercase' },
@@ -247,6 +247,40 @@ const renewalAmountValue = (row) => (
   row?.contractAmount ||
   row?.amount ||
   0
+);
+const renewalOldAmountValue = (row) => (
+  row?.previousContractAmount ||
+  row?.previousAmount ||
+  row?.contractAmount ||
+  row?.proposedAmount ||
+  0
+);
+const renewalNewAmountValue = (row) => (
+  row?.agreedContractAmount ||
+  row?.finalRenewalAmount ||
+  row?.amount ||
+  0
+);
+const wonContractStartValue = (row) => (
+  row?.newContractStartDate ||
+  row?.new_contract_start_date ||
+  row?.contractStartDate ||
+  row?.contract_start_date ||
+  ''
+);
+const wonContractEndValue = (row) => (
+  row?.newContractEndDate ||
+  row?.new_contract_end_date ||
+  row?.contractEndDate ||
+  row?.contract_end_date ||
+  ''
+);
+const wonContractIdValue = (row) => (
+  row?.newContractId ||
+  row?.new_contract_id ||
+  row?.convertedContractId ||
+  row?.converted_contract_id ||
+  ''
 );
 const isLetterRow = (row) => Boolean(row?.renewalLetterUrl || row?.pdf_url);
 const isJobbingRow = (row) => {
@@ -628,6 +662,21 @@ export default function RenewalDashboard() {
     return `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}v=${encodeURIComponent(cacheBuster)}`;
   };
 
+  const buildWonContractPdfUrl = (row) => {
+    const contractId = String(wonContractIdValue(row) || '').trim();
+    if (!contractId) return '';
+    const cacheBuster = String(
+      row?.updatedAt ||
+      row?.updated_at ||
+      row?.renewedAt ||
+      row?.renewed_at ||
+      row?.outcomeRecordedAt ||
+      row?.outcome_recorded_at ||
+      contractId
+    ).trim() || String(Date.now());
+    return `${API_BASE}/api/invoices/${encodeURIComponent(contractId)}/pdf?ref=${encodeURIComponent(contractId)}&v=${encodeURIComponent(cacheBuster)}`;
+  };
+
   const openRenewalWhatsAppComposer = async (row) => {
     const titleName = String(row?.customerName || row?.customer_name || 'Customer').trim() || 'Customer';
 	  const renewalId = String(row?.renewalId || row?.renewal_id || row?.id || '').trim();
@@ -763,6 +812,25 @@ export default function RenewalDashboard() {
         serviceType: String(row?.serviceType || row?.service_type || 'Renewal Letter').trim() || 'Renewal Letter',
         pdfUrl
       }
+    });
+  };
+
+  const openWonContractPdfPreview = (row) => {
+    const contractId = String(wonContractIdValue(row) || '').trim();
+    const pdfUrl = buildWonContractPdfUrl(row);
+    if (!contractId || !pdfUrl) {
+      setMessage('New contract invoice PDF is not ready for this won renewal.');
+      return;
+    }
+    const titleName = String(row?.customerName || row?.customer_name || 'Customer').trim() || 'Customer';
+    setPdfPreview({
+      open: true,
+      title: `Invoice - ${titleName}`,
+      pdfUrl,
+      downloadFileName: `${String(contractId || titleName || 'invoice').replace(/[^\w.-]+/g, '_')}.pdf`,
+      publicShareUrl: pdfUrl,
+      renewalId: String(row?.renewalId || row?.renewal_id || row?.id || '').trim(),
+      shareContext: null
     });
   };
 
@@ -1404,7 +1472,55 @@ export default function RenewalDashboard() {
         </div>
       );
     }
-    if (activeTab === 'Won' || activeTab === 'Lost') {
+    if (activeTab === 'Won') {
+      return (
+        <div style={shell.tableWrap}>
+          <table className="crm-compact-table renewal-dashboard-table" style={{ ...shell.letterTable, minWidth: 780 }}>
+            <thead>
+              <tr>
+                <th style={{ ...shell.th, ...shell.letterCustomerCell }}>Customer</th>
+                <th style={{ ...shell.th, ...shell.letterServiceCell }}>Service Name</th>
+                <th style={{ ...shell.th, ...shell.letterPeriodCell }}>Contract Period</th>
+                <th style={{ ...shell.th, ...shell.letterAmountCell }}>Old Amount</th>
+                <th style={{ ...shell.th, ...shell.letterAmountCell }}>New Amount</th>
+                <th style={{ ...shell.th, ...shell.letterPdfCell }}>PDF</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedRows.map((row) => {
+                const contractStart = wonContractStartValue(row);
+                const contractEnd = wonContractEndValue(row);
+                const invoicePdfUrl = buildWonContractPdfUrl(row);
+                return (
+                  <tr key={row.id || row.renewalId || row.newContractId || row.convertedContractId || row.pdf_url}>
+                    <td style={{ ...shell.td, ...shell.letterCustomerCell }} title={row.customerName || row.customer_name || ''}>
+                      <strong>{row.customerName || row.customer_name || '-'}</strong>
+                    </td>
+                    <td style={{ ...shell.td, ...shell.letterServiceCell }} title={row.serviceType || ''}>{row.serviceType || '-'}</td>
+                    <td style={{ ...shell.td, ...shell.letterPeriodCell }} title={`${formatDate(contractStart)} - ${formatDate(contractEnd)}`}>
+                      {formatDate(contractStart)} - {formatDate(contractEnd)}
+                    </td>
+                    <td style={{ ...shell.td, ...shell.letterAmountCell }}>{formatOptionalINR(renewalOldAmountValue(row))}</td>
+                    <td style={{ ...shell.td, ...shell.letterAmountCell }}>{formatOptionalINR(renewalNewAmountValue(row))}</td>
+                    <td style={{ ...shell.td, ...shell.letterPdfCell }}>
+                      {invoicePdfUrl ? <a href={invoicePdfUrl} onClick={(event) => { event.preventDefault(); openWonContractPdfPreview(row); }} rel="noreferrer">Open PDF</a> : '-'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div style={paginationStyle}>
+            <div style={shell.paginationInfo}>{paginationText}</div>
+            <div style={paginationActionsStyle}>
+              <button type="button" style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
+              <button type="button" style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (activeTab === 'Lost') {
       return (
         <div style={shell.tableWrap}>
           <table className="crm-compact-table renewal-dashboard-table" style={shell.letterTable}>
@@ -1416,7 +1532,6 @@ export default function RenewalDashboard() {
                 <th style={{ ...shell.th, ...shell.letterPeriodCell }}>Contract Period</th>
                 <th style={{ ...shell.th, ...shell.letterAmountCell }}>Amount</th>
                 <th style={{ ...shell.th, ...shell.letterPdfCell }}>PDF</th>
-                <th style={{ ...shell.th, ...shell.letterActionsCell }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1434,7 +1549,6 @@ export default function RenewalDashboard() {
                   <td style={{ ...shell.td, ...shell.letterPdfCell }}>
                     {buildRenewalPdfUrl(row) ? <a href={buildRenewalPdfUrl(row)} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Open PDF</a> : '-'}
                   </td>
-                  <td style={{ ...shell.td, ...shell.letterActionsCell, overflow: 'visible' }}>{renderRowActions(row)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1913,8 +2027,8 @@ export default function RenewalDashboard() {
         pdfUrl={pdfPreview.pdfUrl}
         downloadFileName={pdfPreview.downloadFileName}
         onClose={() => setPdfPreview({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null })}
-        onShareEmail={shareRenewalLetterByEmail}
-        onShareWhatsApp={() => {
+        onShareEmail={pdfPreview.shareContext ? shareRenewalLetterByEmail : undefined}
+        onShareWhatsApp={pdfPreview.shareContext ? () => {
           const context = pdfPreview.shareContext || {};
           const renewalId = String(pdfPreview.renewalId || context.renewalId || context.renewal_id || '').trim();
           if (!renewalId) return;
@@ -1932,7 +2046,7 @@ export default function RenewalDashboard() {
             pdf_url: context.pdfUrl,
             renewalLetterUrl: context.pdfUrl
           });
-        }}
+        } : undefined}
         publicShareUrl={pdfPreview.publicShareUrl}
       />
       <WhatsAppPreviewModal
