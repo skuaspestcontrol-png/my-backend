@@ -2259,7 +2259,7 @@ export default function ContractDashboard() {
                         <div key={relationship.id || `${relationship.invoiceId}-${relationship.serviceName}`} style={shell.serviceCard}>
                           <div style={shell.serviceTop}>
                             <p style={shell.serviceName} title={relationship.serviceName}>{relationship.serviceName || 'Service'}</p>
-                            {renderStatusBadge(relationship.status || (relationship.relationshipType === 'ONE_TIME' ? 'One-Time' : 'Active'))}
+                            {renderStatusBadge(relationship.status || (relationship.relationshipType === 'ONE_TIME' ? 'Jobbing' : 'Active'))}
                           </div>
                           {period ? <div style={shell.serviceMeta}>{period}</div> : null}
                           <div style={shell.serviceMiniGrid}>

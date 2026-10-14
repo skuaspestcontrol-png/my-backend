@@ -139,7 +139,7 @@ const paymentDepositOptions = ['Current Account', 'Saving Account'];
 const contractCustomerTypeOptions = ['New', 'Existing', 'Renewal'];
 const serviceRelationshipOptions = [
   { value: 'CONTRACT', label: 'Contract' },
-  { value: 'ONE_TIME', label: 'One-Time Treatment' },
+  { value: 'ONE_TIME', label: 'Jobbing' },
   { value: 'RECURRING', label: 'Recurring' }
 ];
 const getDefaultPaymentDepositTo = (invoiceType = 'GST') => String(invoiceType || '').trim().toUpperCase() === 'NON GST'
