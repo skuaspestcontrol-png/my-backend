@@ -57,7 +57,6 @@ const searchScopes = [
   { value: 'all', label: 'All Fields' },
   { value: 'customer', label: 'Customer' },
   { value: 'mobile', label: 'Mobile' },
-  { value: 'area', label: 'Area' },
   { value: 'service', label: 'Service' },
   { value: 'salesPerson', label: 'Sales Person' },
   { value: 'status', label: 'Status' },
@@ -70,7 +69,6 @@ const jobbingContractPeriods = new Set(['single_time', 'single_time_plus_7', 'si
 const renewalColumns = [
   { key: 'customer', label: 'Customer' },
   { key: 'mobile', label: 'Mobile' },
-  { key: 'area', label: 'Area' },
   { key: 'svc', label: 'Service' },
   { key: 'period', label: 'Period' },
   { key: 'progress', label: 'Progress' },
@@ -84,7 +82,6 @@ const renewalColumns = [
 const renewalDefaultWidths = {
   customer: 180,
   mobile: 120,
-  area: 130,
   svc: 120,
   period: 165,
   progress: 135,
@@ -98,7 +95,6 @@ const renewalDefaultWidths = {
 const renewalColumnBounds = {
   customer: { min: 150, max: 260 },
   mobile: { min: 100, max: 160 },
-  area: { min: 110, max: 200 },
   svc: { min: 95, max: 190 },
   period: { min: 145, max: 230 },
   progress: { min: 120, max: 180 },
@@ -973,6 +969,12 @@ export default function RenewalDashboard() {
     if (activeTab === 'Lost') return mergedVisibleRows.filter((row) => onlyContracts(row) && isLostRenewal(row));
     return mergedVisibleRows.filter((row) => onlyContracts(row) && isPendingRenewal(row));
   }, [activeTab, mergedVisibleRows]);
+  const tabStatusLabel = (row) => {
+    if (activeTab === 'Upcoming') return 'Upcoming';
+    if (activeTab === 'Overdue') return 'Overdue';
+    return displayStatusLabel(row.status);
+  };
+  const tabStatusStyle = (row) => statusStyle(tabStatusLabel(row));
 
   const totalPages = Math.max(1, Math.ceil(visibleRows.length / RENEWAL_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -1465,7 +1467,7 @@ export default function RenewalDashboard() {
                   <strong style={shell.mobileCustomerName}>{row.customerName}</strong>
                   <span style={shell.mobileCustomerMobile}>{row.mobile || '-'}</span>
                 </div>
-                <span style={statusStyle(row.status)}>{displayStatusLabel(row.status)}</span>
+                <span style={tabStatusStyle(row)}>{tabStatusLabel(row)}</span>
               </div>
               <div style={shell.mobileMeta}>
                 <span>Expiry: {formatDate(row.previousContractEnd || row.renewalDueDate)}</span>
@@ -1585,7 +1587,6 @@ export default function RenewalDashboard() {
               <tr>
                 <th style={renewalHeadCellStyle('customer')}>Customer</th>
                 <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile</th>
-                <th style={renewalHeadCellStyle('area')}>Area</th>
                 <th style={renewalHeadCellStyle('svc')}>Service</th>
                 <th style={renewalHeadCellStyle('period', 'center')}>Period</th>
                 <th style={renewalHeadCellStyle('progress')}>Progress</th>
@@ -1606,7 +1607,6 @@ export default function RenewalDashboard() {
                 >
                   <td style={renewalBodyCellStyle('customer')} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
                   <td style={renewalBodyCellStyle('mobile', 'center')}>{row.mobile || '-'}</td>
-                  <td style={renewalBodyCellStyle('area')} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
                   <td style={renewalBodyCellStyle('svc')} title={row.serviceType}>{row.serviceType || '-'}</td>
                   <td style={renewalBodyCellStyle('period', 'center')} title={contractDurationText(row)}>
                     {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}
@@ -1615,7 +1615,7 @@ export default function RenewalDashboard() {
                   <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(renewalAmountValue(row))}</td>
                   <td style={renewalBodyCellStyle('outstanding', 'center')}>{formatOptionalINR(row.outstandingAmount)}</td>
                   <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
-                  <td style={renewalBodyCellStyle('status', 'center')}><span style={statusStyle(row.status)}>{displayStatusLabel(row.status)}</span></td>
+                  <td style={renewalBodyCellStyle('status', 'center')}><span style={tabStatusStyle(row)}>{tabStatusLabel(row)}</span></td>
                   <td style={renewalBodyCellStyle('followup', 'center')} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
                   <td style={renewalActionCellStyle}>{renderRowActions(row)}</td>
                 </tr>
@@ -1917,7 +1917,7 @@ export default function RenewalDashboard() {
                   style={headerSearchInputStyle}
                   value={filters.search}
                   onChange={(e) => updateFilter('search', e.target.value)}
-                  placeholder="Customer, renewal ID, mobile, area, service..."
+                  placeholder="Customer, renewal ID, mobile, service..."
                 />
               </div>
             </div>
