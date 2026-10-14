@@ -1140,7 +1140,9 @@ export default function RenewalDashboard() {
   };
   const isFinalRow = (row) => ['Renewed', 'Declined', 'Won', 'Lost'].includes(String(row?.status || ''));
   const isOneTimeRow = (row) => row?.serviceRelationshipType === 'ONE_TIME';
+  const isLetterRow = (row) => Boolean(row?.renewalLetterUrl || row?.pdf_url);
   const canRenewRow = (row) => canUseAssignedRenewal(row) && row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isFinalRow(row);
+  const canWinLetterRow = (row) => isLetterRow(row) && String(row?.renewalId || row?.renewal_id || '').trim() && !isFinalRow(row);
   const canConvertOneTimeRow = (row) => canUseAssignedRenewal(row) && isOneTimeRow(row) && !row?.convertedContractId;
   const rowMoreItems = (row) => [
     { label: 'View Details', onClick: () => openModal('view', row) },
@@ -1165,7 +1167,7 @@ export default function RenewalDashboard() {
             {mobile ? 'Follow-up' : <CalendarClock size={15} />}
           </button>
         ) : null}
-        {canRenewRow(row) ? (
+        {canRenewRow(row) || canWinLetterRow(row) ? (
           <button
             className="crm-icon-action-btn"
             style={mobile ? shell.primaryBtn : shell.iconBtn}
