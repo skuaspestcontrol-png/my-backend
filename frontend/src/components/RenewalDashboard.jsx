@@ -120,9 +120,9 @@ const shell = {
   input: { width: '100%', minHeight: 34, height: 34, border: '1px solid var(--color-border)', borderRadius: 11, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', fontSize: 14, fontWeight: 500, padding: '0 10px', boxSizing: 'border-box' },
   tabs: { display: 'flex', gap: 6, padding: 8, overflowX: 'auto', borderBottom: '1px solid var(--card-header-border)', background: 'var(--table-header-bg)' },
   tabsMobile: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, padding: 10, overflowX: 'visible', borderBottom: '1px solid var(--card-header-border)', background: 'var(--table-header-bg)' },
-  tab: { flex: '0 0 auto', border: '1px solid rgba(255, 255, 255, 0.72)', borderRadius: 8, background: 'var(--color-white)', color: 'var(--text-primary)', minHeight: 30, padding: '0 10px', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.10)' },
+  tab: { flex: '0 0 auto', border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', minHeight: 30, padding: '0 10px', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.10)' },
   tabMobile: { width: '100%', minHeight: 44, padding: '8px 10px', whiteSpace: 'normal', lineHeight: 1.2, textAlign: 'center', justifyContent: 'center' },
-  activeTab: { background: 'linear-gradient(180deg, var(--color-primary) 0 3px, var(--color-white) 3px 100%)', color: 'var(--color-primary-dark)', borderColor: 'var(--color-primary)', fontWeight: 900, boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.82), 0 4px 10px rgba(15, 23, 42, 0.22)' },
+  activeTab: { background: 'var(--color-primary)', color: '#fff', borderColor: 'var(--color-primary)', fontWeight: 900, boxShadow: '0 0 0 2px var(--color-primary-soft), 0 4px 10px rgba(15, 23, 42, 0.22)' },
   tableWrap: { width: '100%', overflowX: 'auto', overflowY: 'hidden' },
   table: { width: '100%', minWidth: 1080, borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   th: { textAlign: 'left', padding: '8px 7px', fontSize: 11, color: 'var(--table-header-text)', fontWeight: 850, textTransform: 'uppercase', borderBottom: '1px solid var(--color-border)', background: 'var(--table-header-bg)', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', letterSpacing: '0.03em', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
@@ -818,9 +818,14 @@ export default function RenewalDashboard() {
   });
 
   const renewalTableMinWidth = renewalColumns.reduce((sum, column) => sum + (getColumnWidth(column.key) || renewalDefaultWidths[column.key] || 80), 0);
+  const renewalTableContentWidth = Math.max(1080, renewalTableMinWidth);
+  const renewalTableContentStyle = {
+    minWidth: `${renewalTableContentWidth}px`,
+    width: '100%'
+  };
   const renewalTableStyle = {
     ...shell.table,
-    minWidth: `${Math.max(1080, renewalTableMinWidth)}px`,
+    minWidth: '100%',
     width: '100%'
   };
   const renewalHeadCellStyle = (key, align = 'left') => ({
@@ -1181,76 +1186,78 @@ export default function RenewalDashboard() {
     }
     return (
       <div style={shell.tableWrap}>
-        <table className="crm-compact-table" style={renewalTableStyle}>
-          <colgroup>
-            {renewalColumns.map((column) => (
-              <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
-            ))}
-          </colgroup>
-          <thead>
-            <tr>
-              <th style={renewalHeadCellStyle('customer')}>Customer</th>
-              <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile</th>
-              <th style={renewalHeadCellStyle('area')}>Area</th>
-              <th style={renewalHeadCellStyle('svc')}>Service</th>
-              <th style={renewalHeadCellStyle('period', 'center')}>Period</th>
-              <th style={renewalHeadCellStyle('progress')}>Progress</th>
-              <th style={renewalHeadCellStyle('amount', 'center')}>Amount</th>
-              <th style={renewalHeadCellStyle('outstanding', 'center')}>Outstanding</th>
-              <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
-              <th style={renewalHeadCellStyle('status', 'center')}>Status</th>
-              <th style={renewalHeadCellStyle('followup', 'center')}>Follow-up</th>
-              <th style={renewalHeadCellStyle('actions', 'center')}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagedRows.map((row) => (
-              <tr
-                key={row.renewalId}
-                ref={registerRenewalRowRef(row.renewalId)}
-                style={highlightedRenewalId === String(row.renewalId || '').trim() ? { background: 'rgba(99,102,241,0.06)' } : undefined}
-              >
-                <td style={renewalBodyCellStyle('customer')} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
-                <td style={renewalBodyCellStyle('mobile', 'center')}>{row.mobile || '-'}</td>
-                <td style={renewalBodyCellStyle('area')} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
-                <td style={renewalBodyCellStyle('svc')} title={row.serviceType}>{row.serviceType || '-'}</td>
-                <td style={renewalBodyCellStyle('period', 'center')} title={contractDurationText(row)}>
-                  {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}
-                </td>
-                <td style={renewalBodyCellStyle('progress')} title={serviceProgressText(row)}>{serviceProgressText(row)}</td>
-                <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(row.contractAmount)}</td>
-                <td style={renewalBodyCellStyle('outstanding', 'center')}>{formatOptionalINR(row.outstandingAmount)}</td>
-                <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
-                <td style={renewalBodyCellStyle('status', 'center')}><span style={statusStyle(row.status)}>{row.status}</span></td>
-                <td style={renewalBodyCellStyle('followup', 'center')} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
-                <td style={renewalActionCellStyle}>{renderRowActions(row)}</td>
+        <div style={renewalTableContentStyle}>
+          <table className="crm-compact-table" style={renewalTableStyle}>
+            <colgroup>
+              {renewalColumns.map((column) => (
+                <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
+              ))}
+            </colgroup>
+            <thead>
+              <tr>
+                <th style={renewalHeadCellStyle('customer')}>Customer</th>
+                <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile</th>
+                <th style={renewalHeadCellStyle('area')}>Area</th>
+                <th style={renewalHeadCellStyle('svc')}>Service</th>
+                <th style={renewalHeadCellStyle('period', 'center')}>Period</th>
+                <th style={renewalHeadCellStyle('progress')}>Progress</th>
+                <th style={renewalHeadCellStyle('amount', 'center')}>Amount</th>
+                <th style={renewalHeadCellStyle('outstanding', 'center')}>Outstanding</th>
+                <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
+                <th style={renewalHeadCellStyle('status', 'center')}>Status</th>
+                <th style={renewalHeadCellStyle('followup', 'center')}>Follow-up</th>
+                <th style={renewalHeadCellStyle('actions', 'center')}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <div style={paginationStyle}>
-          <div style={shell.paginationInfo}>{paginationText}</div>
-          <div style={paginationActionsStyle}>
-            <button
-              type="button"
-              style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
-              disabled={safePage <= 1}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              aria-label="Previous page"
-              title="Previous page"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              type="button"
-              style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
-              disabled={safePage >= totalPages}
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              aria-label="Next page"
-              title="Next page"
-            >
-              <ChevronRight size={16} />
-            </button>
+            </thead>
+            <tbody>
+              {pagedRows.map((row) => (
+                <tr
+                  key={row.renewalId}
+                  ref={registerRenewalRowRef(row.renewalId)}
+                  style={highlightedRenewalId === String(row.renewalId || '').trim() ? { background: 'rgba(99,102,241,0.06)' } : undefined}
+                >
+                  <td style={renewalBodyCellStyle('customer')} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
+                  <td style={renewalBodyCellStyle('mobile', 'center')}>{row.mobile || '-'}</td>
+                  <td style={renewalBodyCellStyle('area')} title={`${row.address || ''} ${row.areaName || ''}`}>{row.areaName || row.address || '-'}</td>
+                  <td style={renewalBodyCellStyle('svc')} title={row.serviceType}>{row.serviceType || '-'}</td>
+                  <td style={renewalBodyCellStyle('period', 'center')} title={contractDurationText(row)}>
+                    {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}
+                  </td>
+                  <td style={renewalBodyCellStyle('progress')} title={serviceProgressText(row)}>{serviceProgressText(row)}</td>
+                  <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(row.contractAmount)}</td>
+                  <td style={renewalBodyCellStyle('outstanding', 'center')}>{formatOptionalINR(row.outstandingAmount)}</td>
+                  <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
+                  <td style={renewalBodyCellStyle('status', 'center')}><span style={statusStyle(row.status)}>{row.status}</span></td>
+                  <td style={renewalBodyCellStyle('followup', 'center')} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
+                  <td style={renewalActionCellStyle}>{renderRowActions(row)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={paginationStyle}>
+            <div style={shell.paginationInfo}>{paginationText}</div>
+            <div style={paginationActionsStyle}>
+              <button
+                type="button"
+                style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
+                disabled={safePage <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                aria-label="Previous page"
+                title="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                aria-label="Next page"
+                title="Next page"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
