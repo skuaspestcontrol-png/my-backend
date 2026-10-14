@@ -12928,6 +12928,15 @@ app.put('/api/invoices/:id', async (req, res) => {
   }
 
   try {
+    if (canUseMysql()) {
+      const existingRenewal = await findRenewalRow(renewalIdFromContract(updatedInvoice._id, updatedInvoice.customerName || ''));
+      updatedInvoice.renewalSourceSync = await syncRenewalToMysql({ invoice: updatedInvoice, existing: existingRenewal });
+    }
+  } catch (error) {
+    console.error('Failed to refresh renewal source after invoice update:', error.message);
+  }
+
+  try {
     await updateSettingsCurrentBalancesFromInvoicePayments({ previousInvoice: current, nextInvoice: updatedInvoice });
   } catch (error) {
     console.error('Failed to update bank balances after invoice update:', error.message);
@@ -13924,6 +13933,36 @@ const enrichRenewalsWithConvertedContractPeriods = (renewals = [], invoices = []
     };
   });
 };
+const enrichRenewalsWithCurrentContractWindows = (renewals = [], invoices = []) => {
+  const invoiceById = new Map((Array.isArray(invoices) ? invoices : [])
+    .map((invoice) => [String(invoice?._id || invoice?.external_id || '').trim(), invoice])
+    .filter(([id]) => id));
+  return (Array.isArray(renewals) ? renewals : []).map((row) => {
+    const contractId = String(row?.contractId || row?.previousContractId || '').trim();
+    const invoice = contractId ? invoiceById.get(contractId) : null;
+    if (!invoice) return row;
+    const window = deriveInvoiceContractWindow(invoice);
+    const start = window.contractStartDate || row.previousContractStart || row.contractStartDate || '';
+    const end = window.contractEndDate || row.previousContractEnd || row.contractEndDate || row.renewalDueDate || '';
+    if (!start && !end) return row;
+    const currentStatus = renewalCleanStatus(row.renewalStatus || row.status);
+    const renewalStatus = ['RENEWED', 'DECLINED'].includes(currentStatus)
+      ? currentStatus
+      : computeRenewalStatus({ ...row, renewalDueDate: end, previousContractEnd: end });
+    return {
+      ...row,
+      previousContractStart: start,
+      previousContractEnd: end,
+      renewalDueDate: end,
+      renewalStatus,
+      status: row.renewalOutcome === 'WON'
+        ? 'Renewed'
+        : row.renewalOutcome === 'LOST'
+          ? 'Declined'
+          : renewalUiStatus(renewalStatus)
+    };
+  });
+};
 const ensureRenewalTables = async (conn) => {
   await conn.query(`
     CREATE TABLE IF NOT EXISTS renewals (
@@ -14148,7 +14187,7 @@ const loadRenewalRows = async () => {
     const [rows] = await conn.query('SELECT * FROM renewals WHERE COALESCE(renewal_excluded, 0) = 0 ORDER BY renewal_due_date ASC, customer_name ASC');
     const renewals = (Array.isArray(rows) ? rows : []).map(renewalPublicRow);
     const invoices = await loadInvoicesForContext().catch(() => []);
-    return enrichRenewalsWithConvertedContractPeriods(renewals, invoices);
+    return enrichRenewalsWithConvertedContractPeriods(enrichRenewalsWithCurrentContractWindows(renewals, invoices), invoices);
   });
 };
 const markMatchingRenewalCompleteForInvoice = async (invoice = {}) => {
@@ -14355,13 +14394,13 @@ const syncRenewalToMysql = async ({ invoice, existing = null, body = {}, req = n
     contractDurationUnit: normalizeRenewalDurationUnit(body.contractDurationUnit || body.contract_duration_unit || base.contractDurationUnit || classification.durationUnit),
     renewalStatus: renewalFinalStatuses.has(renewalCleanStatus(base.renewalStatus || base.renewal_status || base.status))
       ? renewalCleanStatus(base.renewalStatus || base.renewal_status || base.status)
-      : computeRenewalStatus({ renewal_due_date: body.renewalDueDate || base.renewalDueDate || window.contractEndDate, status: body.status || base.status }),
+      : computeRenewalStatus({ renewal_due_date: body.renewalDueDate || window.contractEndDate || base.renewalDueDate, status: body.status || base.status }),
     status: mapLegacyRenewalStatusToMysql(nextLegacyStatus),
     legacyStatus: nextLegacyStatus,
     paymentStatus: normalizeRenewalPaymentStatus(body.paymentStatus ?? base.paymentStatus, base.paymentStatus || 'Pending'),
-    previousContractStart: toDateInputSafe(base.previousContractStart || window.contractStartDate),
-    previousContractEnd: toDateInputSafe(base.previousContractEnd || window.contractEndDate),
-    renewalDueDate: toDateInputSafe(body.renewalDueDate || base.renewalDueDate || window.contractEndDate),
+    previousContractStart: toDateInputSafe(window.contractStartDate || base.previousContractStart),
+    previousContractEnd: toDateInputSafe(window.contractEndDate || base.previousContractEnd),
+    renewalDueDate: toDateInputSafe(body.renewalDueDate || window.contractEndDate || base.renewalDueDate),
     previousAmount: toNumber(base.previousAmount || invoice.total || invoice.amount, 0),
     proposedAmount: toNumber(body.proposedAmount ?? base.proposedAmount ?? invoice.total ?? invoice.amount, 0),
     finalRenewalAmount: toNumber(base.finalRenewalAmount, 0),
