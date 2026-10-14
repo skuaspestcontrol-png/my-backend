@@ -1437,7 +1437,7 @@ export default function ContractDashboard() {
     { key: 'contractNo', label: 'Contract' },
     { key: 'customer', label: 'Customer' },
     { key: 'property', label: 'Property' },
-    { key: 'duration', label: 'Duration' },
+    { key: 'duration', label: 'Contract Period' },
     { key: 'services', label: 'Services' },
     { key: 'status', label: 'Status' },
     { key: 'total', label: 'Total' },
@@ -1740,7 +1740,7 @@ export default function ContractDashboard() {
               renderResizableHeader('customer', 'Customer', { textAlign: 'left' })
             ) : null}
             {visibleColumns.property ? renderResizableHeader('property', 'Property') : null}
-            {visibleColumns.duration ? renderResizableHeader('duration', 'Duration') : null}
+            {visibleColumns.duration ? renderResizableHeader('duration', 'Contract Period') : null}
             {visibleColumns.services ? renderResizableHeader('services', 'Services', { textAlign: 'center', paddingLeft: '0', paddingRight: '0' }) : null}
             {visibleColumns.status ? renderResizableHeader('status', 'Status') : null}
             {visibleColumns.total ? renderResizableHeader('total', 'Total') : null}

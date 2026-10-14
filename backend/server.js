@@ -13906,6 +13906,24 @@ const loadRenewalRowsReadOnly = async () => {
     return (Array.isArray(rows) ? rows : []).map(renewalPublicRow);
   });
 };
+const enrichRenewalsWithConvertedContractPeriods = (renewals = [], invoices = []) => {
+  const invoiceById = new Map((Array.isArray(invoices) ? invoices : [])
+    .map((invoice) => [String(invoice?._id || invoice?.external_id || '').trim(), invoice])
+    .filter(([id]) => id));
+  return (Array.isArray(renewals) ? renewals : []).map((row) => {
+    const contractId = String(row?.newContractId || row?.convertedContractId || '').trim();
+    const invoice = contractId ? invoiceById.get(contractId) : null;
+    if (!invoice) return row;
+    const window = deriveInvoiceContractWindow(invoice);
+    const start = row.newContractStartDate || window.contractStartDate || invoice.servicePeriodStart || invoice.contractStartDate || '';
+    const end = row.newContractEndDate || window.contractEndDate || invoice.servicePeriodEnd || invoice.contractEndDate || '';
+    return {
+      ...row,
+      newContractStartDate: start,
+      newContractEndDate: end
+    };
+  });
+};
 const ensureRenewalTables = async (conn) => {
   await conn.query(`
     CREATE TABLE IF NOT EXISTS renewals (
@@ -14128,7 +14146,9 @@ const loadRenewalRows = async () => {
   return withMysqlConnection(async (conn) => {
     await ensureRenewalTables(conn);
     const [rows] = await conn.query('SELECT * FROM renewals WHERE COALESCE(renewal_excluded, 0) = 0 ORDER BY renewal_due_date ASC, customer_name ASC');
-    return (Array.isArray(rows) ? rows : []).map(renewalPublicRow);
+    const renewals = (Array.isArray(rows) ? rows : []).map(renewalPublicRow);
+    const invoices = await loadInvoicesForContext().catch(() => []);
+    return enrichRenewalsWithConvertedContractPeriods(renewals, invoices);
   });
 };
 const markMatchingRenewalCompleteForInvoice = async (invoice = {}) => {
