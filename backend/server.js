@@ -10629,24 +10629,23 @@ const getExpiryBucket = (daysToExpiry) => {
 };
 
 const deriveInvoiceContractWindow = (invoice) => {
-  const lines = Array.isArray(invoice?.items) ? invoice.items : [];
-  const startCandidates = [];
-  const endCandidates = [];
+  const lines = Array.isArray(invoice?.items) && invoice.items.length > 0 ? invoice.items : [{}];
+  const startCandidates = lines
+    .map((line) => line?.contractStartDate || line?.serviceStartDate || invoice?.servicePeriodStart || invoice?.date)
+    .filter(Boolean);
+  const endCandidates = lines
+    .map((line) => line?.contractEndDate || line?.serviceEndDate || line?.renewalDate || invoice?.servicePeriodEnd || invoice?.dueDate)
+    .filter(Boolean);
   let firstServiceType = '';
 
   lines.forEach((line) => {
     if (!firstServiceType) firstServiceType = String(line?.itemName || line?.name || '').trim();
-    if (line?.contractStartDate) startCandidates.push(line.contractStartDate);
-    if (line?.serviceStartDate) startCandidates.push(line.serviceStartDate);
-    if (line?.contractEndDate) endCandidates.push(line.contractEndDate);
-    if (line?.serviceEndDate) endCandidates.push(line.serviceEndDate);
-    if (line?.renewalDate) endCandidates.push(line.renewalDate);
-    const builtEnd = buildContractEndDate(line?.contractStartDate || line?.serviceStartDate || '', line?.contractPeriod || '');
-    if (builtEnd) endCandidates.push(builtEnd);
+    const explicitEnd = line?.contractEndDate || line?.serviceEndDate || line?.renewalDate;
+    if (!explicitEnd) {
+      const builtEnd = buildContractEndDate(line?.contractStartDate || line?.serviceStartDate || '', line?.contractPeriod || '');
+      if (builtEnd) endCandidates.push(builtEnd);
+    }
   });
-
-  startCandidates.push(invoice?.servicePeriodStart, invoice?.date);
-  endCandidates.push(invoice?.servicePeriodEnd, invoice?.dueDate);
 
   const starts = startCandidates.map(parseDateOnly).filter(Boolean);
   const ends = endCandidates.map(parseDateOnly).filter(Boolean);
@@ -16093,6 +16092,11 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
 app.get('/api/renewals/letters', async (req, res) => {
   if (!canUseMysql()) return res.json([]);
   try {
+    try {
+      await syncRenewalsFromContracts();
+    } catch (error) {
+      console.error('Auto renewal letter sync skipped:', error.message);
+    }
     const letters = await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
       const [rows] = await conn.query(`
