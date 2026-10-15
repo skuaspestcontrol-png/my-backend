@@ -14148,7 +14148,7 @@ const ensureRenewalTables = async (conn) => {
   await ensureIndex('renewal_followups', 'idx_renewal_followups_renewal_id', 'CREATE INDEX idx_renewal_followups_renewal_id ON renewal_followups (renewal_id)');
   await ensureIndex('renewal_letters', 'idx_renewal_letters_renewal_id', 'CREATE INDEX idx_renewal_letters_renewal_id ON renewal_letters (renewal_id)');
 };
-const loadRenewalRows = async () => {
+const loadRenewalRows = async ({ autoSync = true } = {}) => {
   await cleanupStoredRenewalAddresses();
   if (!canUseMysql()) {
     const { list } = buildRenewalDataset();
@@ -14181,6 +14181,13 @@ const loadRenewalRows = async () => {
       payload: row
       });
     });
+  }
+  if (autoSync) {
+    try {
+      await syncRenewalsFromContracts();
+    } catch (error) {
+      console.error('Auto renewal sync skipped:', error.message);
+    }
   }
   return withMysqlConnection(async (conn) => {
     await ensureRenewalTables(conn);
@@ -14939,6 +14946,108 @@ const cleanupRenewalsForDeletedInvoice = async (invoiceId) => {
   if (updatedRecords.length !== records.length) saveRenewalRecords(updatedRecords);
 };
 
+const performRenewalsSyncFromContracts = async () => {
+  if (!canUseMysql()) return { inserted: 0, totalCandidates: 0, nextRenewalNumber: null };
+  const candidates = await sourceRenewalCandidates();
+  let inserted = 0;
+  let nextRenewalNumber = null;
+  await withMysqlConnection(async (conn) => {
+    await ensureRenewalTables(conn);
+    const settings = await loadCurrentSettingsForNumbering();
+    const [existingRows] = await conn.query('SELECT renewal_id, renewal_display_id, external_id FROM renewals ORDER BY id ASC');
+    const existingByContract = new Map((existingRows || []).map((entry) => [String(entry.external_id || '').trim(), String(entry.renewal_id || entry.external_id || '').trim()]));
+    const existingDisplayByContract = new Map((existingRows || []).map((entry) => [String(entry.external_id || '').trim(), String(entry.renewal_display_id || '').trim()]));
+    for (const row of candidates) {
+      const existingRenewalId = existingByContract.get(row.sourceRenewalKey) || '';
+      const existingDisplayId = existingDisplayByContract.get(row.sourceRenewalKey) || '';
+      const renewalId = existingRenewalId || row.sourceRenewalKey;
+      let renewalDisplayId = existingDisplayId;
+      if (!renewalDisplayId) {
+        const parsed = createNextRenewalNumber(existingRows, settings);
+        renewalDisplayId = parsed.renewalId;
+        existingRows.push({ renewal_id: renewalId, renewal_display_id: renewalDisplayId, external_id: row.sourceRenewalKey });
+        nextRenewalNumber = parsed.nextNumber;
+      }
+      const payload = {
+        source: 'invoice-sync',
+        syncedAt: new Date().toISOString(),
+        sourceInvoice: row.sourceInvoice,
+        invoiceNumber: row.sourceInvoice?.invoiceNumber || '',
+        contractAmount: row.contractAmount,
+        paidAmount: row.paidAmount,
+        outstandingAmount: row.outstandingAmount,
+        totalServiceVisits: row.totalServiceVisits,
+        completedServiceVisits: row.completedServiceVisits,
+        nextServiceDate: row.nextServiceDate,
+        classification: {
+          serviceRelationshipType: row.serviceRelationshipType,
+          renewalEligible: row.renewalEligible,
+          auditSuggestion: row.auditSuggestion,
+          auditEvidence: row.auditEvidence
+        }
+      };
+      const [result] = await conn.query(
+        `INSERT INTO renewals (
+          external_id, renewal_id, renewal_display_id, customer_id, customer_name, mobile, email, address, area_name, service_type,
+          contract_id, service_relationship_type, renewal_eligible, contract_duration_value, contract_duration_unit,
+          contract_start_date, contract_end_date, renewal_status, audit_suggestion, audit_evidence,
+          previous_contract_start, previous_contract_end, renewal_due_date, previous_amount,
+          proposed_amount, assigned_sales_person_id, assigned_sales_person_name, status, payload
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          customer_name=VALUES(customer_name),
+          renewal_id=IF(renewal_id IS NULL OR renewal_id = '', VALUES(renewal_id), renewal_id),
+          renewal_display_id=IF(renewal_display_id IS NULL OR renewal_display_id = '', VALUES(renewal_display_id), renewal_display_id),
+          mobile=VALUES(mobile),
+          email=VALUES(email),
+          address=VALUES(address),
+          area_name=VALUES(area_name),
+          service_type=VALUES(service_type),
+          service_relationship_type=IF(renewal_excluded = 1 OR EXISTS (SELECT 1 FROM renewal_audit_logs ral WHERE ral.renewal_id = renewals.renewal_id AND ral.action LIKE 'audit_%'), service_relationship_type, VALUES(service_relationship_type)),
+          renewal_eligible=IF(renewal_excluded = 1 OR EXISTS (SELECT 1 FROM renewal_audit_logs ral WHERE ral.renewal_id = renewals.renewal_id AND ral.action LIKE 'audit_%'), renewal_eligible, VALUES(renewal_eligible)),
+          contract_duration_value=VALUES(contract_duration_value),
+          contract_duration_unit=VALUES(contract_duration_unit),
+          contract_start_date=VALUES(contract_start_date),
+          contract_end_date=VALUES(contract_end_date),
+          renewal_status=IF(renewal_status IN ('RENEWED','DECLINED') OR status IN ('Renewed','Done','Declined'), renewal_status, VALUES(renewal_status)),
+          audit_suggestion=IF(EXISTS (SELECT 1 FROM renewal_audit_logs ral WHERE ral.renewal_id = renewals.renewal_id AND ral.action LIKE 'audit_%'), audit_suggestion, VALUES(audit_suggestion)),
+          audit_evidence=IF(EXISTS (SELECT 1 FROM renewal_audit_logs ral WHERE ral.renewal_id = renewals.renewal_id AND ral.action LIKE 'audit_%'), audit_evidence, VALUES(audit_evidence)),
+          previous_contract_start=VALUES(previous_contract_start),
+          previous_contract_end=VALUES(previous_contract_end),
+          renewal_due_date=VALUES(renewal_due_date),
+          previous_amount=VALUES(previous_amount),
+          proposed_amount=IF(proposed_amount IS NULL OR proposed_amount = 0, VALUES(proposed_amount), proposed_amount),
+          assigned_sales_person_id=IF(assigned_sales_person_id IS NULL OR assigned_sales_person_id = '', VALUES(assigned_sales_person_id), assigned_sales_person_id),
+          assigned_sales_person_name=IF(assigned_sales_person_name IS NULL OR assigned_sales_person_name = '', VALUES(assigned_sales_person_name), assigned_sales_person_name),
+          payload=VALUES(payload)`,
+        [
+          row.sourceRenewalKey, renewalId, renewalDisplayId, row.customerId, row.customerName, row.mobile, row.email, row.address, row.areaName,
+          row.serviceType, row.contractId, row.serviceRelationshipType, row.renewalEligible ? 1 : 0,
+          row.contractDurationValue || null, row.contractDurationUnit || null, row.previousContractStart, row.previousContractEnd,
+          row.renewalStatus, row.auditSuggestion, JSON.stringify(row.auditEvidence || []),
+          row.previousContractStart, row.previousContractEnd, row.renewalDueDate,
+          row.previousAmount, row.proposedAmount, row.assignedSalesPersonId, row.assignedSalesPersonName,
+          renewalUiStatus(row.renewalStatus),
+          JSON.stringify(payload)
+        ]
+      );
+      if (result?.affectedRows === 1) inserted += 1;
+    }
+  });
+  if (nextRenewalNumber) await updateSettingsNextRenewalNumber(nextRenewalNumber);
+  return { inserted, totalCandidates: candidates.length, nextRenewalNumber };
+};
+let renewalContractSyncPromise = null;
+const syncRenewalsFromContracts = async () => {
+  if (renewalContractSyncPromise) return renewalContractSyncPromise;
+  renewalContractSyncPromise = performRenewalsSyncFromContracts();
+  try {
+    return await renewalContractSyncPromise;
+  } finally {
+    renewalContractSyncPromise = null;
+  }
+};
+
 app.get('/api/renewals', async (req, res) => {
   try {
     const rows = applyRenewalFilters(await loadRenewalRows(), req.query);
@@ -15071,94 +15180,8 @@ app.post('/api/renewals/sync', async (req, res) => {
   if (!requireRenewalAdminAccess(req, res)) return;
   if (!canUseMysql()) return res.status(503).json({ error: 'MySQL is required to sync renewal records.' });
   try {
-    const candidates = await sourceRenewalCandidates();
-    let inserted = 0;
-    let nextRenewalNumber = null;
-    await withMysqlConnection(async (conn) => {
-      await ensureRenewalTables(conn);
-      const settings = await loadCurrentSettingsForNumbering();
-      const [existingRows] = await conn.query('SELECT renewal_id, renewal_display_id, external_id FROM renewals ORDER BY id ASC');
-      const existingByContract = new Map((existingRows || []).map((entry) => [String(entry.external_id || '').trim(), String(entry.renewal_id || entry.external_id || '').trim()]));
-      const existingDisplayByContract = new Map((existingRows || []).map((entry) => [String(entry.external_id || '').trim(), String(entry.renewal_display_id || '').trim()]));
-      for (const row of candidates) {
-        const existingRenewalId = existingByContract.get(row.sourceRenewalKey) || '';
-        const existingDisplayId = existingDisplayByContract.get(row.sourceRenewalKey) || '';
-        const renewalId = existingRenewalId || row.sourceRenewalKey;
-        let renewalDisplayId = existingDisplayId;
-        if (!renewalDisplayId) {
-          const parsed = createNextRenewalNumber(existingRows, settings);
-          renewalDisplayId = parsed.renewalId;
-          existingRows.push({ renewal_id: renewalId, renewal_display_id: renewalDisplayId, external_id: row.sourceRenewalKey });
-          nextRenewalNumber = parsed.nextNumber;
-        }
-        const payload = {
-          source: 'invoice-sync',
-          syncedAt: new Date().toISOString(),
-          sourceInvoice: row.sourceInvoice,
-          invoiceNumber: row.sourceInvoice?.invoiceNumber || '',
-          contractAmount: row.contractAmount,
-          paidAmount: row.paidAmount,
-          outstandingAmount: row.outstandingAmount,
-          totalServiceVisits: row.totalServiceVisits,
-          completedServiceVisits: row.completedServiceVisits,
-          nextServiceDate: row.nextServiceDate,
-          classification: {
-            serviceRelationshipType: row.serviceRelationshipType,
-            renewalEligible: row.renewalEligible,
-            auditSuggestion: row.auditSuggestion,
-            auditEvidence: row.auditEvidence
-          }
-        };
-        const [result] = await conn.query(
-          `INSERT INTO renewals (
-            external_id, renewal_id, renewal_display_id, customer_id, customer_name, mobile, email, address, area_name, service_type,
-            contract_id, service_relationship_type, renewal_eligible, contract_duration_value, contract_duration_unit,
-            contract_start_date, contract_end_date, renewal_status, audit_suggestion, audit_evidence,
-            previous_contract_start, previous_contract_end, renewal_due_date, previous_amount,
-            proposed_amount, assigned_sales_person_id, assigned_sales_person_name, status, payload
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE
-            customer_name=VALUES(customer_name),
-            renewal_id=IF(renewal_id IS NULL OR renewal_id = '', VALUES(renewal_id), renewal_id),
-            renewal_display_id=IF(renewal_display_id IS NULL OR renewal_display_id = '', VALUES(renewal_display_id), renewal_display_id),
-            mobile=VALUES(mobile),
-            email=VALUES(email),
-            address=VALUES(address),
-            area_name=VALUES(area_name),
-            service_type=VALUES(service_type),
-            service_relationship_type=IF(renewal_excluded = 1 OR EXISTS (SELECT 1 FROM renewal_audit_logs ral WHERE ral.renewal_id = renewals.renewal_id AND ral.action LIKE 'audit_%'), service_relationship_type, VALUES(service_relationship_type)),
-            renewal_eligible=IF(renewal_excluded = 1 OR EXISTS (SELECT 1 FROM renewal_audit_logs ral WHERE ral.renewal_id = renewals.renewal_id AND ral.action LIKE 'audit_%'), renewal_eligible, VALUES(renewal_eligible)),
-            contract_duration_value=VALUES(contract_duration_value),
-            contract_duration_unit=VALUES(contract_duration_unit),
-            contract_start_date=VALUES(contract_start_date),
-            contract_end_date=VALUES(contract_end_date),
-            renewal_status=IF(renewal_status IN ('RENEWED','DECLINED') OR status IN ('Renewed','Done','Declined'), renewal_status, VALUES(renewal_status)),
-            audit_suggestion=IF(EXISTS (SELECT 1 FROM renewal_audit_logs ral WHERE ral.renewal_id = renewals.renewal_id AND ral.action LIKE 'audit_%'), audit_suggestion, VALUES(audit_suggestion)),
-            audit_evidence=IF(EXISTS (SELECT 1 FROM renewal_audit_logs ral WHERE ral.renewal_id = renewals.renewal_id AND ral.action LIKE 'audit_%'), audit_evidence, VALUES(audit_evidence)),
-            previous_contract_start=VALUES(previous_contract_start),
-            previous_contract_end=VALUES(previous_contract_end),
-            renewal_due_date=VALUES(renewal_due_date),
-            previous_amount=VALUES(previous_amount),
-            proposed_amount=IF(proposed_amount IS NULL OR proposed_amount = 0, VALUES(proposed_amount), proposed_amount),
-            assigned_sales_person_id=IF(assigned_sales_person_id IS NULL OR assigned_sales_person_id = '', VALUES(assigned_sales_person_id), assigned_sales_person_id),
-            assigned_sales_person_name=IF(assigned_sales_person_name IS NULL OR assigned_sales_person_name = '', VALUES(assigned_sales_person_name), assigned_sales_person_name),
-            payload=VALUES(payload)`,
-          [
-            row.sourceRenewalKey, renewalId, renewalDisplayId, row.customerId, row.customerName, row.mobile, row.email, row.address, row.areaName,
-            row.serviceType, row.contractId, row.serviceRelationshipType, row.renewalEligible ? 1 : 0,
-            row.contractDurationValue || null, row.contractDurationUnit || null, row.previousContractStart, row.previousContractEnd,
-            row.renewalStatus, row.auditSuggestion, JSON.stringify(row.auditEvidence || []),
-            row.previousContractStart, row.previousContractEnd, row.renewalDueDate,
-            row.previousAmount, row.proposedAmount, row.assignedSalesPersonId, row.assignedSalesPersonName,
-            renewalUiStatus(row.renewalStatus),
-            JSON.stringify(payload)
-          ]
-        );
-        if (result?.affectedRows === 1) inserted += 1;
-      }
-    });
-    if (nextRenewalNumber) await updateSettingsNextRenewalNumber(nextRenewalNumber);
-    return res.json({ success: true, message: 'Renewal synced successfully', inserted, totalCandidates: candidates.length });
+    const { inserted, totalCandidates } = await syncRenewalsFromContracts();
+    return res.json({ success: true, message: 'Renewal synced successfully', inserted, totalCandidates });
   } catch (error) {
     console.error('Renewal sync failed:', error.message);
     return res.status(500).json({ error: 'Unable to sync renewals right now.' });
