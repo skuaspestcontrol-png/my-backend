@@ -16092,11 +16092,8 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
 app.get('/api/renewals/letters', async (req, res) => {
   if (!canUseMysql()) return res.json([]);
   try {
-    try {
-      await syncRenewalsFromContracts();
-    } catch (error) {
-      console.error('Auto renewal letter sync skipped:', error.message);
-    }
+    const currentRenewals = await loadRenewalRows();
+    const currentRenewalById = new Map(currentRenewals.map((renewal) => [String(renewal.renewalId || '').trim(), renewal]));
     const letters = await withMysqlConnection(async (conn) => {
       await ensureRenewalTables(conn);
       const [rows] = await conn.query(`
@@ -16132,26 +16129,41 @@ app.get('/api/renewals/letters', async (req, res) => {
         ORDER BY conclude_date ASC, rl.generated_at ASC, rl.id ASC
         LIMIT 200
       `);
-      const normalized = (Array.isArray(rows) ? rows : []).map((row) => ({
-        ...row,
-        customerName: row.renewal_customer_name || row.customer_name || '',
-        mobile: row.renewal_mobile || '',
-        areaName: row.renewal_area_name || '',
-        serviceType: row.renewal_service_type || '',
-        status: renewalUiStatus(renewalCleanStatus(row.renewal_status || 'Pending')),
-        assignedSalesPersonId: row.renewal_assigned_sales_person_id || '',
-        assignedSalesPersonName: row.renewal_assigned_sales_person_name || '',
-        previousContractStart: row.contract_start_date || '',
-        previousContractEnd: row.contract_end_date || row.conclude_date || '',
-        proposedAmount: toNumber(row.renewal_proposed_amount ?? row.renewal_previous_amount ?? row.renewal_previous_contract_amount, 0),
-        previousAmount: toNumber(row.renewal_previous_amount ?? row.renewal_previous_contract_amount, 0),
-        previousContractAmount: toNumber(row.renewal_previous_contract_amount ?? row.renewal_previous_amount, 0),
-        agreedContractAmount: toNumber(row.renewal_agreed_contract_amount ?? row.renewal_final_renewal_amount, 0),
-        finalRenewalAmount: toNumber(row.renewal_final_renewal_amount, 0),
-        contractAmount: toNumber(row.renewal_proposed_amount ?? row.renewal_previous_amount ?? row.renewal_previous_contract_amount, 0),
-        renewalDueDate: row.conclude_date || '',
-        concludeDate: row.conclude_date || ''
-      }));
+      const normalized = (Array.isArray(rows) ? rows : []).map((row) => {
+        const renewalId = String(row.renewal_id || '').trim();
+        const current = currentRenewalById.get(renewalId);
+        const contractStart = current?.previousContractStart || row.contract_start_date || '';
+        const contractEnd = current?.previousContractEnd || current?.renewalDueDate || row.contract_end_date || row.conclude_date || '';
+        const proposedAmount = current?.proposedAmount ?? row.renewal_proposed_amount ?? row.renewal_previous_amount ?? row.renewal_previous_contract_amount;
+        const previousAmount = current?.previousAmount ?? row.renewal_previous_amount ?? row.renewal_previous_contract_amount;
+        const previousContractAmount = current?.previousContractAmount ?? row.renewal_previous_contract_amount ?? row.renewal_previous_amount;
+        const agreedContractAmount = current?.agreedContractAmount ?? row.renewal_agreed_contract_amount ?? row.renewal_final_renewal_amount;
+        const finalRenewalAmount = current?.finalRenewalAmount ?? row.renewal_final_renewal_amount;
+        return {
+          ...row,
+          renewalId,
+          customerName: current?.customerName || row.renewal_customer_name || row.customer_name || '',
+          mobile: current?.mobile || row.renewal_mobile || '',
+          areaName: current?.areaName || row.renewal_area_name || '',
+          serviceType: current?.serviceType || row.renewal_service_type || '',
+          serviceRelationshipType: current?.serviceRelationshipType || 'CONTRACT',
+          renewalEligible: current?.renewalEligible ?? true,
+          status: current?.status || renewalUiStatus(renewalCleanStatus(row.renewal_status || 'Pending')),
+          assignedSalesPersonId: current?.assignedSalesPersonId || row.renewal_assigned_sales_person_id || '',
+          assignedSalesPersonName: current?.assignedSalesPersonName || row.renewal_assigned_sales_person_name || '',
+          previousContractStart: contractStart,
+          previousContractEnd: contractEnd,
+          proposedAmount: toNumber(proposedAmount, 0),
+          previousAmount: toNumber(previousAmount, 0),
+          previousContractAmount: toNumber(previousContractAmount, 0),
+          agreedContractAmount: toNumber(agreedContractAmount, 0),
+          finalRenewalAmount: toNumber(finalRenewalAmount, 0),
+          contractAmount: toNumber(proposedAmount, 0),
+          renewalDueDate: contractEnd,
+          concludeDate: contractEnd,
+          conclude_date: contractEnd
+        };
+      });
       return applyRenewalFilters(normalized, req.query);
     });
     return res.json(letters);

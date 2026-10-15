@@ -211,6 +211,17 @@ test('renewal letter preview and WhatsApp share do not silently regenerate PDFs'
   assert.match(renewalDashboardSource, /Regenerate Letter/);
 });
 
+test('renewal letters use the current contract period before month filtering', () => {
+  const block = routeBlock('get', '/api/renewals/letters');
+
+  assert.match(block, /const currentRenewals = await loadRenewalRows\(\)/);
+  assert.match(block, /currentRenewalById\.get\(renewalId\)/);
+  assert.match(block, /const contractEnd = current\?\.previousContractEnd \|\| current\?\.renewalDueDate/);
+  assert.match(block, /renewalDueDate: contractEnd/);
+  assert.match(block, /conclude_date: contractEnd/);
+  assert.ok(block.indexOf('currentRenewalById.get(renewalId)') < block.indexOf('applyRenewalFilters(normalized, req.query)'), 'current contract dates must be applied before letter filters');
+});
+
 test('sensitive renewal routes require explicit renewal authorization', () => {
   const expected = [
     ['post', '/api/renewals/audit/classify', 'requireRenewalAdminAccess'],
