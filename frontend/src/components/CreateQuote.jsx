@@ -691,10 +691,10 @@ export default function CreateQuote() {
     ...btnGhost,
     minHeight: 36,
     borderRadius: 999,
-    border: idx === active ? '1px solid rgba(203, 213, 225, 0.48)' : '1px solid var(--border)',
-    background: idx === active ? 'var(--surface-elevated)' : 'var(--surface-card)',
-    color: '#fff',
-    boxShadow: idx === active ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.08)' : 'none',
+    border: idx === active ? '1px solid var(--color-primary)' : '1px solid var(--border)',
+    background: idx === active ? 'var(--color-primary)' : 'var(--surface-card)',
+    color: idx === active ? '#fff' : 'var(--text-primary, var(--text, #111827))',
+    boxShadow: idx === active ? '0 0 0 2px var(--color-primary-soft)' : 'none',
     padding: isTiny ? '0 12px' : btnGhost.padding,
     maxWidth: '100%'
   });

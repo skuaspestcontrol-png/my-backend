@@ -718,7 +718,7 @@ const mergeUniqueText = (a, b) => {
   return out;
 };
 
-function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, uploadMiddleware = null }) {
+function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, uploadMiddleware = null, syncPortalSnapshots = null }) {
   const {
     customersFile,
     invoicesFile,
@@ -744,30 +744,34 @@ function registerCustomerDedupModule({ app, readJsonFile, files, mysql = {}, upl
     [dedupAuditFile, []]
   ].forEach(([filePath, fallback]) => ensureFile(filePath, fallback));
 
+  const writeDataFile = (filePath, rows) => {
+    fs.writeFileSync(filePath, JSON.stringify(rows, null, 2));
+    if (typeof syncPortalSnapshots === 'function') syncPortalSnapshots();
+  };
   const getCustomers = () => readJsonFile(customersFile, []);
-  const saveCustomers = (rows) => fs.writeFileSync(customersFile, JSON.stringify(rows, null, 2));
+  const saveCustomers = (rows) => writeDataFile(customersFile, rows);
   const getInvoices = () => readJsonFile(invoicesFile, []);
-  const saveInvoices = (rows) => fs.writeFileSync(invoicesFile, JSON.stringify(rows, null, 2));
+  const saveInvoices = (rows) => writeDataFile(invoicesFile, rows);
   const getPayments = () => readJsonFile(paymentsFile, []);
-  const savePayments = (rows) => fs.writeFileSync(paymentsFile, JSON.stringify(rows, null, 2));
+  const savePayments = (rows) => writeDataFile(paymentsFile, rows);
   const getJobs = () => readJsonFile(jobsFile, []);
-  const saveJobs = (rows) => fs.writeFileSync(jobsFile, JSON.stringify(rows, null, 2));
+  const saveJobs = (rows) => writeDataFile(jobsFile, rows);
   const getRenewals = () => readJsonFile(renewalsFile, []);
-  const saveRenewals = (rows) => fs.writeFileSync(renewalsFile, JSON.stringify(rows, null, 2));
+  const saveRenewals = (rows) => writeDataFile(renewalsFile, rows);
   const getAddresses = () => readJsonFile(addressesFile, []);
-  const saveAddresses = (rows) => fs.writeFileSync(addressesFile, JSON.stringify(rows, null, 2));
+  const saveAddresses = (rows) => writeDataFile(addressesFile, rows);
   const getContacts = () => readJsonFile(contactsFile, []);
-  const saveContacts = (rows) => fs.writeFileSync(contactsFile, JSON.stringify(rows, null, 2));
+  const saveContacts = (rows) => writeDataFile(contactsFile, rows);
   const getBatches = () => readJsonFile(importBatchesFile, []);
-  const saveBatches = (rows) => fs.writeFileSync(importBatchesFile, JSON.stringify(rows, null, 2));
+  const saveBatches = (rows) => writeDataFile(importBatchesFile, rows);
   const getImportRows = () => readJsonFile(importRowsFile, []);
-  const saveImportRows = (rows) => fs.writeFileSync(importRowsFile, JSON.stringify(rows, null, 2));
+  const saveImportRows = (rows) => writeDataFile(importRowsFile, rows);
   const getMatches = () => readJsonFile(duplicateMatchesFile, []);
-  const saveMatches = (rows) => fs.writeFileSync(duplicateMatchesFile, JSON.stringify(rows, null, 2));
+  const saveMatches = (rows) => writeDataFile(duplicateMatchesFile, rows);
   const getMergeHistory = () => readJsonFile(mergeHistoryFile, []);
-  const saveMergeHistory = (rows) => fs.writeFileSync(mergeHistoryFile, JSON.stringify(rows, null, 2));
+  const saveMergeHistory = (rows) => writeDataFile(mergeHistoryFile, rows);
   const getAudit = () => readJsonFile(dedupAuditFile, []);
-  const saveAudit = (rows) => fs.writeFileSync(dedupAuditFile, JSON.stringify(rows, null, 2));
+  const saveAudit = (rows) => writeDataFile(dedupAuditFile, rows);
 
   const persistCustomerToMysql = async (customer) => {
     if (!customer || typeof customer !== 'object') return false;

@@ -21,7 +21,7 @@ const { generateInvoicePdfBuffer, formatINR, formatDate, amountToWords } = requi
 const { formatIndiaDateTime, formatIndiaDate, formatIndiaTime } = require('./lib/indiaTime');
 const { resolveUploadAsset } = require('./quotationPdf');
 const { pool, query: dbQuery, getConnection } = require('./lib/db');
-const { runAutoMigrations, getLastMigrationStatus } = require('./lib/autoMigrate');
+const { runAutoMigrations, getLastMigrationStatus, syncPortalJsonSnapshotsToMysql } = require('./lib/autoMigrate');
 const { readCachedSettings, clearSettingsCache } = require('./lib/settings-cache');
 const { sendEmailMessage, normalizeEmailSettings } = require('./services/email.service');
 const { sendWhatsAppMessage } = require('./services/whatsapp.service');
@@ -477,6 +477,56 @@ app.get('/api/admin/migration-status', (req, res) => {
     success: true,
     status: getLastMigrationStatus()
   });
+});
+
+app.get('/api/admin/persistence-audit', async (req, res) => {
+  if (!isAdminRoleRequest(req)) {
+    return res.status(403).json({ success: false, error: 'Admin role required' });
+  }
+  if (!canUseMysql()) {
+    return res.status(503).json({ success: false, error: 'MySQL is not configured' });
+  }
+  try {
+    const audit = await withMysqlConnection(async (conn) => {
+      const [snapshotRows] = await conn.query(
+        'SELECT data_key, source_file, record_count, checksum, snapshot_at FROM portal_data_snapshots ORDER BY data_key'
+      );
+      const snapshots = new Map((Array.isArray(snapshotRows) ? snapshotRows : []).map((row) => [String(row.data_key || ''), row]));
+      const jsonFiles = fs.existsSync(dataDir)
+        ? fs.readdirSync(dataDir).filter((name) => name.endsWith('.json')).sort()
+        : [];
+      const files = jsonFiles.map((fileName) => {
+        const raw = fs.readFileSync(path.join(dataDir, fileName), 'utf8').trim() || 'null';
+        const checksum = crypto.createHash('sha256').update(raw).digest('hex');
+        const snapshot = snapshots.get(fileName);
+        return {
+          file: fileName,
+          mirrored: Boolean(snapshot),
+          inSync: Boolean(snapshot && snapshot.checksum === checksum),
+          recordCount: Number(snapshot?.record_count || 0),
+          snapshotAt: snapshot?.snapshot_at || null
+        };
+      });
+      const criticalTables = ['customers', 'employees', 'leads', 'items', 'invoices', 'jobs', 'attendance', 'complaints', 'vendors', 'vendor_bills', 'payment_received', 'renewals', 'quotations'];
+      const tableCounts = {};
+      for (const tableName of criticalTables) {
+        const [rows] = await conn.query(`SELECT COUNT(*) AS count FROM \`${tableName}\``);
+        tableCounts[tableName] = Number(rows?.[0]?.count || 0);
+      }
+      return { files, tableCounts };
+    });
+    const outOfSyncFiles = audit.files.filter((entry) => !entry.inSync).map((entry) => entry.file);
+    return res.json({
+      success: outOfSyncFiles.length === 0,
+      mysqlConfigured: true,
+      tableCounts: audit.tableCounts,
+      jsonSnapshots: audit.files,
+      outOfSyncFiles
+    });
+  } catch (error) {
+    console.error('Persistence audit failed:', error.message);
+    return res.status(500).json({ success: false, error: 'Unable to audit portal persistence.' });
+  }
 });
 
 app.get('/api/admin/attendance-source-health', async (req, res) => {
@@ -1303,6 +1353,7 @@ const sanitizeEmployeeForClient = (employee = {}) => {
 
 const writeJsonFile = (filePath, value) => {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+  schedulePortalJsonSnapshotSync();
 };
 
 const syncEmployeeJsonMirror = (employeeId, nextEmployee = null) => {
@@ -1355,6 +1406,34 @@ const canUseMysql = () => {
     && String(process.env.MYSQL_USER || process.env.DB_USER || '').trim()
     && String(process.env.MYSQL_DATABASE || process.env.DB_NAME || '').trim()
   );
+};
+
+let portalJsonSnapshotDebounceTimer = null;
+let portalJsonSnapshotSyncPromise = null;
+const reconcilePortalJsonSnapshots = async () => {
+  if (!canUseMysql()) return null;
+  if (portalJsonSnapshotSyncPromise) return portalJsonSnapshotSyncPromise;
+  portalJsonSnapshotSyncPromise = syncPortalJsonSnapshotsToMysql(pool);
+  try {
+    const result = await portalJsonSnapshotSyncPromise;
+    if (result.errors.length) {
+      console.error('PORTAL JSON SNAPSHOT PARTIAL FAILURE:', JSON.stringify(result.errors));
+    }
+    return result;
+  } finally {
+    portalJsonSnapshotSyncPromise = null;
+  }
+};
+const schedulePortalJsonSnapshotSync = (delayMs = 250) => {
+  if (!canUseMysql()) return;
+  if (portalJsonSnapshotDebounceTimer) clearTimeout(portalJsonSnapshotDebounceTimer);
+  portalJsonSnapshotDebounceTimer = setTimeout(() => {
+    portalJsonSnapshotDebounceTimer = null;
+    reconcilePortalJsonSnapshots().catch((error) => {
+      console.error('PORTAL JSON SNAPSHOT FAILED:', error.message);
+    });
+  }, Math.max(0, Number(delayMs) || 0));
+  if (typeof portalJsonSnapshotDebounceTimer.unref === 'function') portalJsonSnapshotDebounceTimer.unref();
 };
 
 const isCustomersJsonFallbackEnabled = () => {
@@ -7393,12 +7472,6 @@ app.get('/api/jobs', async (req, res) => {
           return raw;
         })
         .filter(Boolean);
-      const cleanupResult = filterJobs(parsed).length !== parsed.length
-        ? await pruneOrphanAssignedJobs({ invoices: activeInvoices, source: 'jobs-list' })
-        : null;
-      if (cleanupResult?.removedCount > 0) {
-        res.set('X-Orphan-Jobs-Cleaned', String(cleanupResult.removedCount));
-      }
       return res.json(filterJobs(parsed).filter(job => !security.isTechnician(req.portalUser) || security.ownsJob(req.portalUser, job)));
     } catch (error) {
       console.error('MySQL jobs read failed:', error.message);
@@ -7407,12 +7480,6 @@ app.get('/api/jobs', async (req, res) => {
   }
 
   const jobs = readJsonFile(jobsFile, []);
-  const cleanupResult = filterJobs(jobs).length !== jobs.length
-    ? await pruneOrphanAssignedJobs({ invoices: activeInvoices, source: 'jobs-list-json' })
-    : null;
-  if (cleanupResult?.removedCount > 0) {
-    res.set('X-Orphan-Jobs-Cleaned', String(cleanupResult.removedCount));
-  }
   res.json(filterJobs(jobs).filter(job => !security.isTechnician(req.portalUser) || security.ownsJob(req.portalUser, job)));
 });
 
@@ -7470,7 +7537,11 @@ const getActiveInvoiceReferenceIds = (invoices = []) => {
       invoice?._id,
       invoice?.external_id,
       invoice?.invoiceId,
-      invoice?.invoice_external_id
+      invoice?.invoice_external_id,
+      invoice?.invoiceNumber,
+      invoice?.invoice_number,
+      invoice?.contractNumber,
+      invoice?.contract_number
     ]
       .map((value) => String(value || '').trim())
       .filter(Boolean)
@@ -7483,35 +7554,41 @@ const pruneOrphanAssignedJobs = async ({ invoices = null, source = 'system' } = 
   const activeInvoices = invoices || await loadInvoicesForContext();
   const activeInvoiceIds = getActiveInvoiceReferenceIds(activeInvoices);
   const currentJobs = canUseMysql() ? await loadJobsFromMysql() : readJsonFile(jobsFile, []);
-  const nextJobs = (Array.isArray(currentJobs) ? currentJobs : []).filter((job) => {
+  const orphanedJobs = (Array.isArray(currentJobs) ? currentJobs : []).filter((job) => {
     if (job?.isDeleted || job?.deletedAt) return false;
     const contractReference = getJobContractReference(job);
-    if (!contractReference) return true;
-    return activeInvoiceIds.has(contractReference);
+    return Boolean(contractReference && !activeInvoiceIds.has(contractReference));
   });
 
-  if (nextJobs.length === currentJobs.length) {
-    return { removedCount: 0, keptCount: nextJobs.length, source };
+  if (!orphanedJobs.length) {
+    return { removedCount: 0, archivedCount: 0, keptCount: currentJobs.length, source };
   }
 
+  const archivedAt = new Date().toISOString();
+  const orphanedIds = new Set(orphanedJobs.map((job) => String(job?._id || '').trim()).filter(Boolean));
   if (canUseMysql()) {
-    const nextIds = new Set(nextJobs.map((job) => String(job?._id || '').trim()).filter(Boolean));
-    const removedIds = (Array.isArray(currentJobs) ? currentJobs : [])
-      .map((job) => String(job?._id || '').trim())
-      .filter(Boolean)
-      .filter((id) => !nextIds.has(id));
-    if (removedIds.length > 0) {
-      await withMysqlConnection(async (conn) => {
-        for (const externalId of removedIds) {
-          await conn.query('DELETE FROM jobs WHERE external_id = ?', [externalId]);
-        }
-      });
-    }
+    await withMysqlConnection(async (conn) => {
+      for (const externalId of orphanedIds) {
+        await conn.query(
+          `UPDATE jobs
+           SET status = CASE WHEN LOWER(COALESCE(status, '')) = 'completed' THEN status ELSE 'Archived' END,
+               payload = JSON_SET(COALESCE(payload, JSON_OBJECT()), '$.isDeleted', true, '$.deletedAt', ?, '$.orphanedSource', ?)
+           WHERE external_id = ?`,
+          [archivedAt, source, externalId]
+        );
+      }
+    });
   }
 
-  fs.writeFileSync(jobsFile, JSON.stringify(nextJobs, null, 2));
+  const archivedJobs = (Array.isArray(currentJobs) ? currentJobs : []).map((job) => (
+    orphanedIds.has(String(job?._id || '').trim())
+      ? { ...job, isDeleted: true, deletedAt: archivedAt, orphanedSource: source, status: String(job?.status || '').toLowerCase() === 'completed' ? job.status : 'Archived' }
+      : job
+  ));
+  fs.writeFileSync(jobsFile, JSON.stringify(archivedJobs, null, 2));
+  schedulePortalJsonSnapshotSync();
 
-  return { removedCount: currentJobs.length - nextJobs.length, keptCount: nextJobs.length, source };
+  return { removedCount: 0, archivedCount: orphanedJobs.length, keptCount: currentJobs.length, source };
 };
 
 const loadJobByIdFromMysql = async (jobId) => {
@@ -7885,19 +7962,28 @@ app.delete('/api/jobs/:id', async (req, res) => {
         return res.status(409).json({ error: 'Only completed jobs can be deleted from Assign Pest Service.' });
       }
 
+      const deletedAt = new Date().toISOString();
       await withMysqlConnection(async (conn) => {
-        if (safeNumericId !== null) {
-          await conn.query('DELETE FROM jobs WHERE external_id = ? OR id = ?', [targetId, safeNumericId]);
-        } else {
-          await conn.query('DELETE FROM jobs WHERE external_id = ?', [targetId]);
-        }
+        const sql = safeNumericId !== null
+          ? `UPDATE jobs
+             SET payload = JSON_SET(COALESCE(payload, JSON_OBJECT()), '$.isDeleted', true, '$.deletedAt', ?)
+             WHERE external_id = ? OR id = ?`
+          : `UPDATE jobs
+             SET payload = JSON_SET(COALESCE(payload, JSON_OBJECT()), '$.isDeleted', true, '$.deletedAt', ?)
+             WHERE external_id = ?`;
+        const params = safeNumericId !== null ? [deletedAt, targetId, safeNumericId] : [deletedAt, targetId];
+        await conn.query(sql, params);
       });
 
       if (fs.existsSync(jobsFile)) {
         const jobs = readJsonFile(jobsFile, []);
-        const nextJobs = jobs.filter((job) => String(job?._id || '').trim() !== targetId);
-        if (nextJobs.length !== jobs.length) {
-          fs.writeFileSync(jobsFile, JSON.stringify(nextJobs, null, 2));
+        const nextJobs = jobs.map((job) => (
+          String(job?._id || '').trim() === String(mysqlJob?._id || targetId).trim()
+            ? { ...job, isDeleted: true, deletedAt }
+            : job
+        ));
+        if (nextJobs.some((job, index) => job !== jobs[index])) {
+          writeJsonFile(jobsFile, nextJobs);
         }
       }
 
@@ -7916,16 +8002,12 @@ app.delete('/api/jobs/:id', async (req, res) => {
     return res.status(409).json({ error: 'Only completed jobs can be deleted from Assign Pest Service.' });
   }
 
-  jobs.splice(jobIndex, 1);
-  fs.writeFileSync(jobsFile, JSON.stringify(jobs, null, 2));
-
-  try {
-    await withMysqlConnection(async (conn) => {
-      await conn.query('DELETE FROM jobs WHERE external_id = ?', [targetId]);
-    });
-  } catch (error) {
-    console.error('MySQL mirror delete failed (JSON saved):', error.message);
-  }
+  jobs[jobIndex] = {
+    ...jobs[jobIndex],
+    isDeleted: true,
+    deletedAt: new Date().toISOString()
+  };
+  writeJsonFile(jobsFile, jobs);
 
   invalidateDashboardSummaryCache();
   return res.json({ success: true, deletedId: targetId, status: 'Scheduled' });
@@ -16922,6 +17004,7 @@ registerHrModule({
   app,
   readJsonFile,
   withMysqlConnection,
+  syncPortalSnapshots: schedulePortalJsonSnapshotSync,
   files: {
     employeesFile,
     attendanceFile,
@@ -16947,6 +17030,7 @@ registerCustomerDedupModule({
   app,
   readJsonFile,
   uploadMiddleware: customerImportUpload,
+  syncPortalSnapshots: schedulePortalJsonSnapshotSync,
   mysql: {
     canUseMysql,
     withMysqlConnection,
@@ -16978,6 +17062,7 @@ app.use('/api', createWhatsAppRouter({
   withMysqlConnection,
   loadRuntimeSettings: readSettingsFromMysql,
   saveRuntimeSettings: saveSettingsToMysql,
+  syncPortalSnapshots: schedulePortalJsonSnapshotSync,
   resolveServerOrigin
 }));
 
@@ -16991,6 +17076,7 @@ app.use('/api', createWhatsAppMarketingRouter({
   invoicesFile,
   paymentsFile,
   employeesFile,
+  syncPortalSnapshots: schedulePortalJsonSnapshotSync,
   mysql: {
     canUseMysql,
     withMysqlConnection
@@ -17005,6 +17091,7 @@ app.use('/api', createEmailRouter({
   withMysqlConnection,
   loadEmailSettings: loadRuntimeEmailSettings,
   saveRuntimeSettings: saveSettingsToMysql,
+  syncPortalSnapshots: schedulePortalJsonSnapshotSync,
   resolveServerOrigin
 }));
 
@@ -17804,6 +17891,15 @@ app.use((error, req, res, next) => {
 });
 
 let serverInstance = null;
+const PORTAL_JSON_SNAPSHOT_INTERVAL_MS = Math.max(30000, Number(process.env.PORTAL_JSON_SNAPSHOT_INTERVAL_MS || 60000));
+
+const startPortalJsonSnapshotSync = () => {
+  if (global.__PORTAL_JSON_SNAPSHOT_TIMER__ || !canUseMysql()) return;
+  global.__PORTAL_JSON_SNAPSHOT_TIMER__ = setInterval(() => schedulePortalJsonSnapshotSync(0), PORTAL_JSON_SNAPSHOT_INTERVAL_MS);
+  if (typeof global.__PORTAL_JSON_SNAPSHOT_TIMER__.unref === 'function') {
+    global.__PORTAL_JSON_SNAPSHOT_TIMER__.unref();
+  }
+};
 
 const listenOnce = () => {
   if (global.__SKUAS_SERVER_LISTENING__ || serverInstance) {
@@ -17840,6 +17936,7 @@ const startServer = async () => {
       } else {
         console.log(`BANK BALANCE BACKFILL COMPLETED: invoices=${backfillResult.invoiceCount || 0}`);
       }
+      startPortalJsonSnapshotSync();
     } catch (error) {
       console.error('AUTO MIGRATION STARTUP ERROR:', error && error.stack ? error.stack : error);
     }

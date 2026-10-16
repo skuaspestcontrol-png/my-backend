@@ -752,9 +752,13 @@ function registerHrModule({
   app,
   readJsonFile,
   files,
-  withMysqlConnection
+  withMysqlConnection,
+  syncPortalSnapshots = null
 }) {
   const canUseMysql = typeof withMysqlConnection === 'function';
+  const scheduleSnapshot = () => {
+    if (typeof syncPortalSnapshots === 'function') syncPortalSnapshots();
+  };
   const {
     employeesFile,
     attendanceFile,
@@ -915,18 +919,22 @@ function registerHrModule({
 
   const saveLeaves = async (rows) => {
     fs.writeFileSync(leavesFile, JSON.stringify(rows, null, 2));
+    scheduleSnapshot();
     await saveMysqlPayloadRows('hr_leaves', rows);
   };
   const saveNotifications = async (rows) => {
     fs.writeFileSync(notificationsFile, JSON.stringify(rows, null, 2));
+    scheduleSnapshot();
     await saveMysqlPayloadRows('hr_notifications', rows);
   };
   const saveWorkflow = async (rows) => {
     fs.writeFileSync(workflowFile, JSON.stringify(rows, null, 2));
+    scheduleSnapshot();
     await saveMysqlPayloadRows('hr_workflow', rows);
   };
   const savePerformance = async (rows) => {
     fs.writeFileSync(performanceFile, JSON.stringify(rows, null, 2));
+    scheduleSnapshot();
     await saveMysqlPayloadRows('hr_performance', rows);
   };
 
@@ -1497,6 +1505,7 @@ function registerHrModule({
     else records.push(next);
 
     fs.writeFileSync(attendanceFile, JSON.stringify(records, null, 2));
+    scheduleSnapshot();
     // Keep the MySQL mirror in sync for Hostinger-hosted data.
     await saveMysqlPayloadRows('attendance', records);
     res.json(next);
@@ -1544,6 +1553,7 @@ function registerHrModule({
     });
 
     fs.writeFileSync(attendanceFile, JSON.stringify(records, null, 2));
+    scheduleSnapshot();
     await saveMysqlPayloadRows('attendance', records);
     res.json({ message: 'Attendance bulk upload completed', upserted });
   });

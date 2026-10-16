@@ -11,6 +11,8 @@ const defaultStatus = () => ({
   columnsAdded: [],
   indexesAdded: [],
   payrollRowsMigrated: {},
+  coreRowsMigrated: {},
+  portalJsonSnapshots: { files: 0, records: 0, errors: [] },
   errors: []
 });
 
@@ -1054,6 +1056,23 @@ const tableDefinitions = [
       'KEY idx_uploaded_files_entity (entity_type, entity_id)',
       'KEY idx_uploaded_files_module (module_name)'
     ])
+  },
+  {
+    name: 'portal_data_snapshots',
+    createSql: createBaseTableSql('portal_data_snapshots', [
+      'data_key VARCHAR(160) NOT NULL',
+      'source_file VARCHAR(255) NOT NULL',
+      'record_count INT NOT NULL DEFAULT 0',
+      'checksum VARCHAR(64) NULL',
+      'snapshot_at DATETIME NOT NULL'
+    ], [
+      'UNIQUE KEY uk_portal_data_snapshots_key (data_key)',
+      'KEY idx_portal_data_snapshots_file (source_file)'
+    ]),
+    indexes: {
+      uk_portal_data_snapshots_key: 'CREATE UNIQUE INDEX uk_portal_data_snapshots_key ON portal_data_snapshots (data_key)',
+      idx_portal_data_snapshots_file: 'CREATE INDEX idx_portal_data_snapshots_file ON portal_data_snapshots (source_file)'
+    }
   }
 ];
 
@@ -1297,6 +1316,10 @@ const collectColumns = () => {
     mime_type: 'VARCHAR(120) NULL', file_size: 'BIGINT UNSIGNED NULL', relative_path: 'TEXT NULL',
     public_url: 'TEXT NULL', uploaded_by: 'VARCHAR(255) NULL'
   });
+  add('portal_data_snapshots', {
+    data_key: 'VARCHAR(160) NOT NULL', source_file: 'VARCHAR(255) NOT NULL',
+    record_count: 'INT NOT NULL DEFAULT 0', checksum: 'VARCHAR(64) NULL', snapshot_at: 'DATETIME NOT NULL'
+  });
 
   return map;
 };
@@ -1330,11 +1353,22 @@ const parseJsonPayload = (value) => {
 };
 
 const resolveDataFile = (fileName) => {
-  const dataDir = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim()
-    || path.join(__dirname, '..', '..', 'storage', 'data');
+  const configured = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim();
+  const dataDir = configured
+    ? (path.isAbsolute(configured) ? configured : path.resolve(__dirname, '..', configured))
+    : path.join(__dirname, '..', '..', 'storage', 'data');
   const primary = path.join(dataDir, fileName);
   if (fs.existsSync(primary)) return primary;
   return path.join(__dirname, '..', 'data', fileName);
+};
+
+const resolveDataDirectory = () => {
+  const configured = String(process.env.DATA_DIR || process.env.PERSISTENT_DATA_DIR || '').trim();
+  const primary = configured
+    ? (path.isAbsolute(configured) ? configured : path.resolve(__dirname, '..', configured))
+    : path.join(__dirname, '..', '..', 'storage', 'data');
+  if (fs.existsSync(primary)) return primary;
+  return path.join(__dirname, '..', 'data');
 };
 
 const ensureTableFactory = (target, status) => async function ensureTable(tableName, createSql) {
@@ -1411,6 +1445,106 @@ const upsertPayloadRow = async (target, tableName, externalId, columns, payload)
     values
   );
   return true;
+};
+
+const migrateJobsJsonToMysql = async (target) => {
+  const rows = readJsonFile(resolveDataFile('jobs.json'), []);
+  const jobs = Array.isArray(rows) ? rows : [];
+  let migrated = 0;
+  for (const row of jobs) {
+    const externalId = normalizeText(row?._id || row?.external_id || row?.id);
+    if (!externalId) continue;
+    const assignedNames = Array.isArray(row.technicianAssignments)
+      ? row.technicianAssignments.map(normalizeText).filter(Boolean).join(', ')
+      : normalizeText(row.assignedTo || row.technicianName);
+    const columns = {
+      customer_external_id: row.customerId || row.customer_external_id || null,
+      customer_id: row.customerId || row.customer_id || null,
+      invoice_external_id: row.invoiceId || row.invoice_external_id || row.contractId || null,
+      invoice_id: row.invoiceId || row.invoice_id || row.contractId || null,
+      customer_name: row.customerName || null,
+      job_number: row.jobNumber || row.job_number || null,
+      assigned_to: assignedNames || null,
+      technician_name: assignedNames || null,
+      service_name: row.serviceName || row.itemName || null,
+      service_type: row.serviceType || null,
+      description: row.description || row.notes || null,
+      address: row.address || row.serviceAddress || null,
+      area_name: row.areaName || row.area || null,
+      city: row.city || null,
+      state: row.state || null,
+      pincode: row.pincode || null,
+      scheduled_date: toDate(row.scheduledDate || row.serviceDate),
+      service_date: toDate(row.serviceDate || row.scheduledDate),
+      scheduled_time: row.scheduledTime || row.serviceTime || null,
+      service_time: row.serviceTime || row.scheduledTime || null,
+      status: row.status || null,
+      before_photo_url: row.beforePhoto || row.before_photo_url || null,
+      after_photo_url: row.afterPhoto || row.after_photo_url || null,
+      customer_signature_url: row.customerSignature || row.customer_signature_url || null,
+      google_task_id: row.googleTaskId || row.google_task_id || null,
+      google_calendar_event_id: row.googleCalendarEventId || row.google_calendar_event_id || null,
+      google_sync_status: row.googleSyncStatus || row.google_sync_status || null,
+      google_last_synced_at: toDateTime(row.googleLastSyncedAt || row.google_last_synced_at),
+      source_created_at: toDateTime(row.createdAt || row.source_created_at),
+      source_updated_at: toDateTime(row.updatedAt || row.source_updated_at)
+    };
+    if (await upsertPayloadRow(target, 'jobs', externalId, columns, row)) migrated += 1;
+  }
+  return migrated;
+};
+
+const syncPortalJsonSnapshotsToMysql = async (poolOrConnection) => {
+  const target = await getQueryTarget(poolOrConnection);
+  await target.query(`
+    CREATE TABLE IF NOT EXISTS portal_data_snapshots (
+      id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      external_id VARCHAR(120) NULL,
+      data_key VARCHAR(160) NOT NULL,
+      source_file VARCHAR(255) NOT NULL,
+      record_count INT NOT NULL DEFAULT 0,
+      checksum VARCHAR(64) NULL,
+      snapshot_at DATETIME NOT NULL,
+      payload JSON NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uk_portal_data_snapshots_external_id (external_id),
+      UNIQUE KEY uk_portal_data_snapshots_key (data_key),
+      KEY idx_portal_data_snapshots_file (source_file)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+  const dataDirectory = resolveDataDirectory();
+  const files = fs.existsSync(dataDirectory)
+    ? fs.readdirSync(dataDirectory).filter((name) => name.endsWith('.json')).sort()
+    : [];
+  const result = { files: 0, records: 0, errors: [] };
+  for (const fileName of files) {
+    try {
+      const raw = fs.readFileSync(path.join(dataDirectory, fileName), 'utf8').trim() || 'null';
+      const payload = JSON.parse(raw);
+      const recordCount = Array.isArray(payload)
+        ? payload.length
+        : payload && typeof payload === 'object'
+          ? Object.keys(payload).length
+          : payload == null ? 0 : 1;
+      const checksum = crypto.createHash('sha256').update(raw).digest('hex');
+      await target.query(
+        `INSERT INTO portal_data_snapshots
+          (external_id, data_key, source_file, record_count, checksum, snapshot_at, payload)
+         VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?)
+         ON DUPLICATE KEY UPDATE
+          source_file=VALUES(source_file), record_count=VALUES(record_count), checksum=VALUES(checksum),
+          snapshot_at=VALUES(snapshot_at), payload=VALUES(payload)`,
+        [fileName, fileName, fileName, recordCount, checksum, JSON.stringify(payload)]
+      );
+      result.files += 1;
+      result.records += recordCount;
+    } catch (error) {
+      result.errors.push({ file: fileName, error: error.message });
+    }
+  }
+  return result;
 };
 
 const migratePayrollJsonToMysql = async (target) => {
@@ -1773,6 +1907,23 @@ async function runAutoMigrations(poolOrConnection) {
     }
 
     try {
+      status.coreRowsMigrated.jobs = await migrateJobsJsonToMysql(target);
+    } catch (error) {
+      status.errors.push({ step: 'jobs_json_to_mysql', error: error.message });
+      console.error('AUTO MIGRATION JOBS JSON ERROR:', error.message);
+    }
+
+    try {
+      status.portalJsonSnapshots = await syncPortalJsonSnapshotsToMysql(target);
+      if (status.portalJsonSnapshots.errors.length) {
+        status.errors.push(...status.portalJsonSnapshots.errors.map((entry) => ({ step: `portal_json_snapshot:${entry.file}`, error: entry.error })));
+      }
+    } catch (error) {
+      status.errors.push({ step: 'portal_json_snapshots', error: error.message });
+      console.error('AUTO MIGRATION PORTAL JSON SNAPSHOT ERROR:', error.message);
+    }
+
+    try {
       const leadBackfill = await backfillLeadColumnsFromPayload(target);
       status.tablesChecked.push(`leads:backfill:${leadBackfill.updated}`);
     } catch (error) {
@@ -1809,6 +1960,8 @@ const getLastMigrationStatus = () => lastMigrationStatus;
 module.exports = {
   runAutoMigrations,
   syncPayrollJsonFilesToMysql,
+  syncPortalJsonSnapshotsToMysql,
+  migrateJobsJsonToMysql,
   backfillLeadColumnsFromPayload,
   getLastMigrationStatus,
   __test__: {

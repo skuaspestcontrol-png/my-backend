@@ -96,6 +96,7 @@ function createWhatsAppController(deps) {
     withMysqlConnection,
     loadRuntimeSettings,
     saveRuntimeSettings,
+    syncPortalSnapshots,
     resolveServerOrigin
   } = deps;
 
@@ -105,6 +106,7 @@ function createWhatsAppController(deps) {
 
   const writeJsonFile = (filePath, value) => {
     fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+    if (typeof syncPortalSnapshots === 'function') syncPortalSnapshots();
   };
 
   const readSettingsFile = () => {

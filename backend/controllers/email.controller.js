@@ -48,6 +48,7 @@ function createEmailController(deps) {
     withMysqlConnection,
     loadEmailSettings,
     saveRuntimeSettings,
+    syncPortalSnapshots,
     resolveServerOrigin
   } = deps;
 
@@ -55,7 +56,10 @@ function createEmailController(deps) {
   const logsFile = path.join(dataDir, 'email_message_logs.json');
   const attachmentsFile = path.join(dataDir, 'email_attachments.json');
 
-  const writeJsonFile = (filePath, value) => fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+  const writeJsonFile = (filePath, value) => {
+    fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+    if (typeof syncPortalSnapshots === 'function') syncPortalSnapshots();
+  };
   const readSettings = () => {
     const raw = readJsonFile(settingsFile, {});
     return raw && typeof raw === 'object' ? raw : {};

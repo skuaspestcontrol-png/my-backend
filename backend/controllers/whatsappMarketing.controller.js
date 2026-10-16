@@ -21,14 +21,17 @@ const normalizeStatus = (value, fallback = 'draft') => {
 };
 
 const createController = (deps) => {
-  const { dataDir, readJsonFile, settingsFile, customersFile, renewalsFile, jobsFile, invoicesFile, paymentsFile, employeesFile, mysql = {} } = deps;
+  const { dataDir, readJsonFile, settingsFile, customersFile, renewalsFile, jobsFile, invoicesFile, paymentsFile, employeesFile, syncPortalSnapshots, mysql = {} } = deps;
   const campaignsFile = path.join(dataDir, 'whatsapp_marketing_campaigns.json');
   const presetsFile = path.join(dataDir, 'whatsapp_marketing_audience_presets.json');
   const logsFile = path.join(dataDir, 'whatsapp_message_logs.json');
   const locksDir = path.join(dataDir, '.whatsapp-marketing-locks');
   fs.mkdirSync(locksDir, { recursive: true });
   const activeWorkers = new Set();
-  const write = (file, value) => fs.writeFileSync(file, JSON.stringify(value, null, 2));
+  const write = (file, value) => {
+    fs.writeFileSync(file, JSON.stringify(value, null, 2));
+    if (typeof syncPortalSnapshots === 'function') syncPortalSnapshots();
+  };
   const campaigns = () => readRows(readJsonFile, campaignsFile);
   const presets = () => readRows(readJsonFile, presetsFile);
   const crmData = () => ({
