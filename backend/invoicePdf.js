@@ -801,7 +801,7 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
       .text(addressLinesForInvoiceParty(shipTo, { showGstin: showGstNumberInPdf }).join('\n'), shipX + 5, y + 28, { width: cardW - 10, lineGap: 1 });
 
-    y += cardH + 2;
+    y += cardH + 8;
 
     // Subject row
     const subjectH = 16;
