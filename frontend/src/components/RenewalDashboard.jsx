@@ -9,6 +9,7 @@ import ActionMenu from './ui/ActionMenu';
 import { consumeRenewalsFocus, subscribeRenewalsRefresh, triggerContractsRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { getPortalUser, getPortalUserId, getPortalUserName, getPortalUserRole } from '../utils/portalAuth';
 import { formatIndianMobileNumber, normalizeIndianMobileNumber } from '../utils/phone';
+import { updateMonthlyRenewalLetters } from '../utils/renewalLetterBatch';
 import {
   CalendarClock,
   ChevronLeft,
@@ -479,6 +480,8 @@ export default function RenewalDashboard() {
     search: ''
   });
   const loadRequestRef = useRef(0);
+  const latestFiltersRef = useRef(filters);
+  latestFiltersRef.current = filters;
   const initialSearchSyncRef = useRef(true);
   const initialFilterSyncRef = useRef(true);
   const skipNextSearchSyncRef = useRef(false);
@@ -903,7 +906,7 @@ export default function RenewalDashboard() {
     void loadData(filters, { autoSync: false, autoGenerateLetters: false });
   }), [filters]);
 
-  useAutoRefresh(() => loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false }), { enabled: !modal.type });
+  useAutoRefresh(() => loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false }), { enabled: !modal.type && !busy });
 
   const salesPeople = useMemo(() => {
     const list = employees
@@ -1224,6 +1227,36 @@ export default function RenewalDashboard() {
     } catch (error) {
       console.error('Renewal audit load failed', error);
       setMessage(error?.response?.data?.error || 'Unable to load renewal audit right now.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const updateExistingMonthlyLetters = async () => {
+    if (busy || !canManageRenewals) return;
+    const month = Number(filters.month);
+    const year = Number(filters.year);
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      setMessage('Select a specific dashboard month and year first.');
+      return;
+    }
+    const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    try {
+      setBusy(true);
+      setMessage(`Finding all existing renewal letters for ${monthName}…`);
+      // Fetch the entire month, independent of pagination, search or salesperson filters.
+      const { data } = await axios.get(`${API_BASE}/api/renewals`, { params: { range: 'custom', month, year, t: Date.now() }, timeout: 30000 });
+      if (!Array.isArray(data)) throw new Error('Unable to read the monthly renewal list.');
+      const result = await updateMonthlyRenewalLetters({
+        rows: data, month, year,
+        regenerate: (id, body) => axios.post(`${API_BASE}/api/renewals/${encodeURIComponent(id)}/generate-letter`, body),
+        onProgress: ({ completed, total }) => setMessage(`Updating ${monthName} letters: ${completed} of ${total} processed…`)
+      });
+      const failures = result.failures.map((item) => `${item.customerName || item.id}: ${item.error}`).join(' ');
+      setMessage(result.total === 0 ? `No existing renewal letters found for ${monthName}.` :
+        `${result.updated} of ${result.total} ${monthName} letters updated with letter date ${formatDate(`${year}-${String(month).padStart(2, '0')}-01`)}.${failures ? ` ${result.stopped ? 'Update stopped; refresh before retrying. ' : ''}${failures}` : ''}`);
+      void loadData(latestFiltersRef.current, { silent: true, autoSync: false, autoGenerateLetters: false, afterSave: result.updated > 0 });
+    } catch (error) {
+      setMessage(error?.response?.data?.error || error.message || 'Unable to update monthly renewal letters.');
     } finally {
       setBusy(false);
     }
@@ -2115,6 +2148,14 @@ export default function RenewalDashboard() {
         ) : null}
         {!loading && activeTab === 'Renewal Letters' ? (
           <div style={shell.panelPad}>
+            {canManageRenewals ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                <button type="button" style={shell.primaryBtn} disabled={busy} onClick={updateExistingMonthlyLetters}>
+                  {busy ? 'Updating letters…' : 'Update all letters for selected month'}
+                </button>
+                <span style={{ color: 'var(--color-muted)', fontSize: 12 }}>Updates every saved letter for the selected month. Each letter will show the 1st of that month.</span>
+              </div>
+            ) : null}
             {(visibleLetterRows || []).length === 0 ? (
               <p style={{ margin: 0, color: 'var(--color-muted)' }}>No renewal letters generated yet.</p>
             ) : (
