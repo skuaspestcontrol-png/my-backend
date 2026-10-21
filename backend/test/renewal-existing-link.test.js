@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildExistingCandidates, createExistingLinkService, dateOnly } = require('../lib/renewalExistingLink');
+const { buildExistingCandidates, buildExistingHistory, contractStatusLabel, createExistingLinkService, dateOnly } = require('../lib/renewalExistingLink');
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const source = { _id: 'OLD', customerId: 'C1', customerName: 'Customer', customerPremiseId: 'P1' };
@@ -53,6 +53,44 @@ test('dates are real calendar dates and missing contracts are not inferred from 
   assert.equal(dateOnly('2026-02-30'), '');
   assert.equal(dateOnly('01/02/2026'), '');
   assert.equal(candidates([{ ...target, items: [{ itemName: 'Pest control', amount: 100 }], dueDate: '2026-12-31' }]).length, 0);
+});
+
+test('customer history includes both expired and active renewal invoices, including expiry-day starts', () => {
+  const row = { ...renewal, serviceType: 'General Pest Control', previousContractEnd: '2026-01-23' };
+  const old = { ...source, invoiceNumber: 'SPC/2025/040', servicePeriodStart: '2025-07-24', servicePeriodEnd: '2026-01-23' };
+  const expired = { ...target, _id: 'EXPIRED', invoiceNumber: 'SPC/2026/002', status: 'EXPIRED', items: [{ ...target.items[0],
+    itemName: row.serviceType, contractStartDate: '2026-01-23', contractEndDate: '2026-07-22' }] };
+  const active = { ...expired, _id: 'ACTIVE', invoiceNumber: 'SPC/2026/040', status: 'PAID', items: [{ ...expired.items[0],
+    contractStartDate: '2026-07-23', contractEndDate: '2027-01-22' }] };
+  const history = buildExistingHistory({ renewal: row, sourceInvoice: old, invoices: [old, expired, active], deriveWindow, classifySource, itemTotals, today: '2026-10-21' });
+  const expiredMatch = history.find((item) => item.invoiceNumber === 'SPC/2026/002');
+  assert.equal(expiredMatch.contractStatusLabel, 'Expired Contract'); assert.equal(expiredMatch.eligible, true);
+  assert.equal(history.find((item) => item.invoiceNumber === 'SPC/2026/040').contractStatusLabel, 'Active Contract');
+  assert.equal(history.find((item) => item.invoiceNumber === old.invoiceNumber).eligible, false);
+});
+
+test('history exposes excluded expired invoice numbers with reasons instead of hiding them', () => {
+  const invoices = [
+    { ...target, _id: 'WRONG-SITE', invoiceNumber: 'OLD-SITE', customerPremiseId: 'OTHER', servicePeriodEnd: '2026-06-30' },
+    { ...target, _id: 'OLD-PERIOD', invoiceNumber: 'OLD-CYCLE', items: [{ ...target.items[0], contractStartDate: '2025-01-01', contractEndDate: '2025-12-31' }] },
+    { ...target, _id: 'OTHER-CUSTOMER', invoiceNumber: 'PRIVATE', customerId: 'C2' }
+  ];
+  const history = buildExistingHistory({ renewal, sourceInvoice: source, invoices, deriveWindow, classifySource, itemTotals, today: '2026-10-21' });
+  assert.equal(history.length, 2);
+  assert.equal(history.find((item) => item.invoiceNumber === 'OLD-SITE').eligible, false);
+  assert.match(history.find((item) => item.invoiceNumber === 'OLD-SITE').eligibilityReason, /Premises/);
+  const expired = history.find((item) => item.invoiceNumber === 'OLD-CYCLE');
+  assert.equal(expired.contractStatusLabel, 'Expired Contract'); assert.equal(expired.eligible, false);
+  assert.match(expired.eligibilityReason, /does not follow/);
+});
+
+test('contract state uses end dates inclusively and does not treat payment due dates as expiry', () => {
+  assert.equal(contractStatusLabel('2026-01-01', '2026-10-20', '2026-10-21'), 'Expired Contract');
+  assert.equal(contractStatusLabel('2026-01-01', '2026-10-21', '2026-10-21'), 'Active Contract');
+  assert.equal(contractStatusLabel('2026-11-01', '2027-10-31', '2026-10-21'), 'Upcoming Contract');
+  assert.equal(contractStatusLabel('', '', '2026-10-21'), 'Period unavailable');
+  const history = buildExistingHistory({ renewal, sourceInvoice: source, invoices: [{ ...target, items: [{ itemName: renewal.serviceType, amount: 100 }], dueDate: '2020-01-01' }], deriveWindow, classifySource, itemTotals });
+  assert.equal(history[0].contractStatusLabel, 'Period unavailable'); assert.equal(history[0].eligible, false);
 });
 
 function setup(extraRows = [], invoices = [source, target]) {
@@ -149,6 +187,17 @@ test('read-only candidate search checks access and never updates records', async
   const rows = await service.list({ renewalId: 'R1', authorize: () => {} });
   assert.equal(rows.length, 1); assert.equal(state.commits, 0); assert.equal(state.audit.length, 0);
   assert(state.queries.every((sql) => sql.startsWith('SELECT ')));
+});
+
+test('discovery of an expired mismatched record does not bypass server-side link validation', async () => {
+  const mismatch = { ...target, _id: 'WRONG-SITE', invoiceNumber: 'EXPIRED-OTHER-SITE', customerPremiseId: 'OTHER',
+    items: [{ ...target.items[0], contractEndDate: '2026-06-30' }] };
+  const { state, service, request } = setup([], [source, target, mismatch]);
+  const history = await service.list({ renewalId: 'R1', authorize: () => {} });
+  const record = history.find((item) => item.invoiceNumber === mismatch.invoiceNumber);
+  assert.equal(record.eligible, false);
+  await assert.rejects(service.link({ ...request, body: { ...request.body, invoiceId: record.invoiceId, candidateKey: record.key } }), /no longer matches/);
+  assert.equal(state.commits, 0); assert.equal(state.audit.length, 0);
 });
 
 test('stale invoice, lost renewal, forged selection and invalid date fail without changes', async () => {

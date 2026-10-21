@@ -14292,7 +14292,7 @@ const markMatchingRenewalCompleteForInvoice = async (invoice = {}, req = null) =
   if (rows.length !== 1) return null;
   const service = existingRenewalLinkService();
   const authorize = existingLinkAuthorize(req);
-  const candidates = (await service.list({ renewalId: rows[0].renewalId, authorize })).filter((item) => item.invoiceId === String(invoice._id));
+  const candidates = (await service.list({ renewalId: rows[0].renewalId, authorize })).filter((item) => item.eligible !== false && item.invoiceId === String(invoice._id));
   if (candidates.length !== 1 || !candidates[0].agreementDate) return null;
   await service.link({ renewalId: rows[0].renewalId,
     body: { invoiceId: candidates[0].invoiceId, candidateKey: candidates[0].key, invoiceVersion: candidates[0].invoiceVersion, agreementDate: candidates[0].agreementDate },

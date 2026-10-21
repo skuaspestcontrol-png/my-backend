@@ -14,6 +14,13 @@ const jsonObject = (value) => {
 };
 const fail = (statusCode, message) => { const error = new Error(message); error.statusCode = statusCode; throw error; };
 const money = (value) => value !== null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+const todayInIndia = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const contractStatusLabel = (start, end, today = todayInIndia()) => {
+  if (!dateOnly(end)) return 'Period unavailable';
+  if (end < today) return 'Expired Contract';
+  if (dateOnly(start) && start > today) return 'Upcoming Contract';
+  return 'Active Contract';
+};
 const samePremise = (source, target) => {
   const firstId = text(source?.customerPremiseId), secondId = text(target?.customerPremiseId);
   if (firstId || secondId) return Boolean(firstId && firstId === secondId);
@@ -85,6 +92,55 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
   return candidates.sort((a, b) => a.start.localeCompare(b.start) || a.invoiceNumber.localeCompare(b.invoiceNumber));
 }
 
+// Discovery is broader than permission to link: show the customer's entire
+// invoice history so old invoice numbers remain searchable, while saves still
+// use buildExistingCandidates and the transactional duplicate checks.
+function buildExistingHistory(options) {
+  const { renewal, sourceInvoice, invoices, deriveWindow, classifySource } = options;
+  if (!text(sourceInvoice?.customerId) || (text(renewal.customerExternalId) && text(renewal.customerExternalId) !== text(sourceInvoice.customerId))) {
+    fail(409, 'The previous contract needs a verified customer ID before searching existing records.');
+  }
+  let eligible = [], validationError = '';
+  try { eligible = buildExistingCandidates(options); } catch (error) {
+    if (error.statusCode !== 409) throw error;
+    validationError = error.message;
+  }
+  const history = [];
+  for (const invoice of invoices) {
+    if (text(invoice.customerId) !== text(sourceInvoice.customerId) || !text(invoice.invoiceNumber)) continue;
+    const matches = eligible.filter((item) => item.invoiceId === text(invoice._id));
+    if (matches.length) {
+      history.push(...matches.map((item) => ({ ...item, eligible: true, contractStatusLabel: contractStatusLabel(item.start, item.end, options.today) })));
+      continue;
+    }
+    const lines = Array.isArray(invoice.items) ? invoice.items : [];
+    const window = deriveWindow(invoice);
+    const start = dateOnly(window.contractStartDate || invoice.servicePeriodStart || invoice.date);
+    // Do not infer a contract expiry from a payment due date.
+    const explicitEnds = lines.map((line) => dateOnly(line.contractEndDate || line.serviceEndDate || line.renewalDate)).filter(Boolean);
+    const end = explicitEnds.sort().at(-1) || dateOnly(invoice.servicePeriodEnd)
+      || (lines.some((line) => line.contractPeriod) ? dateOnly(window.contractEndDate) : '');
+    const serviceType = [...new Set(lines.map((line) => text(line.itemName || line.name)).filter(Boolean))].join(', ') || text(invoice.serviceType || invoice.subject);
+    let reason = validationError;
+    if (!reason && text(invoice._id) === text(sourceInvoice._id)) reason = 'This is the previous contract. Select the contract that renewed it.';
+    if (!reason && /draft|cancelled|canceled|void|proforma/i.test(`${invoice.status || ''} ${invoice.invoiceType || ''}`)) reason = 'Draft, cancelled or void invoices cannot be linked.';
+    if (!reason && !samePremise(sourceInvoice, invoice)) reason = 'Premises do not match or are not verified on both records.';
+    if (!reason && !lines.some((line) => serviceKey(line.itemName || line.name) === serviceKey(renewal.serviceType)) && serviceKey(invoice.serviceType || invoice.subject) !== serviceKey(renewal.serviceType)) reason = 'The service does not match this renewal.';
+    if (!reason && (!start || !end)) reason = 'A verified contract start and end date are required before linking.';
+    if (!reason && (start < dateOnly(renewal.previousContractEnd) || end <= dateOnly(renewal.previousContractEnd))) reason = 'This contract period does not follow the previous contract.';
+    if (!reason && classifySource(invoice).relationshipType !== 'CONTRACT') reason = 'This record is not classified as a contract.';
+    if (!reason) reason = 'Review the service dates and invoice amounts before linking this record.';
+    history.push({
+      key: `history-${text(invoice._id)}`, invoiceId: text(invoice._id), invoiceNumber: text(invoice.invoiceNumber),
+      customerName: text(invoice.customerName), premiseLabel: text(invoice.premiseLabel || invoice.premiseAddress || invoice.shippingAddressText),
+      serviceType, start, end, invoiceTotal: money(invoice.total ?? invoice.amount), amount: money(invoice.total ?? invoice.amount),
+      amountBasis: 'Existing invoice total', agreementDate: dateOnly(invoice.agreementDate || invoice.date),
+      contractStatusLabel: contractStatusLabel(start, end, options.today), eligible: false, eligibilityReason: reason
+    });
+  }
+  return history.sort((a, b) => b.start.localeCompare(a.start) || a.invoiceNumber.localeCompare(b.invoiceNumber));
+}
+
 function createExistingLinkService({ getConnection, toRenewal, toInvoice, deriveWindow, classifySource, itemTotals, deriveTiming, priceDelta, audit }) {
   const build = (renewal, sourceInvoice, invoices) => buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals });
   const loadRenewal = async (conn, id, lock = false) => {
@@ -104,12 +160,12 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
       const renewal = toRenewal(await loadRenewal(conn, renewalId)); authorize(renewal);
       const source = await sourceFor(conn, renewal);
       const [rows] = await conn.query('SELECT * FROM invoices WHERE customer_external_id = ? ORDER BY external_id', [source.customerId]);
-      return build(renewal, source, rows.map(toInvoice));
+      return buildExistingHistory({ renewal, sourceInvoice: source, invoices: rows.map(toInvoice), deriveWindow, classifySource, itemTotals });
     } finally { conn.release(); }
   };
   const link = async ({ renewalId, body, actor, authorize, canCorrect = false, req = null }) => {
     const agreementDate = dateOnly(body.agreementDate);
-    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const today = todayInIndia();
     if (!agreementDate || agreementDate > today) fail(400, 'Enter the actual agreement date (today or earlier).');
     if (body.correctLink === true && !text(body.notes)) fail(400, 'Enter a reason for correcting the existing link.');
     if (!text(body.candidateKey) || !text(body.invoiceId) || !text(body.invoiceVersion)) fail(400, 'Select and review an existing contract/invoice first.');
@@ -184,4 +240,4 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
   return { list, link };
 }
 
-module.exports = { buildExistingCandidates, createExistingLinkService, dateOnly, serviceKey };
+module.exports = { buildExistingCandidates, buildExistingHistory, contractStatusLabel, createExistingLinkService, dateOnly, serviceKey };
