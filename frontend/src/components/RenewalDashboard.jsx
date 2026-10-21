@@ -1222,7 +1222,7 @@ export default function RenewalDashboard() {
     setFilters(next);
     loadData(next);
   };
-  const isFinalRow = (row) => ['Renewed', 'Declined', 'Won', 'Lost'].includes(String(row?.status || ''));
+  const isFinalRow = (row) => !isPendingRenewal(row);
   const isOneTimeRow = (row) => row?.serviceRelationshipType === 'ONE_TIME';
   const canRenewRow = (row) => canUseAssignedRenewal(row) && row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isFinalRow(row);
   const canWinLetterRow = (row) => isLetterRow(row) && String(row?.renewalId || row?.renewal_id || '').trim() && !isFinalRow(row);
@@ -1237,6 +1237,24 @@ export default function RenewalDashboard() {
   ];
   const renderRowActions = (row, mobile = false) => {
     const buttonBase = mobile ? shell.ghostBtn : shell.iconBtn;
+    const outcomeLabel = isWonRenewal(row) ? 'Won' : isLostRenewal(row) ? 'Lost' : '';
+    if (outcomeLabel) {
+      const outcomeStyle = statusStyle(outcomeLabel);
+      return (
+        <div style={{ ...shell.rowActions, justifyContent: 'flex-start', flexWrap: mobile ? 'wrap' : 'nowrap' }}>
+          <button
+            type="button"
+            style={{ ...shell.iconBtn, width: 100, minWidth: 100, fontSize: 12, fontWeight: 700, background: outcomeStyle.background, color: outcomeStyle.color }}
+            title={`View ${outcomeLabel} renewal details`}
+            aria-label={`View ${outcomeLabel} renewal details`}
+            onClick={() => openModal('view', row)}
+          >
+            {outcomeLabel}
+          </button>
+          <ActionMenu items={rowMoreItems(row)} compact triggerTitle="More Actions" />
+        </div>
+      );
+    }
     return (
       <div style={{ ...shell.rowActions, justifyContent: 'flex-start', flexWrap: mobile ? 'wrap' : 'nowrap' }}>
         {canUseAssignedRenewal(row) && !isFinalRow(row) ? (
