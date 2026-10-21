@@ -1544,6 +1544,12 @@ export default function RenewalDashboard() {
                 <span>{formatOptionalINR(renewalAmountValue(row))}</span>
                 <span>Due: {formatOptionalINR(row.outstandingAmount)}</span>
               </div>
+              {activeTab === 'Won' ? (
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: '8px 0' }}>
+                  {buildWonContractPdfUrl(row) ? <a href={buildWonContractPdfUrl(row)} onClick={(event) => { event.preventDefault(); openWonContractPdfPreview(row); }}>Invoice PDF</a> : <span>Invoice PDF unavailable</span>}
+                  {buildRenewalPdfUrl(row) ? <a href={buildRenewalPdfUrl(row)} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }}>Renewal Letter PDF</a> : <span>Renewal letter not generated</span>}
+                </div>
+              ) : null}
               {renderRowActions(row, true)}
             </div>
           ))}
@@ -1553,7 +1559,7 @@ export default function RenewalDashboard() {
     if (activeTab === 'Won') {
       return (
         <div style={shell.tableWrap}>
-          <table className="crm-compact-table renewal-dashboard-table" style={{ ...shell.letterTable, minWidth: 780 }}>
+          <table className="crm-compact-table renewal-dashboard-table" style={{ ...shell.letterTable, minWidth: 980 }}>
             <thead>
               <tr>
                 <th style={{ ...shell.th, ...shell.letterCustomerCell }}>Customer</th>
@@ -1561,7 +1567,8 @@ export default function RenewalDashboard() {
                 <th style={{ ...shell.th, ...shell.letterPeriodCell }}>Contract Period</th>
                 <th style={{ ...shell.th, ...shell.letterAmountCell }}>Old Amount</th>
                 <th style={{ ...shell.th, ...shell.letterAmountCell }}>New Amount</th>
-                <th style={{ ...shell.th, ...shell.letterPdfCell }}>PDF</th>
+                <th style={{ ...shell.th, ...shell.letterPdfCell, width: '9%' }}>Invoice PDF</th>
+                <th style={{ ...shell.th, ...shell.letterPdfCell, width: '9%' }}>Renewal Letter PDF</th>
               </tr>
             </thead>
             <tbody>
@@ -1569,6 +1576,7 @@ export default function RenewalDashboard() {
                 const contractStart = wonContractStartValue(row);
                 const contractEnd = wonContractEndValue(row);
                 const invoicePdfUrl = buildWonContractPdfUrl(row);
+                const renewalPdfUrl = buildRenewalPdfUrl(row);
                 return (
                   <tr key={row.id || row.renewalId || row.newContractId || row.convertedContractId || row.pdf_url}>
                     <td style={{ ...shell.td, ...shell.letterCustomerCell }} title={row.customerName || row.customer_name || ''}>
@@ -1580,8 +1588,11 @@ export default function RenewalDashboard() {
                     </td>
                     <td style={{ ...shell.td, ...shell.letterAmountCell }}>{formatOptionalINR(renewalOldAmountValue(row))}</td>
                     <td style={{ ...shell.td, ...shell.letterAmountCell }}>{formatOptionalINR(renewalNewAmountValue(row))}</td>
-                    <td style={{ ...shell.td, ...shell.letterPdfCell }}>
-                      {invoicePdfUrl ? <a href={invoicePdfUrl} onClick={(event) => { event.preventDefault(); openWonContractPdfPreview(row); }} rel="noreferrer">Open PDF</a> : '-'}
+                    <td style={{ ...shell.td, ...shell.letterPdfCell, width: '9%' }}>
+                      {invoicePdfUrl ? <a href={invoicePdfUrl} onClick={(event) => { event.preventDefault(); openWonContractPdfPreview(row); }} rel="noreferrer">Invoice PDF</a> : <span>Not available</span>}
+                    </td>
+                    <td style={{ ...shell.td, ...shell.letterPdfCell, width: '9%' }}>
+                      {renewalPdfUrl ? <a href={renewalPdfUrl} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Renewal Letter PDF</a> : <span>Not generated</span>}
                     </td>
                   </tr>
                 );
