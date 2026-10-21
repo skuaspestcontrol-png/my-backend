@@ -58,8 +58,11 @@ test('PDF generation uses the same invoice enrichment as the dashboard before co
   const block = source.slice(start, source.indexOf('\napp.', start + 1));
   assert.match(block, /enrichRenewalsWithConvertedContractPeriods\(enrichRenewalsWithCurrentContractWindows\(\[renewal\], invoices\), invoices\)/);
   assert(block.indexOf('renewalLetterDates(renewal)') < block.indexOf('fs.createWriteStream'));
-  assert.match(block, /previous contract for/);
-  assert.match(block, /proposed renewal is for/);
+  assert.match(block, /Your current contract for \$\{serviceName\} concludes on \$\{contractEndText\}/);
+  assert.match(block, /Our renewal charges mentioned below at terms and conditions for a \$\{durationText\} contract \(\$\{contractStartText\} to \$\{contractRangeEndText\}\)/);
+  assert.match(block, /contractEndText = formatRenewalLetterDate\(letterDates.previousEnd\)/);
+  assert.match(block, /contractStartText = formatRenewalLetterDate\(letterDates.start\)/);
+  assert.match(block, /contractRangeEndText = formatRenewalLetterDate\(letterDates.end\)/);
   assert.doesNotMatch(block, /over the past year/);
 });
 

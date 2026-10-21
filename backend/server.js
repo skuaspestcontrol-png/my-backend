@@ -15492,7 +15492,6 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       return `${day}/${month}/${date.getFullYear()}`;
     };
     const contractEndText = formatRenewalLetterDate(letterDates.previousEnd);
-    const previousStartText = formatRenewalLetterDate(letterDates.previousStart);
     const contractStartText = formatRenewalLetterDate(letterDates.start);
     const contractRangeEndText = formatRenewalLetterDate(letterDates.end);
     const durationText = letterDates.duration;
@@ -15642,7 +15641,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       { text: renewalAddressLine, bold: true, fontSize: renewalAddressFontSize },
       { text: ' We value our association and trust you have found our services exemplary and to your complete satisfaction.', bold: false }
     ]);
-    drawParagraph(`Your previous contract for ${serviceName} covers ${previousStartText} to ${contractEndText} (inclusive). The proposed renewal is for a ${durationText} contract from ${contractStartText} to ${contractRangeEndText} (inclusive), subject to confirmation of the actual agreed period. Our renewal charges and terms are provided below.`);
+    drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
     const sourceInvoiceForLetter = renewal.sourceInvoice || renewal.payload?.sourceInvoice || {};
     const sourceInvoiceType = String(sourceInvoiceForLetter.invoiceType || sourceInvoiceForLetter.invoice_type || '').trim().toUpperCase().replace(/[-_]+/g, ' ');
     const sourceInvoiceTax = toNumber(sourceInvoiceForLetter.totalTax ?? sourceInvoiceForLetter.total_tax ?? sourceInvoiceForLetter.taxAmount ?? sourceInvoiceForLetter.tax_amount, Number.NaN);
