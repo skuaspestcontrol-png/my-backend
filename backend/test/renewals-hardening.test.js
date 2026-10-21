@@ -150,8 +150,10 @@ test('renewal won and lost actions stay available only for authorized eligible r
   assert.match(canRenewBlock, /!isFinalRow\(row\)/);
   assert.match(rowActionsBlock, /canRenewRow\(row\)[\s\S]+title="Mark as Won"/);
   assert.match(rowActionsBlock, /onClick=\{\(\) => openModal\('convert', row\)\}/);
-  assert.match(rowMoreBlock, /canUseAssignedRenewal\(row\)[\s\S]+!isFinalRow\(row\)[\s\S]+row\.serviceRelationshipType === 'CONTRACT'[\s\S]+\{ label: 'Mark as Lost'/);
+  assert.match(rowMoreBlock, /canUseAssignedRenewal\(row\)[\s\S]+!isFinalRow\(row\)[\s\S]+\(row\.serviceRelationshipType === 'CONTRACT' \|\| canWinLetterRow\(row\)\)[\s\S]+\{ label: 'Mark as Lost'/);
   assert.match(rowMoreBlock, /onClick: \(\) => openModal\('decline', row\)/);
+  assert.match(rowActionsBlock, /canUseAssignedRenewal\(row\) && !isFinalRow\(row\) && \(row\.serviceRelationshipType === 'CONTRACT' \|\| canWinLetterRow\(row\)\)[\s\S]+title="Mark as Lost"/);
+  assert.match(rowActionsBlock, /onClick=\{\(\) => openModal\('decline', row\)\}/);
 });
 
 test('renewal details view does not silently convert contracts or regenerate letters', () => {

@@ -1239,7 +1239,7 @@ export default function RenewalDashboard() {
     canUseAssignedRenewal(row) && (row.renewalLetterUrl || row.pdf_url) ? { label: 'WhatsApp Letter', onClick: () => openRenewalWhatsAppComposer(row) } : null,
     canUseAssignedRenewal(row) && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Regenerate Letter', onClick: () => runAction('Renewal letter regenerated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/generate-letter`)) } : null,
     canManageRenewals ? { label: 'Assign / Change Sales Person', onClick: () => openModal('assign', row) } : null,
-    canUseAssignedRenewal(row) && !isFinalRow(row) && row.serviceRelationshipType === 'CONTRACT' ? { label: 'Mark as Lost', onClick: () => openModal('decline', row) } : null
+    canUseAssignedRenewal(row) && !isFinalRow(row) && (row.serviceRelationshipType === 'CONTRACT' || canWinLetterRow(row)) ? { label: 'Mark as Lost', onClick: () => openModal('decline', row) } : null
   ];
   const renderRowActions = (row, mobile = false) => {
     const buttonBase = mobile ? shell.ghostBtn : shell.iconBtn;
@@ -1267,7 +1267,7 @@ export default function RenewalDashboard() {
             {mobile ? 'Mark as Won' : <CheckCircle2 size={15} />}
           </button>
         ) : null}
-        {canUseAssignedRenewal(row) && !isFinalRow(row) && row.serviceRelationshipType === 'CONTRACT' ? (
+        {canUseAssignedRenewal(row) && !isFinalRow(row) && (row.serviceRelationshipType === 'CONTRACT' || canWinLetterRow(row)) ? (
           <button
             className="crm-icon-action-btn"
             style={buttonBase}
