@@ -73,7 +73,6 @@ const renewalColumns = [
   { key: 'svc', label: 'Service' },
   { key: 'period', label: 'Period' },
   { key: 'amount', label: 'Amount' },
-  { key: 'outstanding', label: 'Outstanding' },
   { key: 'salesPerson', label: 'Sales' },
   { key: 'status', label: 'Status' },
   { key: 'actions', label: 'Actions' }
@@ -84,7 +83,6 @@ const renewalDefaultWidths = {
   svc: 280,
   period: 200,
   amount: 100,
-  outstanding: 110,
   salesPerson: 140,
   status: 90,
   actions: 156
@@ -95,7 +93,6 @@ const renewalColumnBounds = {
   svc: { min: 260, max: 480 },
   period: { min: 190, max: 260 },
   amount: { min: 100, max: 160 },
-  outstanding: { min: 105, max: 170 },
   salesPerson: { min: 130, max: 220 },
   status: { min: 90, max: 150 },
   actions: { min: 156, max: 190 }
@@ -1610,7 +1607,6 @@ export default function RenewalDashboard() {
                 <th style={renewalHeadCellStyle('svc')}>Service</th>
                 <th style={renewalHeadCellStyle('period', 'center')}>Period</th>
                 <th style={renewalHeadCellStyle('amount', 'center')}>Amount</th>
-                <th style={renewalHeadCellStyle('outstanding', 'center')}>Outstanding</th>
                 <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
                 <th style={renewalHeadCellStyle('status', 'center')}>Status</th>
                 <th style={renewalHeadCellStyle('actions', 'center')}>Actions</th>
@@ -1630,7 +1626,6 @@ export default function RenewalDashboard() {
                     {formatDate(row.previousContractStart)} – {formatDate(row.previousContractEnd)}
                   </td>
                   <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(renewalAmountValue(row))}</td>
-                  <td style={renewalBodyCellStyle('outstanding', 'center')}>{formatOptionalINR(row.outstandingAmount)}</td>
                   <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
                   <td style={renewalBodyCellStyle('status', 'center')}><span style={tabStatusStyle(row)}>{tabStatusLabel(row)}</span></td>
                   <td style={renewalActionCellStyle}>{renderRowActions(row)}</td>
