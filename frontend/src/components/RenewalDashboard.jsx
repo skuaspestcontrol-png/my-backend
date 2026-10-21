@@ -560,7 +560,7 @@ export default function RenewalDashboard() {
 
   const sortedLetters = useMemo(() => {
     const toLetterDateValue = (letter) => {
-      const raw = letter?.conclude_date || letter?.concludeDate || letter?.generated_at || letter?.generatedAt || '';
+      const raw = letter?.generated_at || letter?.generatedAt || '';
       const date = raw ? new Date(raw) : null;
       return date && !Number.isNaN(date.getTime()) ? date.getTime() : Number.MAX_SAFE_INTEGER;
     };
@@ -611,6 +611,7 @@ export default function RenewalDashboard() {
         ...next,
         pdf_url: next.pdf_url || existing.pdf_url,
         renewalLetterUrl: next.renewalLetterUrl || existing.renewalLetterUrl,
+        generated_at: next.generated_at || next.generatedAt || existing.generated_at || existing.generatedAt,
         conclude_date: next.conclude_date || existing.conclude_date,
         concludeDate: next.concludeDate || existing.concludeDate,
         previousContractStart: next.previousContractStart || existing.previousContractStart,
@@ -1618,7 +1619,7 @@ export default function RenewalDashboard() {
                     <strong>{row.customerName || row.customer_name || '-'}</strong>
                   </td>
                   <td style={{ ...shell.td, ...shell.letterServiceCell }} title={row.serviceType || ''}>{row.serviceType || '-'}</td>
-                  <td style={{ ...shell.td, ...shell.letterDateCell }}>{formatDate(row.conclude_date || row.concludeDate || row.generated_at || row.outcomeDecisionDate || row.renewalDueDate)}</td>
+                  <td style={{ ...shell.td, ...shell.letterDateCell }}>{formatDate(row.generated_at || row.generatedAt)}</td>
                   <td style={{ ...shell.td, ...shell.letterPeriodCell }} title={`${formatDate(row.previousContractStart)} - ${formatDate(row.previousContractEnd)}`}>
                     {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}
                   </td>
@@ -2122,7 +2123,7 @@ export default function RenewalDashboard() {
                           {letter.serviceType || '-'}
                         </td>
                         <td style={{ ...shell.td, ...shell.letterDateCell }}>
-                          {formatDate(letter.conclude_date || letter.concludeDate || letter.generated_at)}
+                          {formatDate(letter.generated_at || letter.generatedAt)}
                         </td>
                         <td style={{ ...shell.td, ...shell.letterPeriodCell }} title={`${formatDate(letter.previousContractStart)} - ${formatDate(letter.previousContractEnd)}`}>
                           {formatDate(letter.previousContractStart)} - {formatDate(letter.previousContractEnd)}

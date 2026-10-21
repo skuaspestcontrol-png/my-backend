@@ -13780,6 +13780,20 @@ const calculateRenewalContractEndDate = (startValue, durationValue = 12, duratio
   const months = unit === 'YEAR' ? value * 12 : value;
   return addDays(addMonthsClamped(start, months), -1);
 };
+const renewalLetterDates = (renewal) => {
+  const previousStart = parseDateOnly(renewal.previousContractStart);
+  const previousEnd = parseDateOnly(renewal.previousContractEnd || renewal.renewalDueDate);
+  if (!previousStart || !previousEnd || previousEnd < previousStart) {
+    throw new Error('Valid previous contract dates are required to generate a renewal letter.');
+  }
+  const inferred = deriveRenewalDuration(renewal.previousContractStart, renewal.previousContractEnd || renewal.renewalDueDate);
+  const value = Number(renewal.contractDurationValue) > 0 ? Number(renewal.contractDurationValue) : inferred.value;
+  const unit = Number(renewal.contractDurationValue) > 0 ? renewal.contractDurationUnit : inferred.unit;
+  const start = parseDateOnly(renewal.newContractStartDate) || addDays(previousEnd, 1);
+  const end = parseDateOnly(renewal.newContractEndDate) || calculateRenewalContractEndDate(start, value, unit);
+  if (!end || end < start) throw new Error('Valid renewal contract dates are required to generate a renewal letter.');
+  return { previousStart, previousEnd, start, end, duration: contractDurationLabel(start, end) };
+};
 const classifyRenewalSource = (invoice = {}) => {
   const lines = Array.isArray(invoice?.items) ? invoice.items : [];
   const firstLine = lines[0] || {};
@@ -15342,10 +15356,14 @@ app.post('/api/renewals/:id/followup', async (req, res) => {
 
 app.post('/api/renewals/:id/generate-letter', async (req, res) => {
   if (!canUseMysql()) return res.status(503).json({ error: 'MySQL is required to generate renewal letters.' });
-  const renewal = await findRenewalRow(req.params.id);
+  let renewal = await findRenewalRow(req.params.id);
   if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
   if (!requireRenewalRecordAccess(req, res, renewal)) return;
   try {
+    // Match the dashboard's invoice-backed dates; do not rewrite historical records.
+    const invoices = await loadInvoicesForContext();
+    renewal = enrichRenewalsWithConvertedContractPeriods(enrichRenewalsWithCurrentContractWindows([renewal], invoices), invoices)[0];
+    const letterDates = renewalLetterDates(renewal);
     const settings = await loadCurrentSettingsForNumbering();
     let renewalDisplayId = String(renewal.renewalDisplayId || '').trim();
     if (!renewalDisplayId) {
@@ -15471,12 +15489,11 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       const month = date.toLocaleString('en-GB', { month: 'short' });
       return `${day}/${month}/${date.getFullYear()}`;
     };
-    const previousEndDate = parseDateOnly(renewal.previousContractEnd || renewal.renewalDueDate);
-    const contractStartDate = parseDateOnly(renewal.previousContractStart) || (previousEndDate ? addDays(previousEndDate, 1) : null);
-    const contractEndText = formatRenewalLetterDate(previousEndDate || renewal.renewalDueDate);
-    const contractStartText = formatRenewalLetterDate(contractStartDate);
-    const contractRangeEndText = formatRenewalLetterDate(previousEndDate || renewal.renewalDueDate);
-    const durationText = contractDurationLabel(contractStartDate, previousEndDate);
+    const contractEndText = formatRenewalLetterDate(letterDates.previousEnd);
+    const previousStartText = formatRenewalLetterDate(letterDates.previousStart);
+    const contractStartText = formatRenewalLetterDate(letterDates.start);
+    const contractRangeEndText = formatRenewalLetterDate(letterDates.end);
+    const durationText = letterDates.duration;
     const sourceInvoiceItems = Array.isArray(renewal.sourceInvoiceItems) ? renewal.sourceInvoiceItems.filter((item) => item && typeof item === 'object') : [];
     const sourceServiceNames = sourceInvoiceItems
       .map((item) => String(item.itemName || item.name || item.serviceName || '').trim())
@@ -15619,11 +15636,11 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(`(${renewalGreetingName})`, pageLeft, doc.y, { width: contentWidth });
     doc.y += 8;
     drawInlineParagraph([
-      { text: 'It is our privilege to have been of service to you over the past year at ', bold: false },
+      { text: 'It is our privilege to have been of service to you at ', bold: false },
       { text: renewalAddressLine, bold: true, fontSize: renewalAddressFontSize },
       { text: ' We value our association and trust you have found our services exemplary and to your complete satisfaction.', bold: false }
     ]);
-    drawParagraph(`Your current contract for ${serviceName} concludes on ${contractEndText}. In order to enjoy uninterrupted service for a pest-free environment, we recommend you to renew the contract at the earliest. Our renewal charges mentioned below at terms and conditions for a ${durationText} contract (${contractStartText} to ${contractRangeEndText}).`);
+    drawParagraph(`Your previous contract for ${serviceName} covers ${previousStartText} to ${contractEndText} (inclusive). The proposed renewal is for a ${durationText} contract from ${contractStartText} to ${contractRangeEndText} (inclusive), subject to confirmation of the actual agreed period. Our renewal charges and terms are provided below.`);
     const sourceInvoiceForLetter = renewal.sourceInvoice || renewal.payload?.sourceInvoice || {};
     const sourceInvoiceType = String(sourceInvoiceForLetter.invoiceType || sourceInvoiceForLetter.invoice_type || '').trim().toUpperCase().replace(/[-_]+/g, ' ');
     const sourceInvoiceTax = toNumber(sourceInvoiceForLetter.totalTax ?? sourceInvoiceForLetter.total_tax ?? sourceInvoiceForLetter.taxAmount ?? sourceInvoiceForLetter.tax_amount, Number.NaN);
