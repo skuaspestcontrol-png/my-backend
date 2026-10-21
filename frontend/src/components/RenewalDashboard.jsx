@@ -64,7 +64,7 @@ const searchScopes = [
   { value: 'renewalId', label: 'Renewal ID' },
   { value: 'followup', label: 'Follow-up Note' }
 ];
-const tabs = ['Renewal Letters', 'Renewals', 'Upcoming', 'Overdue', 'Won', 'Lost', 'Jobbing', 'Reports', 'Needs Review'];
+const tabs = ['Renewals', 'Renewal Letters', 'Upcoming', 'Overdue', 'Won', 'Lost', 'Jobbing', 'Reports', 'Needs Review'];
 const renewalTableTabs = ['Renewals', 'Upcoming', 'Overdue', 'Won', 'Lost', 'Jobbing', 'Needs Review'];
 const jobbingContractPeriods = new Set(['single_time', 'single_time_plus_7', 'single_time_plus_10']);
 const renewalColumns = [
