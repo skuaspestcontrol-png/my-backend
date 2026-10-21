@@ -189,6 +189,39 @@ test('read-only candidate search checks access and never updates records', async
   assert(state.queries.every((sql) => sql.startsWith('SELECT ')));
 });
 
+test('picker hides contracts already linked to another renewal through either link field', async () => {
+  for (const field of ['convertedContractId', 'newContractId']) {
+    const { state, service } = setup([{ ...renewal, renewalId: 'R2', [field]: 'NEW', renewalOutcome: 'WON' }]);
+    const history = await service.list({ renewalId: 'R1', authorize: () => {} });
+    assert.equal(history.some((item) => item.invoiceId === 'NEW'), false);
+    assert.equal(state.commits, 0); assert.equal(state.audit.length, 0);
+  }
+});
+
+test('picker retains unused services on shared invoices and contracts with their own pending letters', async () => {
+  const first = setup([{ ...renewal, renewalId: 'R2', serviceType: 'Another service', convertedContractId: 'NEW', renewalOutcome: 'WON' }]);
+  assert.equal((await first.service.list({ renewalId: 'R1', authorize: () => {} })).some((item) => item.invoiceId === 'NEW'), true);
+  const second = setup([{ ...renewal, renewalId: 'R2', contractId: 'NEW', previousContractId: 'NEW', renewalLetterUrl: '/next-cycle.pdf' }]);
+  assert.equal((await second.service.list({ renewalId: 'R1', authorize: () => {} })).some((item) => item.invoiceId === 'NEW'), true);
+});
+
+test('picker hides the previous contract but keeps this renewal own link for corrections', async () => {
+  const { state, service, request } = setup();
+  Object.assign(state.invoices[0], { invoiceNumber: 'OLD-INVOICE', servicePeriodStart: '2025-01-01', servicePeriodEnd: '2025-12-31' });
+  assert.equal((await service.list({ renewalId: 'R1', authorize: () => {} })).some((item) => item.invoiceId === 'OLD'), false);
+  await service.link(request);
+  assert.equal((await service.list({ renewalId: 'R1', authorize: () => {} })).some((item) => item.invoiceId === 'NEW'), true);
+});
+
+test('picker hides duplicate service periods on different invoices at the same premises', async () => {
+  const otherTarget = { ...target, _id: 'SECOND', invoiceNumber: 'INV-2' };
+  const other = { ...renewal, renewalId: 'R2', convertedContractId: 'SECOND',
+    newContractStartDate: '2026-01-01', newContractEndDate: '2026-12-31' };
+  const { service } = setup([other], [source, target, otherTarget]);
+  const history = await service.list({ renewalId: 'R1', authorize: () => {} });
+  assert.equal(history.some((item) => item.invoiceId === 'NEW' || item.invoiceId === 'SECOND'), false);
+});
+
 test('discovery of an expired mismatched record does not bypass server-side link validation', async () => {
   const mismatch = { ...target, _id: 'WRONG-SITE', invoiceNumber: 'EXPIRED-OTHER-SITE', customerPremiseId: 'OTHER',
     items: [{ ...target.items[0], contractEndDate: '2026-06-30' }] };

@@ -753,10 +753,10 @@ export default function RenewalDashboard() {
       if (!options.silent) setLoading(true);
       const params = { ...overrideFilters, t: Date.now() };
       const [renewalRes, summaryRes, employeeRes, letterRes] = await Promise.all([
-        axios.get(`${API_BASE}/api/renewals`, { params }),
-        axios.get(`${API_BASE}/api/renewals/summary`, { params }),
-        axios.get(`${API_BASE}/api/employees`, { params: { t: Date.now() } }),
-        axios.get(`${API_BASE}/api/renewals/letters`, { params: { ...params, t: Date.now() } }).catch(() => ({ data: [] }))
+        axios.get(`${API_BASE}/api/renewals`, { params, timeout: 30000 }),
+        axios.get(`${API_BASE}/api/renewals/summary`, { params, timeout: 30000 }),
+        axios.get(`${API_BASE}/api/employees`, { params: { t: Date.now() }, timeout: 30000 }),
+        axios.get(`${API_BASE}/api/renewals/letters`, { params: { ...params, t: Date.now() }, timeout: 30000 }).catch(() => ({ data: [] }))
       ]);
       if (loadRequestRef.current !== requestId) return;
       const renewalRows = Array.isArray(renewalRes.data) ? renewalRes.data : [];
@@ -778,10 +778,11 @@ export default function RenewalDashboard() {
         return loadData(overrideFilters, { autoSync: false });
       }
     } catch (error) {
+      if (loadRequestRef.current !== requestId) return;
       console.error('Renewal load failed', error);
-      setMessage(error?.response?.data?.error || 'Unable to load renewals right now.');
+      setMessage(options.afterSave ? 'Saved successfully. The dashboard refresh is delayed; use Refresh to reload the latest totals.' : error?.response?.data?.error || 'Unable to load renewals right now.');
     } finally {
-      if (loadRequestRef.current === requestId && !options.silent) setLoading(false);
+      if (loadRequestRef.current === requestId) setLoading(false);
     }
   };
 
@@ -900,7 +901,7 @@ export default function RenewalDashboard() {
     void loadData(filters, { autoSync: false, autoGenerateLetters: false });
   }), [filters]);
 
-  useAutoRefresh(() => loadData(filters, { autoSync: false, autoGenerateLetters: false }), { enabled: !modal.type });
+  useAutoRefresh(() => loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false }), { enabled: !modal.type });
 
   const salesPeople = useMemo(() => {
     const list = employees
@@ -1131,6 +1132,15 @@ export default function RenewalDashboard() {
       .catch((error) => { if (!cancelled) setExistingLinks((prev) => ({ ...prev, loading: false, error: error?.response?.data?.error || 'Unable to load matching contracts. Please retry.' })); });
     return () => { cancelled = true; };
   }, [modal.type, modal.row?.renewalId, form.wonMode, existingLinksReload]);
+  const applySavedRenewal = (saved) => {
+    if (!saved?.renewalId) return;
+    // Ignore reads started before this save; show the committed outcome at once.
+    loadRequestRef.current += 1;
+    const update = (items) => items.map((item) => String(item.renewalId || item.renewal_id || '') === String(saved.renewalId) ? { ...item, ...saved } : item);
+    setRows(update);
+    setLetters(update);
+    setLoading(false);
+  };
   const handleLinkExisting = async () => {
     if (busy) return;
     const selected = existingLinks.candidates.find((item) => item.key === form.existingCandidateKey);
@@ -1142,10 +1152,11 @@ export default function RenewalDashboard() {
         invoiceId: selected.invoiceId, candidateKey: selected.key, invoiceVersion: selected.invoiceVersion,
         agreementDate: form.agreementDate, notes: form.note || '', correctLink: form.correctExistingLink === true
       });
+      applySavedRenewal(data.renewal);
       setMessage(data.message);
       closeModal();
-      await loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
       triggerContractsRefresh();
+      void loadData(filters, { silent: true, afterSave: true, autoSync: false, autoGenerateLetters: false });
     } catch (error) {
       setExistingLinks((prev) => ({ ...prev, error: error?.response?.data?.error || 'Unable to link existing records. Please retry.' }));
     } finally { setBusy(false); }
@@ -1167,14 +1178,16 @@ export default function RenewalDashboard() {
         customerType: modal.row?.serviceRelationshipType === 'ONE_TIME' ? 'New' : 'Renewal'
       });
       const contract = response?.data?.contract;
+      applySavedRenewal(response?.data?.renewal);
       setMessage(response?.data?.message || 'Converted to contract');
       closeModal();
-      await loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
       triggerContractsRefresh();
       if (contract?._id) {
         navigate(`/sales/contracts?openInvoiceId=${encodeURIComponent(contract._id)}&fromContract=1&viewContract=1`, {
           replace: true
         });
+      } else {
+        void loadData(filters, { silent: true, afterSave: true, autoSync: false, autoGenerateLetters: false });
       }
     } catch (error) {
       console.error('Converted to contract', error);
@@ -1184,12 +1197,14 @@ export default function RenewalDashboard() {
     }
   };
   const runAction = async (label, callback) => {
+    if (busy) return;
     try {
       setBusy(true);
       const response = await callback();
+      applySavedRenewal(response?.data?.renewal);
       setMessage(response?.data?.message || label);
       closeModal();
-      await loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
+      void loadData(filters, { silent: true, afterSave: true, autoSync: false, autoGenerateLetters: false });
     } catch (error) {
       console.error(label, error);
       setMessage(error?.response?.data?.error || `Unable to complete: ${label}`);
@@ -1967,7 +1982,7 @@ export default function RenewalDashboard() {
                     <label style={shell.field}><span style={shell.label}>Actual agreement date</span><input type="date" style={shell.input} value={form.agreementDate || ''} max={todayInput()} onChange={(event) => setForm((prev) => ({ ...prev, agreementDate: event.target.value }))} /></label>
                     <span>Invoice date is suggested when no agreement date is stored. Confirm the actual agreement date; the time this link is recorded is tracked separately.</span>
                     <label style={shell.field}><span style={shell.label}>{form.correctExistingLink ? 'Correction reason (required)' : 'Notes'}</span><textarea style={{ ...shell.input, height: 70 }} value={form.note || ''} onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))} /></label>
-                    <button type="button" style={shell.primaryBtn} disabled={busy || existingLinks.loading || !selectedExisting || selectedExisting.eligible === false || !form.agreementDate || (form.correctExistingLink && !form.note?.trim())} onClick={handleLinkExisting}>{form.correctExistingLink ? 'Save corrected link' : 'Link existing records & mark Won'}</button>
+                    <button type="button" style={shell.primaryBtn} disabled={busy || existingLinks.loading || !selectedExisting || selectedExisting.eligible === false || !form.agreementDate || (form.correctExistingLink && !form.note?.trim())} onClick={handleLinkExisting}>{busy ? 'Saving…' : form.correctExistingLink ? 'Save corrected link' : 'Link existing records & mark Won'}</button>
                   </>
                 ) : (
                   <>
@@ -1989,7 +2004,7 @@ export default function RenewalDashboard() {
                 <label style={shell.field}><span style={shell.label}>Price</span><select style={shell.input} value={form.priceOption || 'same'} onChange={(e) => updateConvertForm({ priceOption: e.target.value })}><option value="same">Same as previous contract</option><option value="revised">Revised price</option></select></label>
                 <label style={shell.field}><span style={shell.label}>Agreed Amount</span><input style={shell.input} value={form.amount} readOnly={form.priceOption === 'same'} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value, priceOption: 'revised' }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 70, paddingTop: 8 }} value={form.note || ''} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
-                <button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract}>{row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'}</button>
+                <button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract}>{busy ? 'Saving…' : row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'}</button>
                   </>
                 )}
               </>

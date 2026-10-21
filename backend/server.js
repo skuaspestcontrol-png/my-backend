@@ -1,5 +1,6 @@
 const express = require('express');
 const security = require('./lib/security');
+const onceAsync = require('./lib/onceAsync');
 const { createExistingLinkService, buildExistingCandidates } = require('./lib/renewalExistingLink');
 const { createDocumentShare, readDocumentShare } = require('./lib/documentShares');
 const { createSessionRevocationStore } = require('./lib/sessionRevocation');
@@ -10465,7 +10466,7 @@ const hydrateInvoiceMysqlRow = (row = {}) => {
   };
 };
 
-const ensureInvoiceMysqlColumns = async (conn) => {
+const ensureInvoiceMysqlColumns = onceAsync(async (conn) => {
   try {
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedule_default_time VARCHAR(10) NULL DEFAULT \'10:00\'');
     await conn.query('ALTER TABLE invoices ADD COLUMN IF NOT EXISTS service_schedules JSON NULL');
@@ -10491,7 +10492,7 @@ const ensureInvoiceMysqlColumns = async (conn) => {
     if (!names.has('contract_duration_value')) await conn.query('ALTER TABLE invoices ADD COLUMN contract_duration_value INT NULL');
     if (!names.has('contract_duration_unit')) await conn.query('ALTER TABLE invoices ADD COLUMN contract_duration_unit VARCHAR(20) NULL');
   }
-};
+});
 
 const loadInvoicesForContext = async () => {
   try {
@@ -10944,9 +10945,8 @@ const cleanupStoredRenewalAddresses = async () => {
     });
     if (changed) saveRenewalRecords(cleanedRecords);
   })().catch((error) => {
-    console.error('Failed to clean renewal addresses:', error.message);
-  }).finally(() => {
     renewalAddressCleanupPromise = null;
+    console.error('Failed to clean renewal addresses:', error.message);
   });
   return renewalAddressCleanupPromise;
 };
@@ -14046,7 +14046,7 @@ const enrichRenewalsWithCurrentContractWindows = (renewals = [], invoices = []) 
     };
   });
 };
-const ensureRenewalTables = async (conn) => {
+const ensureRenewalTables = onceAsync(async (conn) => {
   await conn.query(`
     CREATE TABLE IF NOT EXISTS renewals (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -14230,8 +14230,9 @@ const ensureRenewalTables = async (conn) => {
   await ensureIndex('renewals', 'idx_renewals_timing', 'CREATE INDEX idx_renewals_timing ON renewals (renewal_timing)');
   await ensureIndex('renewal_followups', 'idx_renewal_followups_renewal_id', 'CREATE INDEX idx_renewal_followups_renewal_id ON renewal_followups (renewal_id)');
   await ensureIndex('renewal_letters', 'idx_renewal_letters_renewal_id', 'CREATE INDEX idx_renewal_letters_renewal_id ON renewal_letters (renewal_id)');
-};
-const loadRenewalRows = async ({ autoSync = true } = {}) => {
+});
+
+const loadRenewalRows = async ({ autoSync = false } = {}) => {
   await cleanupStoredRenewalAddresses();
   if (!canUseMysql()) {
     const { list } = buildRenewalDataset();
@@ -14272,13 +14273,15 @@ const loadRenewalRows = async ({ autoSync = true } = {}) => {
       console.error('Auto renewal sync skipped:', error.message);
     }
   }
-  return withMysqlConnection(async (conn) => {
+  const rows = await withMysqlConnection(async (conn) => {
     await ensureRenewalTables(conn);
-    const [rows] = await conn.query('SELECT * FROM renewals WHERE COALESCE(renewal_excluded, 0) = 0 ORDER BY renewal_due_date ASC, customer_name ASC');
-    const renewals = (Array.isArray(rows) ? rows : []).map(renewalPublicRow);
-    const invoices = await loadInvoicesForContext().catch(() => []);
-    return enrichRenewalsWithConvertedContractPeriods(enrichRenewalsWithCurrentContractWindows(renewals, invoices), invoices);
+    const [records] = await conn.query('SELECT * FROM renewals WHERE COALESCE(renewal_excluded, 0) = 0 ORDER BY renewal_due_date ASC, customer_name ASC');
+    return records;
   });
+  // Release the renewal connection before invoice enrichment needs the pool.
+  const renewals = (Array.isArray(rows) ? rows : []).map(renewalPublicRow);
+  const invoices = await loadInvoicesForContext().catch(() => []);
+  return enrichRenewalsWithConvertedContractPeriods(enrichRenewalsWithCurrentContractWindows(renewals, invoices), invoices);
 };
 const markMatchingRenewalCompleteForInvoice = async (invoice = {}, req = null) => {
   // Never guess a historical renewal by customer name or newest expiry.
@@ -15943,8 +15946,8 @@ app.post('/api/renewals/:id/convert-contract', async (req, res) => {
     await ensureRenewalTables(conn);
     await ensureAppSettingsTable(conn);
 
-    const invoices = await loadInvoicesForContext();
-    const sourceInvoice = invoices.find((entry) => String(entry?._id || '') === String(renewal.contractId || '')) || {};
+    const [sourceRows] = await conn.query('SELECT * FROM invoices WHERE external_id = ? LIMIT 1', [renewal.contractId || renewal.previousContractId || '']);
+    const sourceInvoice = sourceRows?.[0] ? hydrateInvoiceMysqlRow(sourceRows[0]) : {};
     const invoiceType = String(req.body.invoiceType || sourceInvoice.invoiceType || 'GST').trim() || 'GST';
     const durationValue = Math.max(1, toNumber(req.body.contractDurationValue || req.body.durationValue, 12));
     const durationUnit = normalizeRenewalDurationUnit(req.body.contractDurationUnit || req.body.durationUnit || 'MONTH');

@@ -154,13 +154,35 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
     if (!rows[0]) fail(404, 'The previous contract/invoice was not found.');
     return toInvoice(rows[0]);
   };
+  const conflictsWithLink = (candidate, renewal, source, invoices, linkedRows) => linkedRows.some((raw) => {
+    const other = toRenewal(raw);
+    if (other.renewalId === renewal.renewalId) return false;
+    const otherLink = jsonObject(raw.payload).existingRenewalLink;
+    const sameService = serviceKey(otherLink?.serviceType || other.serviceType) === (candidate.serviceKey || serviceKey(candidate.serviceType));
+    const otherStart = dateOnly(otherLink?.start || other.newContractStartDate);
+    const otherEnd = dateOnly(otherLink?.end || other.newContractEndDate);
+    const samePeriod = otherStart === candidate.start && otherEnd === candidate.end;
+    const sameInvoice = [other.convertedContractId, other.newContractId].includes(candidate.invoiceId);
+    const otherInvoice = invoices.find((invoice) => [other.convertedContractId, other.newContractId].includes(text(invoice._id)));
+    return sameService && ((sameInvoice && (!otherStart || !otherEnd || samePeriod)) || (samePeriod && samePremise(source, otherInvoice)));
+  });
   const list = async ({ renewalId, authorize }) => {
     const conn = await getConnection();
     try {
       const renewal = toRenewal(await loadRenewal(conn, renewalId)); authorize(renewal);
       const source = await sourceFor(conn, renewal);
       const [rows] = await conn.query('SELECT * FROM invoices WHERE customer_external_id = ? ORDER BY external_id', [source.customerId]);
-      return buildExistingHistory({ renewal, sourceInvoice: source, invoices: rows.map(toInvoice), deriveWindow, classifySource, itemTotals });
+      const invoices = rows.map(toInvoice);
+      const ids = invoices.map((invoice) => text(invoice._id)).filter(Boolean);
+      if (!ids.length) return [];
+      const [linkedRows] = await conn.query('SELECT * FROM renewals WHERE converted_contract_id IN (?) OR new_contract_id IN (?) OR contract_id IN (?)', [ids, ids, ids]);
+      return buildExistingHistory({ renewal, sourceInvoice: source, invoices, deriveWindow, classifySource, itemTotals })
+        .filter((candidate) => candidate.invoiceId !== text(source._id))
+        .filter((candidate) => !conflictsWithLink(candidate, renewal, source, invoices, linkedRows))
+        .filter((candidate) => candidate.eligible !== false || !linkedRows.some((raw) => {
+          const other = toRenewal(raw);
+          return other.renewalId !== renewal.renewalId && [other.convertedContractId, other.newContractId].includes(candidate.invoiceId);
+        }));
     } finally { conn.release(); }
   };
   const link = async ({ renewalId, body, actor, authorize, canCorrect = false, req = null }) => {
@@ -195,17 +217,8 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
       if (!candidate) fail(409, 'The selected record no longer matches the customer, premises, service or renewal period. Refresh the matches.');
       if (candidate.invoiceVersion !== body.invoiceVersion) fail(409, 'The invoice changed after your preview. Refresh and review it again.');
       const [linkedRows] = await conn.query('SELECT * FROM renewals WHERE converted_contract_id = ? OR new_contract_id = ? OR contract_id IN (?) FOR UPDATE', [candidate.invoiceId, candidate.invoiceId, invoiceRows.map((row) => row.external_id)]);
-      for (const otherRaw of linkedRows) {
-        const other = toRenewal(otherRaw);
-        if (other.renewalId === renewal.renewalId) continue;
-        const otherLink = jsonObject(otherRaw.payload).existingRenewalLink;
-        const sameService = serviceKey(otherLink?.serviceType || other.serviceType) === candidate.serviceKey;
-        const otherStart = dateOnly(otherLink?.start || other.newContractStartDate);
-        const otherEnd = dateOnly(otherLink?.end || other.newContractEndDate);
-        const samePeriod = otherStart === candidate.start && otherEnd === candidate.end;
-        const sameInvoice = [other.convertedContractId, other.newContractId].includes(candidate.invoiceId);
-        const otherInvoice = invoiceRows.map(toInvoice).find((invoice) => [other.convertedContractId, other.newContractId].includes(text(invoice._id)));
-        if (sameService && ((sameInvoice && (!otherStart || !otherEnd || samePeriod)) || (samePeriod && samePremise(source, otherInvoice)))) fail(409, 'This service and renewed period are already linked to another renewal. Review that renewal instead.');
+      if (conflictsWithLink(candidate, renewal, source, invoiceRows.map(toInvoice), linkedRows)) {
+        fail(409, 'This service and renewed period are already linked to another renewal. Review that renewal instead.');
       }
       const now = new Date().toISOString();
       const linkInfo = { ...candidate, mode: 'existing', agreementDate, linkedAt: now, linkedBy: actor, notes: text(body.notes) };
