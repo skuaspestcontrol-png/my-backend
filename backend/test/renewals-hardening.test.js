@@ -49,7 +49,8 @@ test('renewal won/lost writes preserve the legacy status enum and use V3 outcome
   assert.ok(markMatchingStart > -1 && markMatchingEnd > markMatchingStart, 'markMatchingRenewalCompleteForInvoice block not found');
   const markMatchingBlock = source.slice(markMatchingStart, markMatchingEnd);
 
-  assert.match(markMatchingBlock, /\['Done', 'RENEWED', 'WON'/);
+  assert.match(markMatchingBlock, /invoice\.previousContractId/);
+  assert.match(markMatchingBlock, /service\.link\(/);
   assert.match(markDoneBlock, /SET status = 'Done', renewal_status = 'RENEWED', renewal_outcome = 'WON'/);
   assert.match(convertBlock, /status = CASE WHEN \? THEN 'Done' ELSE status END/);
   assert.match(convertBlock, /renewal_outcome = CASE WHEN \? THEN 'WON' ELSE renewal_outcome END/);

@@ -458,6 +458,8 @@ export default function RenewalDashboard() {
   const [message, setMessage] = useState('');
   const [modal, setModal] = useState({ type: '', row: null });
   const [form, setForm] = useState({});
+  const [existingLinks, setExistingLinks] = useState({ loading: false, error: '', candidates: [], search: '' });
+  const [existingLinksReload, setExistingLinksReload] = useState(0);
   const [toastMessage, setToastMessage] = useState('');
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null });
   const [whatsappComposer, setWhatsappComposer] = useState({ open: false, row: null, previewData: null, recipientName: '', recipientPhone: '', recipientType: 'Customer' });
@@ -1073,11 +1075,15 @@ export default function RenewalDashboard() {
     const previousAmount = row?.previousContractAmount || row?.previousAmount || row?.contractAmount || row?.proposedAmount || '';
     const startDate = agreementDate;
     setModal({ type, row });
+    setExistingLinks({ loading: false, error: '', candidates: [], search: '' });
     setForm({
+      wonMode: 'existing',
+      existingCandidateKey: '',
+      correctExistingLink: Boolean(row?.existingRenewalLink),
       salesPersonId: row?.assignedSalesPersonId || '',
       salesPersonName: row?.assignedSalesPersonName || '',
       followupDate: row?.followupDate || '',
-      note: row?.lastFollowupNote || '',
+      note: type === 'convert' ? '' : row?.lastFollowupNote || '',
       finalAmount: row?.finalRenewalAmount || row?.proposedAmount || '',
       renewedBySalesPersonId: row?.assignedSalesPersonId || '',
       renewedBySalesPersonName: row?.assignedSalesPersonName || '',
@@ -1085,7 +1091,7 @@ export default function RenewalDashboard() {
       reasonCategory: '',
       lostNotes: '',
       outcomeDecisionDate: agreementDate,
-      agreementDate,
+      agreementDate: type === 'convert' ? '' : agreementDate,
       priceOption: 'same',
       previousContractAmount: previousAmount,
       serviceType: row?.serviceType || '',
@@ -1116,8 +1122,36 @@ export default function RenewalDashboard() {
     });
   };
   const closeModal = () => setModal({ type: '', row: null });
+  useEffect(() => {
+    if (modal.type !== 'convert' || form.wonMode !== 'existing' || !modal.row?.renewalId) return undefined;
+    let cancelled = false;
+    setExistingLinks((prev) => ({ ...prev, loading: true, error: '', candidates: [] }));
+    axios.get(`${API_BASE}/api/renewals/${encodeURIComponent(modal.row.renewalId)}/existing-contracts`)
+      .then(({ data }) => { if (!cancelled) setExistingLinks((prev) => ({ ...prev, loading: false, candidates: data.candidates || [] })); })
+      .catch((error) => { if (!cancelled) setExistingLinks((prev) => ({ ...prev, loading: false, error: error?.response?.data?.error || 'Unable to load matching contracts. Please retry.' })); });
+    return () => { cancelled = true; };
+  }, [modal.type, modal.row?.renewalId, form.wonMode, existingLinksReload]);
+  const handleLinkExisting = async () => {
+    if (busy) return;
+    const selected = existingLinks.candidates.find((item) => item.key === form.existingCandidateKey);
+    if (!selected || !form.agreementDate) return;
+    if (!window.confirm(`Link ${selected.invoiceNumber} (${formatDate(selected.start)} – ${formatDate(selected.end)}) and mark this renewal Won? No contract or invoice will be created.`)) return;
+    setBusy(true);
+    try {
+      const { data } = await axios.post(`${API_BASE}/api/renewals/${encodeURIComponent(modal.row.renewalId)}/link-existing`, {
+        invoiceId: selected.invoiceId, candidateKey: selected.key, invoiceVersion: selected.invoiceVersion,
+        agreementDate: form.agreementDate, notes: form.note || '', correctLink: form.correctExistingLink === true
+      });
+      setMessage(data.message);
+      closeModal();
+      await loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false });
+      triggerContractsRefresh();
+    } catch (error) {
+      setExistingLinks((prev) => ({ ...prev, error: error?.response?.data?.error || 'Unable to link existing records. Please retry.' }));
+    } finally { setBusy(false); }
+  };
   const handleConvertToContract = async () => {
-    if (!modal.row?.renewalId) return;
+    if (!modal.row?.renewalId || busy || form.wonMode !== 'new') return;
     const amount = Number(form.amount || 0);
     if (!Number.isFinite(amount) || amount < 0) {
       setMessage('Amount must be numeric.');
@@ -1760,6 +1794,8 @@ export default function RenewalDashboard() {
     if (!modal.type || !modal.row) return null;
     const row = modal.row;
     const displayRenewalId = row.renewalDisplayId || row.renewal_display_id || row.renewalId || row.renewal_id || '';
+    const selectedExisting = existingLinks.candidates.find((item) => item.key === form.existingCandidateKey);
+    const matchingExisting = existingLinks.candidates.filter((item) => `${item.invoiceNumber} ${item.customerName} ${item.serviceType} ${item.premiseLabel} ${item.start} ${item.end}`.toLowerCase().includes(existingLinks.search.toLowerCase()) || item.key === form.existingCandidateKey);
     const titleMap = {
       view: 'Renewal Details',
       edit: 'Edit Renewal',
@@ -1784,6 +1820,20 @@ export default function RenewalDashboard() {
                 <span>Contract / Invoice: {row.invoiceNumber || row.contractId || '-'}</span>
                 <span>Contract Period: {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}</span>
                 <span>Duration: {contractDurationText(row)}</span>
+                {row.existingRenewalLink ? (
+                  <div style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 8, display: 'grid', gap: 6 }}>
+                    <strong>Won — linked to existing records</strong>
+                    <span>Invoice: {row.existingRenewalLink.invoiceNumber}</span>
+                    <span>Renewed period: {formatDate(row.existingRenewalLink.start)} – {formatDate(row.existingRenewalLink.end)}</span>
+                    <span>Agreement date: {formatDate(row.existingRenewalLink.agreementDate)}</span>
+                    <span>Linked by: {row.existingRenewalLink.linkedBy} · {formatDate(row.existingRenewalLink.linkedAt)}</span>
+                    {row.existingRenewalLink.notes ? <span>Notes: {row.existingRenewalLink.notes}</span> : null}
+                    <a href={`/sales/contracts?openInvoiceId=${encodeURIComponent(row.existingRenewalLink.invoiceId)}&fromContract=1&viewContract=1`} target="_blank" rel="noreferrer">Open linked contract / invoice</a>
+                    {canManageRenewals ? <button style={shell.ghostBtn} onClick={() => openModal('convert', row)}>Correct existing link</button> : null}
+                  </div>
+                ) : isWonRenewal(row) && !row.convertedContractId && !row.newContractId && canUseAssignedRenewal(row) ? (
+                  <button style={shell.ghostBtn} onClick={() => openModal('convert', row)}>Link existing contract / invoice</button>
+                ) : null}
                 <span>Renewal Date: {formatDate(row.renewalDueDate || row.previousContractEnd)}</span>
                 <span>Service Progress: {serviceProgressText(row)}</span>
                 <span>Contract Amount: {formatOptionalINR(row.contractAmount)}</span>
@@ -1885,6 +1935,39 @@ export default function RenewalDashboard() {
             )}
             {modal.type === 'convert' && (
               <>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button type="button" style={form.wonMode === 'existing' ? shell.primaryBtn : shell.ghostBtn} disabled={busy} onClick={() => setForm((prev) => ({ ...prev, wonMode: 'existing', existingCandidateKey: '', agreementDate: '' }))}>Already renewed — Link existing records</button>
+                  {!form.correctExistingLink ? <button type="button" style={form.wonMode === 'new' ? shell.primaryBtn : shell.ghostBtn} disabled={busy} onClick={() => setForm((prev) => ({ ...prev, wonMode: 'new', agreementDate: todayInput() }))}>New renewal — Create contract</button> : null}
+                </div>
+                {form.wonMode === 'existing' ? (
+                  <>
+                    <strong>{row.customerName} · {row.serviceType}</strong>
+                    <span>Previous contract: {row.invoiceNumber || row.contractId} · {formatDate(row.previousContractStart)} – {formatDate(row.previousContractEnd)}</span>
+                    <p style={{ margin: 0 }}>Select the renewed contract / invoice that already exists. Saving marks this renewal Won without creating another contract or invoice.</p>
+                    <label style={shell.field}><span style={shell.label}>Search matching records</span><input style={shell.input} value={existingLinks.search} onChange={(event) => setExistingLinks((prev) => ({ ...prev, search: event.target.value }))} placeholder="Invoice number, service, premises or period" /></label>
+                    <button type="button" style={shell.ghostBtn} disabled={existingLinks.loading || busy} onClick={() => { setForm((prev) => ({ ...prev, existingCandidateKey: '', agreementDate: '' })); setExistingLinksReload((prev) => prev + 1); }}>Refresh matches</button>
+                    {existingLinks.loading ? <span>Loading matching contracts…</span> : null}
+                    {existingLinks.error ? <p role="alert" style={{ color: 'var(--color-danger)', margin: 0 }}>{existingLinks.error}</p> : null}
+                    {!existingLinks.loading && !existingLinks.error && existingLinks.candidates.length === 0 ? <p>No verified matches found. Check that the existing record is classified as a contract and has the same customer, premises and service, with a renewed contract period. Do not create another invoice for an already invoiced renewal.</p> : null}
+                    <label style={shell.field}><span style={shell.label}>Existing contract / invoice</span><select style={shell.input} value={form.existingCandidateKey || ''} disabled={existingLinks.loading || busy} onChange={(event) => { const candidate = existingLinks.candidates.find((item) => item.key === event.target.value); setForm((prev) => ({ ...prev, existingCandidateKey: event.target.value, agreementDate: candidate?.agreementDate || '' })); }}>
+                      <option value="">Select a record</option>
+                      {matchingExisting.map((item) => <option key={item.key} value={item.key}>{item.invoiceNumber} · {item.serviceType} · {formatDate(item.start)} – {formatDate(item.end)} · {formatINR(item.amount)}</option>)}
+                    </select></label>
+                    {selectedExisting ? <div style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 8, display: 'grid', gap: 6 }}>
+                      <strong>{selectedExisting.invoiceNumber} · {selectedExisting.customerName}</strong>
+                      <span>{selectedExisting.serviceType} · {selectedExisting.premiseLabel}</span>
+                      <span>Renewed period: {formatDate(selectedExisting.start)} – {formatDate(selectedExisting.end)}</span>
+                      <span>Renewal amount: {formatINR(selectedExisting.amount)}</span>
+                      <span>{selectedExisting.amountBasis}. Invoice total: {formatINR(selectedExisting.invoiceTotal)}.</span>
+                      <a href={`/sales/contracts?openInvoiceId=${encodeURIComponent(selectedExisting.invoiceId)}&fromContract=1&viewContract=1`} target="_blank" rel="noreferrer">Review existing contract / invoice</a>
+                    </div> : null}
+                    <label style={shell.field}><span style={shell.label}>Actual agreement date</span><input type="date" style={shell.input} value={form.agreementDate || ''} max={todayInput()} onChange={(event) => setForm((prev) => ({ ...prev, agreementDate: event.target.value }))} /></label>
+                    <span>Invoice date is suggested when no agreement date is stored. Confirm the actual agreement date; the time this link is recorded is tracked separately.</span>
+                    <label style={shell.field}><span style={shell.label}>{form.correctExistingLink ? 'Correction reason (required)' : 'Notes'}</span><textarea style={{ ...shell.input, height: 70 }} value={form.note || ''} onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))} /></label>
+                    <button type="button" style={shell.primaryBtn} disabled={busy || existingLinks.loading || !selectedExisting || !form.agreementDate || (form.correctExistingLink && !form.note?.trim())} onClick={handleLinkExisting}>{form.correctExistingLink ? 'Save corrected link' : 'Link existing records & mark Won'}</button>
+                  </>
+                ) : (
+                  <>
                 <div style={{ display: 'grid', gap: 4, fontSize: 13 }}>
                   <strong>{row.customerName}</strong>
                   <span>{row.serviceRelationshipType === 'ONE_TIME' ? 'Create a new contract from this jobbing service.' : 'Mark this renewal as won and create a linked new contract.'}</span>
@@ -1904,6 +1987,8 @@ export default function RenewalDashboard() {
                 <label style={shell.field}><span style={shell.label}>Agreed Amount</span><input style={shell.input} value={form.amount} readOnly={form.priceOption === 'same'} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value, priceOption: 'revised' }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 70, paddingTop: 8 }} value={form.note || ''} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
                 <button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract}>{row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'}</button>
+                  </>
+                )}
               </>
             )}
           </div>

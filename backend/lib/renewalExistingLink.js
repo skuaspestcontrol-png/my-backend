@@ -1,0 +1,187 @@
+const crypto = require('node:crypto');
+
+const text = (value) => String(value ?? '').trim();
+const serviceKey = (value) => text(value).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+const dateOnly = (value) => {
+  const candidate = value instanceof Date ? value.toISOString().slice(0, 10) : text(value).slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(candidate)) return '';
+  const date = new Date(`${candidate}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === candidate ? candidate : '';
+};
+const jsonObject = (value) => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  try { return JSON.parse(value || '{}') || {}; } catch { return {}; }
+};
+const fail = (statusCode, message) => { const error = new Error(message); error.statusCode = statusCode; throw error; };
+const money = (value) => value !== null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+const samePremise = (source, target) => {
+  const firstId = text(source?.customerPremiseId), secondId = text(target?.customerPremiseId);
+  if (firstId || secondId) return Boolean(firstId && firstId === secondId);
+  const firstAddress = serviceKey(source?.premiseAddress || source?.shippingAddressText);
+  return Boolean(firstAddress && firstAddress === serviceKey(target?.premiseAddress || target?.shippingAddressText));
+};
+
+// Contract records are invoice-backed. A candidate identifies a service and period,
+// not just an invoice, so separate services on a shared invoice can be linked safely.
+function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals }) {
+  const customerId = text(sourceInvoice?.customerId);
+  const expectedCustomer = text(renewal.customerExternalId);
+  if (!customerId || (expectedCustomer && expectedCustomer !== customerId)) {
+    fail(409, 'The previous contract needs a verified customer ID before linking existing records.');
+  }
+  const wantedService = serviceKey(renewal.serviceType);
+  if (!wantedService) fail(409, 'The renewal needs a service name before linking existing records.');
+  const previousEnd = dateOnly(renewal.previousContractEnd);
+  if (!previousEnd) fail(409, 'The previous contract needs a valid end date before linking.');
+  const candidates = [];
+  for (const invoice of invoices) {
+    if (text(invoice._id) === text(sourceInvoice._id) || text(invoice.customerId) !== customerId) continue;
+    if (/draft|cancelled|canceled|void|proforma/i.test(`${invoice.status || ''} ${invoice.invoiceType || ''}`)) continue;
+    if (!text(invoice.invoiceNumber)) continue;
+    if (!samePremise(sourceInvoice, invoice)) continue;
+    const lines = Array.isArray(invoice.items) && invoice.items.length ? invoice.items : [{ itemName: invoice.serviceType || invoice.subject }];
+    const groups = new Map();
+    let incomplete = false;
+    for (const line of lines) {
+      const name = text(line.itemName || line.name || invoice.serviceType || invoice.subject);
+      const start = dateOnly(line.contractStartDate || line.serviceStartDate || invoice.servicePeriodStart);
+      const derived = deriveWindow({ ...invoice, items: [line] });
+      const end = dateOnly(line.contractEndDate || line.serviceEndDate || line.renewalDate || invoice.servicePeriodEnd
+        || (line.contractPeriod && start ? derived.contractEndDate : ''));
+      if (!name || !start || !end || end < start) { incomplete = true; break; }
+      const key = JSON.stringify([serviceKey(name), start, end]);
+      const group = groups.get(key) || { serviceType: name, start, end, lines: [] };
+      group.lines.push(line); groups.set(key, group);
+    }
+    if (incomplete || !groups.size) continue;
+    const total = money(invoice.total ?? invoice.amount);
+    if (total === null) continue;
+    const gross = itemTotals(lines, invoice.invoiceType).total;
+    if (groups.size > 1 && (!(gross > 0) || lines.some((line) => money(line.amount) === null && (money(line.quantity) === null || money(line.rate) === null)))) continue;
+    const ordered = [...groups.values()];
+    const totalCents = Math.round(total * 100);
+    const shares = ordered.map((group, index) => ({ index, value: groups.size === 1 ? totalCents : totalCents * itemTotals(group.lines, invoice.invoiceType).total / gross }));
+    const allocations = shares.map((share) => Math.floor(share.value));
+    const remainder = totalCents - allocations.reduce((sum, value) => sum + value, 0);
+    const fractions = [...shares].sort((a, b) => (b.value - Math.floor(b.value)) - (a.value - Math.floor(a.value)) || a.index - b.index);
+    for (let index = 0; index < remainder; index += 1) allocations[fractions[index % fractions.length].index] += 1;
+    ordered.forEach((group, index) => {
+      const amountCents = allocations[index];
+      if (serviceKey(group.serviceType) !== wantedService || group.start < previousEnd || group.end <= previousEnd) return;
+      if (classifySource({ ...invoice, items: group.lines }).relationshipType !== 'CONTRACT') return;
+      const identity = JSON.stringify([text(invoice._id), wantedService, group.start, group.end]);
+      candidates.push({
+        key: crypto.createHash('sha256').update(identity).digest('hex'), invoiceId: text(invoice._id),
+        invoiceNumber: text(invoice.invoiceNumber), customerName: text(invoice.customerName),
+        premiseLabel: text(invoice.premiseLabel || invoice.premiseAddress || invoice.shippingAddressText),
+        serviceType: group.serviceType, serviceKey: wantedService, start: group.start, end: group.end,
+        amount: amountCents / 100, invoiceTotal: total,
+        amountBasis: groups.size === 1 ? 'Existing invoice total' : 'Invoice total allocated by service value, including tax and discounts',
+        agreementDate: dateOnly(invoice.agreementDate || invoice.date),
+        invoiceVersion: crypto.createHash('sha256').update(JSON.stringify(invoice)).digest('hex')
+      });
+    });
+  }
+  return candidates.sort((a, b) => a.start.localeCompare(b.start) || a.invoiceNumber.localeCompare(b.invoiceNumber));
+}
+
+function createExistingLinkService({ getConnection, toRenewal, toInvoice, deriveWindow, classifySource, itemTotals, deriveTiming, priceDelta, audit }) {
+  const build = (renewal, sourceInvoice, invoices) => buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals });
+  const loadRenewal = async (conn, id, lock = false) => {
+    const [rows] = await conn.query(`SELECT * FROM renewals WHERE renewal_id = ? LIMIT 1${lock ? ' FOR UPDATE' : ''}`, [id]);
+    if (!rows[0]) fail(404, 'Renewal not found.');
+    return rows[0];
+  };
+  const sourceFor = async (conn, renewal) => {
+    const id = text(renewal.previousContractId || renewal.contractId);
+    const [rows] = await conn.query('SELECT * FROM invoices WHERE external_id = ? LIMIT 1', [id]);
+    if (!rows[0]) fail(404, 'The previous contract/invoice was not found.');
+    return toInvoice(rows[0]);
+  };
+  const list = async ({ renewalId, authorize }) => {
+    const conn = await getConnection();
+    try {
+      const renewal = toRenewal(await loadRenewal(conn, renewalId)); authorize(renewal);
+      const source = await sourceFor(conn, renewal);
+      const [rows] = await conn.query('SELECT * FROM invoices WHERE customer_external_id = ? ORDER BY external_id', [source.customerId]);
+      return build(renewal, source, rows.map(toInvoice));
+    } finally { conn.release(); }
+  };
+  const link = async ({ renewalId, body, actor, authorize, canCorrect = false, req = null }) => {
+    const agreementDate = dateOnly(body.agreementDate);
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    if (!agreementDate || agreementDate > today) fail(400, 'Enter the actual agreement date (today or earlier).');
+    if (body.correctLink === true && !text(body.notes)) fail(400, 'Enter a reason for correcting the existing link.');
+    if (!text(body.candidateKey) || !text(body.invoiceId) || !text(body.invoiceVersion)) fail(400, 'Select and review an existing contract/invoice first.');
+    const conn = await getConnection();
+    let committed = false;
+    try {
+      const initial = toRenewal(await loadRenewal(conn, renewalId)); authorize(initial);
+      const initialSource = await sourceFor(conn, initial);
+      await conn.beginTransaction();
+      // Serialize links for this customer, including different services/renewals.
+      const [invoiceRows] = await conn.query('SELECT * FROM invoices WHERE customer_external_id = ? ORDER BY external_id FOR UPDATE', [initialSource.customerId]);
+      const raw = await loadRenewal(conn, renewalId, true);
+      const renewal = toRenewal(raw); authorize(renewal);
+      const source = invoiceRows.map(toInvoice).find((invoice) => text(invoice._id) === text(renewal.previousContractId || renewal.contractId));
+      if (!source) fail(409, 'The previous contract changed. Refresh and try again.');
+      const payload = jsonObject(raw.payload);
+      const existing = payload.existingRenewalLink;
+      if (existing?.key === body.candidateKey && existing.agreementDate === agreementDate) {
+        await conn.commit(); committed = true;
+        return { renewalId, alreadyLinked: true, renewal };
+      }
+      if (renewal.renewalOutcome === 'LOST' || ['Lost', 'Declined'].includes(renewal.status)) fail(409, 'Reopen the lost renewal before linking an existing contract.');
+      if (renewal.convertedContractId || renewal.newContractId) {
+        if (!(existing && canCorrect && body.correctLink === true)) fail(409, 'This renewal already has a linked contract. Only a manager can correct an existing-record link.');
+      }
+      const candidate = build(renewal, source, invoiceRows.map(toInvoice)).find((item) => item.key === body.candidateKey && item.invoiceId === body.invoiceId);
+      if (!candidate) fail(409, 'The selected record no longer matches the customer, premises, service or renewal period. Refresh the matches.');
+      if (candidate.invoiceVersion !== body.invoiceVersion) fail(409, 'The invoice changed after your preview. Refresh and review it again.');
+      const [linkedRows] = await conn.query('SELECT * FROM renewals WHERE converted_contract_id = ? OR new_contract_id = ? OR contract_id IN (?) FOR UPDATE', [candidate.invoiceId, candidate.invoiceId, invoiceRows.map((row) => row.external_id)]);
+      for (const otherRaw of linkedRows) {
+        const other = toRenewal(otherRaw);
+        if (other.renewalId === renewal.renewalId) continue;
+        const otherLink = jsonObject(otherRaw.payload).existingRenewalLink;
+        const sameService = serviceKey(otherLink?.serviceType || other.serviceType) === candidate.serviceKey;
+        const otherStart = dateOnly(otherLink?.start || other.newContractStartDate);
+        const otherEnd = dateOnly(otherLink?.end || other.newContractEndDate);
+        const samePeriod = otherStart === candidate.start && otherEnd === candidate.end;
+        const sameInvoice = [other.convertedContractId, other.newContractId].includes(candidate.invoiceId);
+        const otherInvoice = invoiceRows.map(toInvoice).find((invoice) => [other.convertedContractId, other.newContractId].includes(text(invoice._id)));
+        if (sameService && ((sameInvoice && (!otherStart || !otherEnd || samePeriod)) || (samePeriod && samePremise(source, otherInvoice)))) fail(409, 'This service and renewed period are already linked to another renewal. Review that renewal instead.');
+      }
+      const now = new Date().toISOString();
+      const linkInfo = { ...candidate, mode: 'existing', agreementDate, linkedAt: now, linkedBy: actor, notes: text(body.notes) };
+      delete linkInfo.invoiceVersion;
+      const reminderPlan = { ...(payload.reminderPlan || {}), autoEnabled: false, nextReminderDate: '' };
+      const nextPayload = { ...payload, existingRenewalLink: linkInfo, reminderPlan };
+      const timing = deriveTiming({ renewal_outcome: 'WON', outcome_decision_date: agreementDate, previous_contract_end: renewal.previousContractEnd });
+      const delta = priceDelta(renewal.previousContractAmount, candidate.amount);
+      const [updateResult] = await conn.query(`UPDATE renewals SET status = 'Done', renewal_status = 'RENEWED', renewal_outcome = 'WON',
+        converted_contract_id = ?, new_contract_id = ?, agreement_date = ?, outcome_decision_date = ?,
+        outcome_recorded_at = ?, outcome_updated_by = ?, renewed_at = ?, new_contract_start_date = ?, new_contract_end_date = ?,
+        agreed_contract_amount = ?, final_renewal_amount = ?, price_difference = ?, price_change_percent = ?,
+        renewal_timing = ?, renewed_by_sales_person_id = ?, renewed_by_sales_person_name = ?, followup_date = NULL, payload = ?
+        WHERE renewal_id = ?`, [candidate.invoiceId, candidate.invoiceId, agreementDate, agreementDate,
+        now.slice(0, 19).replace('T', ' '), actor, `${agreementDate} 00:00:00`, candidate.start, candidate.end,
+        candidate.amount, candidate.amount, delta.difference, delta.percentage, timing,
+        renewal.renewedBySalesPersonId || renewal.assignedSalesPersonId || null,
+        renewal.renewedBySalesPersonName || renewal.assignedSalesPersonName || null,
+        JSON.stringify(nextPayload), renewalId]);
+      if (Number(updateResult?.affectedRows) !== 1) fail(409, 'The renewal changed while linking. Refresh and try again.');
+      await audit(conn, { renewalId, action: existing ? 'renewal_correct_existing_link' : 'renewal_link_existing',
+        previousValue: { renewalOutcome: renewal.renewalOutcome, convertedContractId: renewal.convertedContractId, existingRenewalLink: existing || null },
+        nextValue: { renewalOutcome: 'WON', existingRenewalLink: linkInfo, notes: text(body.notes) }, req });
+      const saved = toRenewal(await loadRenewal(conn, renewalId));
+      await conn.commit(); committed = true;
+      return { renewalId, alreadyLinked: false, renewal: saved };
+    } catch (error) {
+      if (!committed) await conn.rollback();
+      throw error;
+    } finally { conn.release(); }
+  };
+  return { list, link };
+}
+
+module.exports = { buildExistingCandidates, createExistingLinkService, dateOnly, serviceKey };
