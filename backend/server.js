@@ -1,6 +1,7 @@
 const express = require('express');
 const security = require('./lib/security');
 const onceAsync = require('./lib/onceAsync');
+const renewalLetterIssueDate = require('./lib/renewalLetterIssueDate');
 const { createExistingLinkService, buildExistingCandidates } = require('./lib/renewalExistingLink');
 const { createDocumentShare, readDocumentShare } = require('./lib/documentShares');
 const { createSessionRevocationStore } = require('./lib/sessionRevocation');
@@ -15360,6 +15361,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
   if (!renewal) return res.status(404).json({ error: 'Renewal not found' });
   if (!requireRenewalRecordAccess(req, res, renewal)) return;
   try {
+    const letterDate = renewalLetterIssueDate(req.body?.letterMonth, req.body?.letterYear);
     // Match the dashboard's invoice-backed dates; do not rewrite historical records.
     const invoices = await loadInvoicesForContext();
     renewal = enrichRenewalsWithConvertedContractPeriods(enrichRenewalsWithCurrentContractWindows([renewal], invoices), invoices)[0];
@@ -15479,7 +15481,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     doc.font(pdfFont.bold).fontSize(16).fillColor(primaryColor).text('Renewal Letter', pageLeft, doc.y, { width: contentWidth, align: 'center' });
     doc.y += 6;
     const metaY = doc.y;
-    doc.font(pdfFont.regular).fontSize(9).fillColor('#111827').text(`Date: ${formatDate(new Date())}`, pageLeft, metaY, { width: contentWidth / 2, align: 'left' });
+    doc.font(pdfFont.regular).fontSize(9).fillColor('#111827').text(`Date: ${formatDate(parseDateOnly(letterDate))}`, pageLeft, metaY, { width: contentWidth / 2, align: 'left' });
     doc.text(`Renewal ID: ${renewalDisplayId || renewal.renewalId || '-'}`, pageLeft + contentWidth / 2, metaY, { width: contentWidth / 2, align: 'right' });
     doc.y = metaY + 18;
     const formatRenewalLetterDate = (value) => {
@@ -15810,13 +15812,13 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       await conn.query('UPDATE renewals SET renewal_letter_url = ?, renewal_display_id = COALESCE(NULLIF(renewal_display_id, \'\'), ?) WHERE renewal_id = ?', [pdfUrl, renewalDisplayId || null, renewal.renewalId]);
       await conn.query(
         'INSERT INTO renewal_letters (external_id, renewal_id, pdf_url, customer_name, generated_by, payload) VALUES (?, ?, ?, ?, ?, ?)',
-        [`RLT-${Date.now()}`, renewal.renewalId, pdfUrl, renewal.customerName, readUserMeta(req), JSON.stringify({ renewal, request: req.body || {} })]
+        [`RLT-${Date.now()}`, renewal.renewalId, pdfUrl, renewal.customerName, readUserMeta(req), JSON.stringify({ renewal, letterDate, request: req.body || {} })]
       );
     });
-    return res.json({ success: true, message: 'Renewal letter generated', pdfUrl, renewal: await findRenewalRow(renewal.renewalId) });
+    return res.json({ success: true, message: 'Renewal letter generated', pdfUrl, letterDate, renewal: await findRenewalRow(renewal.renewalId) });
   } catch (error) {
     console.error('Renewal letter failed:', error.message);
-    return res.status(500).json({ error: 'Unable to generate renewal letter right now.' });
+    return res.status(error.statusCode || 500).json({ error: error.statusCode ? error.message : 'Unable to generate renewal letter right now.' });
   }
 });
 
@@ -16207,6 +16209,7 @@ app.get('/api/renewals/letters', async (req, res) => {
           rl.pdf_url,
           rl.customer_name,
           rl.generated_at,
+          rl.payload AS letter_payload,
           r.previous_contract_start AS contract_start_date,
           r.previous_contract_end AS contract_end_date,
           r.proposed_amount AS renewal_proposed_amount,
@@ -16233,6 +16236,7 @@ app.get('/api/renewals/letters', async (req, res) => {
         LIMIT 200
       `);
       const normalized = (Array.isArray(rows) ? rows : []).map((row) => {
+        const { letter_payload: letterPayload, ...letterRow } = row;
         const renewalId = String(row.renewal_id || '').trim();
         const current = currentRenewalById.get(renewalId);
         const contractStart = current?.previousContractStart || row.contract_start_date || '';
@@ -16243,7 +16247,8 @@ app.get('/api/renewals/letters', async (req, res) => {
         const agreedContractAmount = current?.agreedContractAmount ?? row.renewal_agreed_contract_amount ?? row.renewal_final_renewal_amount;
         const finalRenewalAmount = current?.finalRenewalAmount ?? row.renewal_final_renewal_amount;
         return {
-          ...row,
+          ...letterRow,
+          letterDate: parseMysqlPayloadObject(letterPayload)?.letterDate || '',
           renewalId,
           customerName: current?.customerName || row.renewal_customer_name || row.customer_name || '',
           mobile: current?.mobile || row.renewal_mobile || '',

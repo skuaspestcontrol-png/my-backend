@@ -63,9 +63,34 @@ test('PDF generation uses the same invoice enrichment as the dashboard before co
   assert.doesNotMatch(block, /over the past year/);
 });
 
-test('Letter Date cells show issue timestamps and preserve them when rows are merged', () => {
+test('Letter Date cells show the selected issue date with legacy generation timestamp fallback', () => {
   assert.match(frontend, /generated_at: next.generated_at \|\| next.generatedAt \|\| existing.generated_at \|\| existing.generatedAt/);
-  assert.match(frontend, /formatDate\(row.generated_at \|\| row.generatedAt\)/);
-  assert.match(frontend, /formatDate\(letter.generated_at \|\| letter.generatedAt\)/);
+  assert.match(frontend, /letterDate: next.letterDate \|\| existing.letterDate/);
+  assert.match(frontend, /formatDate\(row.letterDate \|\| row.generated_at \|\| row.generatedAt\)/);
+  assert.match(frontend, /formatDate\(letter.letterDate \|\| letter.generated_at \|\| letter.generatedAt\)/);
   assert.doesNotMatch(frontend, /formatDate\((?:row|letter).conclude_date/);
+});
+
+const issueDate = require('../lib/renewalLetterIssueDate');
+test('selected dashboard month defines the first-day letter date independent of generation time', () => {
+  assert.equal(issueDate('11', '2026'), '2026-11-01');
+  for (let month = 1; month <= 12; month += 1) {
+    assert.equal(issueDate(month, 2028), `2028-${String(month).padStart(2, '0')}-01`);
+  }
+});
+
+test('all-month and invalid selections cannot silently date letters in another month', () => {
+  for (const [month, year] of [['all', 2026], [undefined, undefined], [0, 2026], [13, 2026], [1.5, 2026], [11, 'invalid'], [11, 0]]) {
+    assert.throws(() => issueDate(month, year), (error) => error.statusCode === 400);
+  }
+});
+
+test('selected issue date is passed to generation, printed and saved separately from generated_at', () => {
+  assert.match(frontend, /letterMonth: Number\(filters.month\), letterYear: Number\(filters.year\)/);
+  const start = source.indexOf("app.post('/api/renewals/:id/generate-letter'");
+  const block = source.slice(start, source.indexOf('\napp.', start + 1));
+  assert(block.indexOf('renewalLetterIssueDate(req.body?.letterMonth, req.body?.letterYear)') < block.indexOf('fs.createWriteStream'));
+  assert.match(block, /Date: \$\{formatDate\(parseDateOnly\(letterDate\)\)\}/);
+  assert.match(block, /JSON.stringify\(\{ renewal, letterDate, request:/);
+  assert.doesNotMatch(block, /SET generated_at/);
 });
