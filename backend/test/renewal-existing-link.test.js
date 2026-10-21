@@ -170,6 +170,77 @@ function setup(extraRows = [], invoices = [source, target]) {
   return { state, service, request };
 }
 
+async function premisesReviewSetup() {
+  const fixture = setup();
+  fixture.state.invoices[1].customerPremiseId = 'LEGACY-P2';
+  fixture.state.invoices[0].shippingAddressText = 'Verified old address';
+  fixture.state.invoices[1].shippingAddressText = 'Legacy address requiring review';
+  const choices = await fixture.service.list({ renewalId: 'R1', authorize: () => {}, canReview: true });
+  const candidate = choices.find((item) => item.invoiceId === 'NEW');
+  Object.assign(fixture.request.body, { candidateKey: candidate.key, invoiceVersion: candidate.invoiceVersion,
+    sourceInvoiceVersion: candidate.sourceInvoiceVersion, reviewPremises: true, notes: 'Reviewed both invoices; same customer service location, legacy premises ID differs.' });
+  fixture.request.canCorrect = true;
+  return { ...fixture, candidate };
+}
+
+test('manager can compare and approve only a premises mismatch with an audited reason', async () => {
+  const { state, service, request, candidate } = await premisesReviewSetup();
+  assert.equal(candidate.eligible, false);
+  assert.equal(candidate.reviewAllowed, true);
+  assert.equal(candidate.previousContract.address, 'Verified old address');
+  assert.equal(candidate.address, 'Legacy address requiring review');
+  const invoicesBefore = clone(state.invoices);
+  await service.link(request);
+  const link = JSON.parse(state.rows[0].payload).existingRenewalLink;
+  assert.equal(state.rows[0].renewalOutcome, 'WON');
+  assert.equal(link.premisesReview.approvedBy, 'Manager');
+  assert.equal(link.premisesReview.reason, request.body.notes);
+  assert.equal(state.audit[0].nextValue.existingRenewalLink.premisesReview.reason, request.body.notes);
+  assert.deepEqual(state.invoices, invoicesBefore);
+});
+
+test('premises review needs manager permission, confirmation and a reason', async () => {
+  for (const change of [request => { request.canCorrect = false; }, request => { request.body.notes = ''; }, request => { request.body.reviewPremises = false; }]) {
+    const { state, service, request } = await premisesReviewSetup();
+    change(request);
+    await assert.rejects(service.link(request));
+    assert.equal(state.commits, 0);
+    assert.equal(state.audit.length, 0);
+  }
+  const { service } = await premisesReviewSetup();
+  const normal = await service.list({ renewalId: 'R1', authorize: () => {} });
+  assert.equal(normal[0].reviewAllowed, undefined);
+});
+
+test('review cannot bypass changed source invoice, wrong service, period, customer or duplicate checks', async () => {
+  for (const change of [
+    state => { state.invoices[0].shippingAddressText = 'Changed after review'; },
+    state => { state.invoices[1].items[0].itemName = 'Wrong service'; },
+    state => { state.invoices[1].items[0].contractStartDate = '2025-01-01'; },
+    state => { state.invoices[1].customerId = 'OTHER-CUSTOMER'; },
+    state => { state.rows.push({ ...clone(renewal), renewalId: 'R2', convertedContractId: 'NEW' }); },
+    state => {
+      state.invoices.push({ ...clone(state.invoices[1]), _id: 'SECOND' });
+      state.rows.push({ ...clone(renewal), renewalId: 'R2', convertedContractId: 'SECOND', newContractStartDate: '2026-01-01', newContractEndDate: '2026-12-31' });
+    }
+  ]) {
+    const { state, service, request } = await premisesReviewSetup();
+    change(state);
+    await assert.rejects(service.link(request));
+    assert.equal(state.commits, 0);
+    assert.equal(state.audit.length, 0);
+  }
+});
+
+test('reviewed multi-service invoice retains separate service candidates and amount allocation', () => {
+  const invoice = { ...target, total: 236, customerPremiseId: 'OTHER', items: [...target.items, { ...target.items[0], itemName: 'Other service' }] };
+  const history = buildExistingHistory({ renewal, sourceInvoice: source, invoices: [invoice], deriveWindow, classifySource, itemTotals, canReview: true });
+  assert.equal(history.length, 1);
+  assert.equal(history[0].serviceType, renewal.serviceType);
+  assert.equal(history[0].amount, 118);
+  assert.equal(history[0].reviewAllowed, true);
+});
+
 test('link only updates renewal and audit; historical agreement date and recording time stay separate', async () => {
   const { state, service, request } = setup(); const beforeInvoices = clone(state.invoices);
   await service.link(request);

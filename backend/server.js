@@ -15866,7 +15866,7 @@ const existingLinkAuthorize = (req) => (renewal) => {
 app.get('/api/renewals/:id/existing-contracts', async (req, res) => {
   if (!canUseMysql()) return res.status(503).json({ error: 'MySQL is required to link existing records.' });
   try {
-    const candidates = await existingRenewalLinkService().list({ renewalId: req.params.id, authorize: existingLinkAuthorize(req) });
+    const candidates = await existingRenewalLinkService().list({ renewalId: req.params.id, authorize: existingLinkAuthorize(req), canReview: isRenewalManager(req.portalUser) });
     return res.json({ candidates });
   } catch (error) { return res.status(error.statusCode || 500).json({ error: error.statusCode ? error.message : 'Unable to load existing contracts. Please try again.' }); }
 });

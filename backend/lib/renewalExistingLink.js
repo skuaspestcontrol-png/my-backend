@@ -45,7 +45,7 @@ function withSourceContractDates(renewal, sourceInvoice, deriveWindow) {
     previousContractEnd: dateOnly(window.contractEndDate) || renewal.previousContractEnd
   };
 }
-function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals }) {
+function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, allowPremiseReview = false }) {
   renewal = withSourceContractDates(renewal, sourceInvoice, deriveWindow);
   const customerId = text(sourceInvoice?.customerId);
   const expectedCustomer = text(renewal.customerExternalId);
@@ -61,7 +61,8 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
     if (text(invoice._id) === text(sourceInvoice._id) || text(invoice.customerId) !== customerId) continue;
     if (/draft|cancelled|canceled|void|proforma/i.test(`${invoice.status || ''} ${invoice.invoiceType || ''}`)) continue;
     if (!text(invoice.invoiceNumber)) continue;
-    if (!samePremise(sourceInvoice, invoice)) continue;
+    const premiseReviewRequired = !samePremise(sourceInvoice, invoice);
+    if (premiseReviewRequired && !allowPremiseReview) continue;
     const lines = Array.isArray(invoice.items) && invoice.items.length ? invoice.items : [{ itemName: invoice.serviceType || invoice.subject }];
     const groups = new Map();
     let incomplete = false;
@@ -96,6 +97,17 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
       candidates.push({
         key: crypto.createHash('sha256').update(identity).digest('hex'), invoiceId: text(invoice._id),
         invoiceNumber: text(invoice.invoiceNumber), customerName: text(invoice.customerName),
+        premiseReviewRequired,
+        sourceInvoiceVersion: crypto.createHash('sha256').update(JSON.stringify(sourceInvoice)).digest('hex'),
+        previousContract: {
+          invoiceNumber: text(sourceInvoice.invoiceNumber), customerName: text(sourceInvoice.customerName),
+          premiseId: text(sourceInvoice.customerPremiseId),
+          address: text(sourceInvoice.premiseAddress || sourceInvoice.shippingAddressText || sourceInvoice.billingAddressText),
+          start: dateOnly(renewal.previousContractStart), end: previousEnd, serviceType: renewal.serviceType,
+          amount: renewal.previousContractAmount
+        },
+        premiseId: text(invoice.customerPremiseId),
+        address: text(invoice.premiseAddress || invoice.shippingAddressText || invoice.billingAddressText),
         premiseLabel: text(invoice.premiseLabel || invoice.premiseAddress || invoice.shippingAddressText),
         serviceType: group.serviceType, serviceKey: wantedService, start: group.start, end: group.end,
         amount: amountCents / 100, invoiceTotal: total,
@@ -123,11 +135,19 @@ function buildExistingHistory(options) {
     validationError = error.message;
   }
   const history = [];
+  const reviewCandidates = options.canReview && !validationError ? buildExistingCandidates({ ...options, allowPremiseReview: true }).filter((item) => item.premiseReviewRequired) : [];
   for (const invoice of invoices) {
     if (text(invoice.customerId) !== text(sourceInvoice.customerId) || !text(invoice.invoiceNumber)) continue;
     const matches = eligible.filter((item) => item.invoiceId === text(invoice._id));
     if (matches.length) {
       history.push(...matches.map((item) => ({ ...item, eligible: true, contractStatusLabel: contractStatusLabel(item.start, item.end, options.today) })));
+      continue;
+    }
+    const reviewMatches = reviewCandidates.filter((item) => item.invoiceId === text(invoice._id));
+    if (reviewMatches.length) {
+      history.push(...reviewMatches.map((item) => ({ ...item, eligible: false, reviewAllowed: true,
+        eligibilityReason: 'Premises differ or are unverified. Compare both records and confirm the same service location before saving.',
+        contractStatusLabel: contractStatusLabel(item.start, item.end, options.today) })));
       continue;
     }
     const lines = Array.isArray(invoice.items) ? invoice.items : [];
@@ -159,7 +179,7 @@ function buildExistingHistory(options) {
 }
 
 function createExistingLinkService({ getConnection, toRenewal, toInvoice, deriveWindow, classifySource, itemTotals, deriveTiming, priceDelta, audit }) {
-  const build = (renewal, sourceInvoice, invoices) => buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals });
+  const build = (renewal, sourceInvoice, invoices, allowPremiseReview = false) => buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, allowPremiseReview });
   const loadRenewal = async (conn, id, lock = false) => {
     const [rows] = await conn.query(`SELECT * FROM renewals WHERE renewal_id = ? LIMIT 1${lock ? ' FOR UPDATE' : ''}`, [id]);
     if (!rows[0]) fail(404, 'Renewal not found.');
@@ -181,9 +201,11 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
     const samePeriod = otherStart === candidate.start && otherEnd === candidate.end;
     const sameInvoice = [other.convertedContractId, other.newContractId].includes(candidate.invoiceId);
     const otherInvoice = invoices.find((invoice) => [other.convertedContractId, other.newContractId].includes(text(invoice._id)));
-    return sameService && ((sameInvoice && (!otherStart || !otherEnd || samePeriod)) || (samePeriod && samePremise(source, otherInvoice)));
+    // With unverified premises, conservatively block an already-claimed service
+    // period for this customer even if it appears on a different invoice.
+    return sameService && ((sameInvoice && (!otherStart || !otherEnd || samePeriod)) || (samePeriod && (samePremise(source, otherInvoice) || candidate.premiseReviewRequired)));
   });
-  const list = async ({ renewalId, authorize }) => {
+  const list = async ({ renewalId, authorize, canReview = false }) => {
     const conn = await getConnection();
     try {
       const renewal = toRenewal(await loadRenewal(conn, renewalId)); authorize(renewal);
@@ -193,7 +215,7 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
       const ids = invoices.map((invoice) => text(invoice._id)).filter(Boolean);
       if (!ids.length) return [];
       const [linkedRows] = await conn.query('SELECT * FROM renewals WHERE converted_contract_id IN (?) OR new_contract_id IN (?) OR contract_id IN (?)', [ids, ids, ids]);
-      return buildExistingHistory({ renewal, sourceInvoice: source, invoices, deriveWindow, classifySource, itemTotals })
+      return buildExistingHistory({ renewal, sourceInvoice: source, invoices, deriveWindow, classifySource, itemTotals, canReview })
         .filter((candidate) => candidate.invoiceId !== text(source._id))
         .filter((candidate) => !conflictsWithLink(candidate, renewal, source, invoices, linkedRows))
         .filter((candidate) => candidate.eligible !== false || !linkedRows.some((raw) => {
@@ -207,6 +229,8 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
     const today = todayInIndia();
     if (!agreementDate || agreementDate > today) fail(400, 'Enter the actual agreement date (today or earlier).');
     if (body.correctLink === true && !text(body.notes)) fail(400, 'Enter a reason for correcting the existing link.');
+    if (body.reviewPremises === true && !canCorrect) fail(403, 'Only a manager can approve a premises mismatch.');
+    if (body.reviewPremises === true && !text(body.notes)) fail(400, 'Enter the reason for approving the premises mismatch.');
     if (!text(body.candidateKey) || !text(body.invoiceId) || !text(body.invoiceVersion)) fail(400, 'Select and review an existing contract/invoice first.');
     const conn = await getConnection();
     let committed = false;
@@ -231,15 +255,17 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
       if (renewal.convertedContractId || renewal.newContractId) {
         if (!(existing && canCorrect && body.correctLink === true)) fail(409, 'This renewal already has a linked contract. Only a manager can correct an existing-record link.');
       }
-      const candidate = build(renewal, source, invoiceRows.map(toInvoice)).find((item) => item.key === body.candidateKey && item.invoiceId === body.invoiceId);
+      const candidate = build(renewal, source, invoiceRows.map(toInvoice), body.reviewPremises === true && canCorrect).find((item) => item.key === body.candidateKey && item.invoiceId === body.invoiceId);
       if (!candidate) fail(409, 'The selected record no longer matches the customer, premises, service or renewal period. Refresh the matches.');
       if (candidate.invoiceVersion !== body.invoiceVersion) fail(409, 'The invoice changed after your preview. Refresh and review it again.');
+      if (candidate.premiseReviewRequired && candidate.sourceInvoiceVersion !== body.sourceInvoiceVersion) fail(409, 'The previous invoice changed after comparison. Refresh and review both records again.');
       const [linkedRows] = await conn.query('SELECT * FROM renewals WHERE converted_contract_id = ? OR new_contract_id = ? OR contract_id IN (?) FOR UPDATE', [candidate.invoiceId, candidate.invoiceId, invoiceRows.map((row) => row.external_id)]);
       if (conflictsWithLink(candidate, renewal, source, invoiceRows.map(toInvoice), linkedRows)) {
         fail(409, 'This service and renewed period are already linked to another renewal. Review that renewal instead.');
       }
       const now = new Date().toISOString();
-      const linkInfo = { ...candidate, mode: 'existing', agreementDate, linkedAt: now, linkedBy: actor, notes: text(body.notes) };
+      const linkInfo = { ...candidate, mode: 'existing', agreementDate, linkedAt: now, linkedBy: actor, notes: text(body.notes),
+        premisesReview: candidate.premiseReviewRequired ? { approvedBy: actor, approvedAt: now, reason: text(body.notes) } : null };
       delete linkInfo.invoiceVersion;
       const reminderPlan = { ...(payload.reminderPlan || {}), autoEnabled: false, nextReminderDate: '' };
       const nextPayload = { ...payload, existingRenewalLink: linkInfo, reminderPlan };
