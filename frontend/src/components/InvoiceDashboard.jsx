@@ -4628,6 +4628,8 @@ export default function InvoiceDashboard() {
 	                                  </div>
 	                                  {line.serviceRelationshipType === 'CONTRACT' ? (
 	                                    <>
+	                                      {(!editingId || contractViewOnly) ? (
+	                                        <>
 	                                      <div style={itemMetaFieldStyle}>
 	                                        <span style={itemMetaLabelStyle}>Duration Value</span>
 	                                        <input
@@ -4648,6 +4650,8 @@ export default function InvoiceDashboard() {
 	                                          <option value="YEAR">Year</option>
 	                                        </select>
 	                                      </div>
+	                                        </>
+	                                      ) : null}
 	                                      <div style={itemMetaFieldStyle}>
 	                                        <span style={itemMetaLabelStyle}>Renewal Eligible</span>
 	                                        <select

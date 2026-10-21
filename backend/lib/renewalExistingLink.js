@@ -30,7 +30,23 @@ const samePremise = (source, target) => {
 
 // Contract records are invoice-backed. A candidate identifies a service and period,
 // not just an invoice, so separate services on a shared invoice can be linked safely.
+const fixedContractPeriods = new Set(['monthly', 'quarterly', 'bi_monthly', 'three_months', 'half_yearly', 'annual', 'two_years', 'three_years', 'five_years', 'ten_years']);
+function isExistingContract(invoice, classifySource) {
+  if (classifySource(invoice).relationshipType === 'CONTRACT') return true;
+  // Legacy invoice forms defaulted relationship type to ONE_TIME even for
+  // fixed-term contracts. Dates alone are never evidence of a contract.
+  const lines = Array.isArray(invoice.items) ? invoice.items : [];
+  return lines.length > 0 && lines.every((line) => fixedContractPeriods.has(text(line.contractPeriod).toLowerCase()));
+}
+function withSourceContractDates(renewal, sourceInvoice, deriveWindow) {
+  const window = deriveWindow(sourceInvoice);
+  return { ...renewal,
+    previousContractStart: dateOnly(window.contractStartDate) || renewal.previousContractStart,
+    previousContractEnd: dateOnly(window.contractEndDate) || renewal.previousContractEnd
+  };
+}
 function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals }) {
+  renewal = withSourceContractDates(renewal, sourceInvoice, deriveWindow);
   const customerId = text(sourceInvoice?.customerId);
   const expectedCustomer = text(renewal.customerExternalId);
   if (!customerId || (expectedCustomer && expectedCustomer !== customerId)) {
@@ -75,7 +91,7 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
     ordered.forEach((group, index) => {
       const amountCents = allocations[index];
       if (serviceKey(group.serviceType) !== wantedService || group.start < previousEnd || group.end <= previousEnd) return;
-      if (classifySource({ ...invoice, items: group.lines }).relationshipType !== 'CONTRACT') return;
+      if (!isExistingContract({ ...invoice, items: group.lines }, classifySource)) return;
       const identity = JSON.stringify([text(invoice._id), wantedService, group.start, group.end]);
       candidates.push({
         key: crypto.createHash('sha256').update(identity).digest('hex'), invoiceId: text(invoice._id),
@@ -96,7 +112,8 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
 // invoice history so old invoice numbers remain searchable, while saves still
 // use buildExistingCandidates and the transactional duplicate checks.
 function buildExistingHistory(options) {
-  const { renewal, sourceInvoice, invoices, deriveWindow, classifySource } = options;
+  const { sourceInvoice, invoices, deriveWindow, classifySource } = options;
+  const renewal = withSourceContractDates(options.renewal, sourceInvoice, deriveWindow);
   if (!text(sourceInvoice?.customerId) || (text(renewal.customerExternalId) && text(renewal.customerExternalId) !== text(sourceInvoice.customerId))) {
     fail(409, 'The previous contract needs a verified customer ID before searching existing records.');
   }
@@ -128,7 +145,7 @@ function buildExistingHistory(options) {
     if (!reason && !lines.some((line) => serviceKey(line.itemName || line.name) === serviceKey(renewal.serviceType)) && serviceKey(invoice.serviceType || invoice.subject) !== serviceKey(renewal.serviceType)) reason = 'The service does not match this renewal.';
     if (!reason && (!start || !end)) reason = 'A verified contract start and end date are required before linking.';
     if (!reason && (start < dateOnly(renewal.previousContractEnd) || end <= dateOnly(renewal.previousContractEnd))) reason = 'This contract period does not follow the previous contract.';
-    if (!reason && classifySource(invoice).relationshipType !== 'CONTRACT') reason = 'This record is not classified as a contract.';
+    if (!reason && !isExistingContract(invoice, classifySource)) reason = 'This record is not classified as a contract. Set a fixed contract period or classify the service as Contract in the existing invoice.';
     if (!reason) reason = 'Review the service dates and invoice amounts before linking this record.';
     history.push({
       key: `history-${text(invoice._id)}`, invoiceId: text(invoice._id), invoiceNumber: text(invoice.invoiceNumber),
@@ -200,9 +217,10 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
       // Serialize links for this customer, including different services/renewals.
       const [invoiceRows] = await conn.query('SELECT * FROM invoices WHERE customer_external_id = ? ORDER BY external_id FOR UPDATE', [initialSource.customerId]);
       const raw = await loadRenewal(conn, renewalId, true);
-      const renewal = toRenewal(raw); authorize(renewal);
+      let renewal = toRenewal(raw); authorize(renewal);
       const source = invoiceRows.map(toInvoice).find((invoice) => text(invoice._id) === text(renewal.previousContractId || renewal.contractId));
       if (!source) fail(409, 'The previous contract changed. Refresh and try again.');
+      renewal = withSourceContractDates(renewal, source, deriveWindow);
       const payload = jsonObject(raw.payload);
       const existing = payload.existingRenewalLink;
       if (existing?.key === body.candidateKey && existing.agreementDate === agreementDate) {

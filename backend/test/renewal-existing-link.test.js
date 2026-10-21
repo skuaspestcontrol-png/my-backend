@@ -93,6 +93,41 @@ test('contract state uses end dates inclusively and does not treat payment due d
   assert.equal(history[0].contractStatusLabel, 'Period unavailable'); assert.equal(history[0].eligible, false);
 });
 
+test('legacy ONE_TIME default does not hide a verified fixed-term contract', async () => {
+  const legacy = { ...target, serviceRelationshipType: 'ONE_TIME',
+    items: [{ ...target.items[0], serviceRelationshipType: 'ONE_TIME', contractPeriod: 'half_yearly', contractEndDate: '2026-06-30' }] };
+  assert.equal(candidates([legacy]).length, 1);
+  const { state, service, request } = setup([], [source, legacy]);
+  const before = clone(state.invoices);
+  const history = await service.list({ renewalId: 'R1', authorize: () => {} });
+  assert.equal(history.find((item) => item.invoiceId === 'NEW').eligible, true);
+  await service.link(request);
+  assert.equal(state.rows[0].renewalOutcome, 'WON');
+  assert.deepEqual(state.invoices, before);
+  assert.equal(state.audit.length, 1);
+});
+
+test('one-time and date-only records remain blocked without a fixed contract term', () => {
+  for (const period of ['', 'single_time', 'single_time_plus_7', 'unsupported']) {
+    const invoice = { ...target, serviceRelationshipType: 'ONE_TIME', items: [{ ...target.items[0], contractPeriod: period }] };
+    assert.equal(candidates([invoice]).length, 0);
+    const [history] = buildExistingHistory({ renewal, sourceInvoice: source, invoices: [invoice], deriveWindow, classifySource, itemTotals });
+    assert.equal(history.eligible, false);
+    assert.match(history.eligibilityReason, /not classified as a contract/);
+  }
+});
+
+test('discovery and locked save use source-invoice expiry instead of a stale renewal date', async () => {
+  const predecessor = { ...source, items: [{ contractEndDate: '2025-12-31' }] };
+  const { state, service, request } = setup([], [predecessor, target]);
+  state.rows[0].previousContractEnd = '2026-01-02';
+  const history = await service.list({ renewalId: 'R1', authorize: () => {} });
+  assert.equal(history.find((item) => item.invoiceId === 'NEW').eligible, true);
+  await service.link(request);
+  assert.equal(state.rows[0].renewalOutcome, 'WON');
+  assert.equal(state.audit.length, 1);
+});
+
 function setup(extraRows = [], invoices = [source, target]) {
   const state = { rows: [clone(renewal), ...clone(extraRows)], invoices: clone(invoices), audit: [], queries: [], commits: 0, rollbacks: 0, releases: 0 };
   let queue = Promise.resolve();
