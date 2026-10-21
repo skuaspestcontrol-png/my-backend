@@ -72,7 +72,6 @@ const renewalColumns = [
   { key: 'mobile', label: 'Mobile' },
   { key: 'svc', label: 'Service' },
   { key: 'period', label: 'Period' },
-  { key: 'progress', label: 'Progress' },
   { key: 'amount', label: 'Amount' },
   { key: 'outstanding', label: 'Outstanding' },
   { key: 'salesPerson', label: 'Sales' },
@@ -81,30 +80,28 @@ const renewalColumns = [
   { key: 'actions', label: 'Actions' }
 ];
 const renewalDefaultWidths = {
-  customer: 180,
-  mobile: 120,
-  svc: 120,
-  period: 165,
-  progress: 135,
-  amount: 110,
-  outstanding: 115,
-  salesPerson: 120,
-  status: 100,
-  followup: 150,
-  actions: 122
+  customer: 210,
+  mobile: 110,
+  svc: 280,
+  period: 200,
+  amount: 100,
+  outstanding: 110,
+  salesPerson: 140,
+  status: 90,
+  followup: 130,
+  actions: 156
 };
 const renewalColumnBounds = {
-  customer: { min: 150, max: 260 },
+  customer: { min: 180, max: 360 },
   mobile: { min: 100, max: 160 },
-  svc: { min: 95, max: 190 },
-  period: { min: 145, max: 230 },
-  progress: { min: 120, max: 180 },
+  svc: { min: 260, max: 480 },
+  period: { min: 190, max: 260 },
   amount: { min: 100, max: 160 },
   outstanding: { min: 105, max: 170 },
-  salesPerson: { min: 110, max: 180 },
+  salesPerson: { min: 130, max: 220 },
   status: { min: 90, max: 150 },
-  followup: { min: 130, max: 220 },
-  actions: { min: 110, max: 160 }
+  followup: { min: 120, max: 220 },
+  actions: { min: 156, max: 190 }
 };
 
 const shell = {
@@ -1482,7 +1479,6 @@ export default function RenewalDashboard() {
                 <span>Expiry: {formatDate(row.previousContractEnd || row.renewalDueDate)}</span>
                 <span title={row.serviceType}>{row.serviceType || '-'}</span>
                 <span>{contractDurationText(row)}</span>
-                <span>{serviceProgressText(row)}</span>
                 <span>{formatOptionalINR(renewalAmountValue(row))}</span>
                 <span>Due: {formatOptionalINR(row.outstandingAmount)}</span>
               </div>
@@ -1586,7 +1582,7 @@ export default function RenewalDashboard() {
     return (
       <div style={shell.tableWrap}>
         <div style={renewalTableContentStyle}>
-          <table className="crm-compact-table renewal-dashboard-table" style={renewalTableStyle}>
+          <table className="crm-compact-table renewal-dashboard-table renewal-register-table" style={renewalTableStyle}>
             <colgroup>
               {renewalColumns.map((column) => (
                 <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -1598,7 +1594,6 @@ export default function RenewalDashboard() {
                 <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile</th>
                 <th style={renewalHeadCellStyle('svc')}>Service</th>
                 <th style={renewalHeadCellStyle('period', 'center')}>Period</th>
-                <th style={renewalHeadCellStyle('progress')}>Progress</th>
                 <th style={renewalHeadCellStyle('amount', 'center')}>Amount</th>
                 <th style={renewalHeadCellStyle('outstanding', 'center')}>Outstanding</th>
                 <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
@@ -1618,12 +1613,8 @@ export default function RenewalDashboard() {
                   <td style={renewalBodyCellStyle('mobile', 'center')}>{row.mobile || '-'}</td>
                   <td style={renewalBodyCellStyle('svc')} title={row.serviceType}>{row.serviceType || '-'}</td>
                   <td style={renewalBodyCellStyle('period', 'center')} title={`${formatDate(row.previousContractStart)} - ${formatDate(row.previousContractEnd)} (${contractDurationText(row)})`}>
-                    <div style={{ display: 'grid', gap: 2, lineHeight: 1.3 }}>
-                      <span>{formatDate(row.previousContractStart)}</span>
-                      <span>to {formatDate(row.previousContractEnd)}</span>
-                    </div>
+                    {formatDate(row.previousContractStart)} – {formatDate(row.previousContractEnd)}
                   </td>
-                  <td style={renewalBodyCellStyle('progress')} title={serviceProgressText(row)}>{serviceProgressText(row)}</td>
                   <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(renewalAmountValue(row))}</td>
                   <td style={renewalBodyCellStyle('outstanding', 'center')}>{formatOptionalINR(row.outstandingAmount)}</td>
                   <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
