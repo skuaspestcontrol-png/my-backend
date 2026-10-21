@@ -1617,8 +1617,11 @@ export default function RenewalDashboard() {
                   <td style={renewalBodyCellStyle('customer')} title={`${row.customerName} • ${displayRenewalId(row)}`}><strong>{row.customerName}</strong></td>
                   <td style={renewalBodyCellStyle('mobile', 'center')}>{row.mobile || '-'}</td>
                   <td style={renewalBodyCellStyle('svc')} title={row.serviceType}>{row.serviceType || '-'}</td>
-                  <td style={renewalBodyCellStyle('period', 'center')} title={contractDurationText(row)}>
-                    {formatDate(row.previousContractStart)} - {formatDate(row.previousContractEnd)}
+                  <td style={renewalBodyCellStyle('period', 'center')} title={`${formatDate(row.previousContractStart)} - ${formatDate(row.previousContractEnd)} (${contractDurationText(row)})`}>
+                    <div style={{ display: 'grid', gap: 2, lineHeight: 1.3 }}>
+                      <span>{formatDate(row.previousContractStart)}</span>
+                      <span>to {formatDate(row.previousContractEnd)}</span>
+                    </div>
                   </td>
                   <td style={renewalBodyCellStyle('progress')} title={serviceProgressText(row)}>{serviceProgressText(row)}</td>
                   <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(renewalAmountValue(row))}</td>
