@@ -76,7 +76,6 @@ const renewalColumns = [
   { key: 'outstanding', label: 'Outstanding' },
   { key: 'salesPerson', label: 'Sales' },
   { key: 'status', label: 'Status' },
-  { key: 'followup', label: 'Follow-up' },
   { key: 'actions', label: 'Actions' }
 ];
 const renewalDefaultWidths = {
@@ -88,7 +87,6 @@ const renewalDefaultWidths = {
   outstanding: 110,
   salesPerson: 140,
   status: 90,
-  followup: 130,
   actions: 156
 };
 const renewalColumnBounds = {
@@ -100,7 +98,6 @@ const renewalColumnBounds = {
   outstanding: { min: 105, max: 170 },
   salesPerson: { min: 130, max: 220 },
   status: { min: 90, max: 150 },
-  followup: { min: 120, max: 220 },
   actions: { min: 156, max: 190 }
 };
 
@@ -1598,7 +1595,6 @@ export default function RenewalDashboard() {
                 <th style={renewalHeadCellStyle('outstanding', 'center')}>Outstanding</th>
                 <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
                 <th style={renewalHeadCellStyle('status', 'center')}>Status</th>
-                <th style={renewalHeadCellStyle('followup', 'center')}>Follow-up</th>
                 <th style={renewalHeadCellStyle('actions', 'center')}>Actions</th>
               </tr>
             </thead>
@@ -1619,7 +1615,6 @@ export default function RenewalDashboard() {
                   <td style={renewalBodyCellStyle('outstanding', 'center')}>{formatOptionalINR(row.outstandingAmount)}</td>
                   <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
                   <td style={renewalBodyCellStyle('status', 'center')}><span style={tabStatusStyle(row)}>{tabStatusLabel(row)}</span></td>
-                  <td style={renewalBodyCellStyle('followup', 'center')} title={row.lastFollowupNote}>{formatDate(row.followupDate)} {row.lastFollowupNote ? `- ${row.lastFollowupNote}` : ''}</td>
                   <td style={renewalActionCellStyle}>{renderRowActions(row)}</td>
                 </tr>
               ))}
