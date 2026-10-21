@@ -17,7 +17,8 @@ import {
   MessageCircleMore,
   Phone,
   RefreshCw,
-  Search
+  Search,
+  XCircle
 } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -147,7 +148,7 @@ const shell = {
   letterPeriodCell: { width: '21%', textAlign: 'center' },
   letterAmountCell: { width: '11%', textAlign: 'center' },
   letterPdfCell: { width: '8%', textAlign: 'center' },
-  letterActionsCell: { width: '9%', textAlign: 'left' },
+  letterActionsCell: { width: 160, textAlign: 'left' },
   modalOverlay: { position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 14 },
   modal: { width: 'min(760px, 96vw)', maxHeight: '92vh', background: 'var(--surface-card)', borderRadius: 16, border: '1px solid var(--border)', boxShadow: '0 24px 70px rgba(2,6,23,0.34)', overflow: 'hidden', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
   modalHead: { minHeight: 64, height: 64, boxSizing: 'border-box', padding: '0 28px', borderBottom: '1px solid var(--card-header-border)', background: 'var(--card-header-bg)', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 24, fontWeight: 800 },
@@ -1264,6 +1265,17 @@ export default function RenewalDashboard() {
             onClick={() => openModal('convert', row)}
           >
             {mobile ? 'Mark as Won' : <CheckCircle2 size={15} />}
+          </button>
+        ) : null}
+        {canUseAssignedRenewal(row) && !isFinalRow(row) && row.serviceRelationshipType === 'CONTRACT' ? (
+          <button
+            className="crm-icon-action-btn"
+            style={buttonBase}
+            title="Mark as Lost"
+            aria-label="Mark as Lost"
+            onClick={() => openModal('decline', row)}
+          >
+            {mobile ? 'Mark as Lost' : <XCircle size={15} />}
           </button>
         ) : null}
         {canConvertOneTimeRow(row) ? (
