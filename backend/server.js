@@ -9871,6 +9871,7 @@ const contractPeriodConfig = {
 };
 
 const parseDateOnly = (value) => {
+  if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) return null;
   const raw = String(value || '').trim();
   const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
   const date = match
@@ -13463,7 +13464,7 @@ const renewalRelationshipTypes = new Set(['CONTRACT', 'ONE_TIME', 'RECURRING', '
 const renewalDurationUnits = new Set(['DAY', 'MONTH', 'YEAR']);
 const renewalSqlDate = (value) => {
   const parsed = parseDateOnly(value);
-  return parsed ? parsed.toISOString().slice(0, 10) : null;
+  return parsed ? formatDateInput(parsed) : null;
 };
 const renewalSqlDateTime = (value = new Date()) => {
   const parsed = value instanceof Date ? value : new Date(value);
@@ -14023,9 +14024,14 @@ const enrichRenewalsWithConvertedContractPeriods = (renewals = [], invoices = []
     const contractId = String(row?.newContractId || row?.convertedContractId || '').trim();
     const invoice = contractId ? invoiceById.get(contractId) : null;
     if (!invoice) return row;
-    const window = deriveInvoiceContractWindow(invoice);
-    const start = row.newContractStartDate || window.contractStartDate || invoice.servicePeriodStart || invoice.contractStartDate || '';
-    const end = row.newContractEndDate || window.contractEndDate || invoice.servicePeriodEnd || invoice.contractEndDate || '';
+    // A shared invoice may contain services with different contract periods.
+    const serviceKey = (value) => String(value || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    const wantedService = serviceKey(row.existingRenewalLink?.serviceType || row.serviceType);
+    const matchingLines = (Array.isArray(invoice.items) ? invoice.items : [])
+      .filter((line) => wantedService && serviceKey(line.itemName || line.name) === wantedService);
+    const window = deriveInvoiceContractWindow(matchingLines.length ? { ...invoice, items: matchingLines } : invoice);
+    const start = window.contractStartDate || invoice.servicePeriodStart || invoice.contractStartDate || row.newContractStartDate || '';
+    const end = window.contractEndDate || invoice.servicePeriodEnd || invoice.contractEndDate || row.newContractEndDate || '';
     return {
       ...row,
       newContractStartDate: start,
@@ -14038,7 +14044,7 @@ const enrichRenewalsWithCurrentContractWindows = (renewals = [], invoices = []) 
     .map((invoice) => [String(invoice?._id || invoice?.external_id || '').trim(), invoice])
     .filter(([id]) => id));
   return (Array.isArray(renewals) ? renewals : []).map((row) => {
-    const contractId = String(row?.contractId || row?.previousContractId || '').trim();
+    const contractId = String(row?.previousContractId || row?.contractId || '').trim();
     const invoice = contractId ? invoiceById.get(contractId) : null;
     if (!invoice) return row;
     const window = deriveInvoiceContractWindow(invoice);

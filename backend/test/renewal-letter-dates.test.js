@@ -4,13 +4,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const source = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
 const frontend = fs.readFileSync(path.join(__dirname, '../../frontend/src/components/RenewalDashboard.jsx'), 'utf8');
-const names = ['parseDateOnly', 'formatDateInput', 'addMonthsClamped', 'addDays', 'inclusiveDaysBetween', 'contractDurationLabel', 'buildContractEndDate', 'deriveInvoiceContractWindow', 'deriveRenewalDuration', 'calculateRenewalContractEndDate', 'renewalLetterDates', 'enrichRenewalsWithCurrentContractWindows'];
+const names = ['parseDateOnly', 'formatDateInput', 'addMonthsClamped', 'addDays', 'inclusiveDaysBetween', 'contractDurationLabel', 'buildContractEndDate', 'deriveInvoiceContractWindow', 'deriveRenewalDuration', 'calculateRenewalContractEndDate', 'renewalLetterDates', 'enrichRenewalsWithCurrentContractWindows', 'enrichRenewalsWithConvertedContractPeriods', 'renewalSqlDate'];
 const declarations = names.map((name) => {
   const start = source.indexOf(`const ${name} =`);
   assert(start >= 0);
   return source.slice(start, source.indexOf('\n};', start) + 3);
 }).join('\n');
-const { dates, iso, enrich } = new Function('contractPeriodConfig', 'normalizeRenewalDurationUnit', 'renewalCleanStatus', 'computeRenewalStatus', 'renewalUiStatus', `${declarations}; return { dates: renewalLetterDates, iso: formatDateInput, enrich: enrichRenewalsWithCurrentContractWindows };`)({ half_yearly: { unit: 'months', value: 6 } }, (unit) => unit || 'MONTH', (status) => status, () => 'OVERDUE', (status) => status);
+const { dates, iso, enrich, enrichConverted } = new Function('contractPeriodConfig', 'normalizeRenewalDurationUnit', 'renewalCleanStatus', 'computeRenewalStatus', 'renewalUiStatus', `${declarations}; return { dates: renewalLetterDates, iso: formatDateInput, enrich: enrichRenewalsWithCurrentContractWindows, enrichConverted: enrichRenewalsWithConvertedContractPeriods };`)({ half_yearly: { unit: 'months', value: 6 } }, (unit) => unit || 'MONTH', (status) => status, () => 'OVERDUE', (status) => status);
 const previous = { previousContractStart: '2025-07-24', previousContractEnd: '2026-01-23', contractDurationValue: 6, contractDurationUnit: 'MONTH' };
 
 test('Education Today six-month renewal follows the inclusive previous expiry', () => {
@@ -20,6 +20,54 @@ test('Education Today six-month renewal follows the inclusive previous expiry', 
   assert.equal(iso(result.end), '2026-07-23');
   assert.equal(result.duration, '6 months');
   assert.equal(previous.previousContractEnd, '2026-01-23');
+});
+
+test('Pallav Jain null renewal dates follow the annual source contract instead of becoming January 1970', () => {
+  for (const missing of [null, undefined, '', '   ']) {
+    const renewal = { previousContractId: 'PALLAV', previousContractStart: '2025-09-01', previousContractEnd: '2026-09-01', newContractStartDate: missing, newContractEndDate: missing, contractDurationValue: 0 };
+    const invoice = { _id: 'PALLAV', items: [{ contractStartDate: '2025-09-02', contractEndDate: '2026-09-01', contractPeriod: 'annual' }] };
+    const result = dates(enrich([renewal], [invoice])[0]);
+    assert.equal(iso(result.previousStart), '2025-09-02');
+    assert.equal(iso(result.previousEnd), '2026-09-01');
+    assert.equal(iso(result.start), '2026-09-02');
+    assert.equal(iso(result.end), '2027-09-01');
+    assert.equal(result.duration, '12 months');
+  }
+});
+
+test('previous contract ID and edited linked contract dates take precedence over stale renewal fields', () => {
+  const renewal = { ...previous, contractId: 'OTHER', previousContractId: 'OLD', newContractId: 'NEW', newContractStartDate: '2026-01-01', newContractEndDate: '2026-02-01' };
+  const invoices = [
+    { _id: 'OLD', items: [{ contractStartDate: '2025-07-24', contractEndDate: '2026-01-23' }] },
+    { _id: 'OTHER', items: [{ contractStartDate: '2024-01-01', contractEndDate: '2024-12-31' }] },
+    { _id: 'NEW', items: [{ contractStartDate: '2026-01-24', contractEndDate: '2026-07-23' }] }
+  ];
+  const [current] = enrichConverted(enrich([renewal], invoices), invoices);
+  const result = dates(current);
+  assert.equal(iso(result.previousEnd), '2026-01-23');
+  assert.equal(iso(result.start), '2026-01-24');
+  assert.equal(iso(result.end), '2026-07-23');
+  assert.equal(renewal.newContractStartDate, '2026-01-01');
+});
+
+test('SQL calendar dates do not shift back a day in India timezone', () => {
+  const { execFileSync } = require('node:child_process');
+  const script = `${declarations}; console.log(JSON.stringify([renewalSqlDate('2026-09-02'), renewalSqlDate(new Date(2026, 8, 2)), renewalSqlDate(null), parseDateOnly(null), parseDateOnly('   ')]));`;
+  for (const timezone of ['Asia/Kolkata', 'UTC']) {
+    const output = execFileSync(process.execPath, ['-e', script], { env: { ...process.env, TZ: timezone }, encoding: 'utf8' });
+    assert.deepEqual(JSON.parse(output), ['2026-09-02', '2026-09-02', null, null, null]);
+  }
+});
+
+test('a linked service uses its own dates when other services on the invoice have different periods', () => {
+  const renewal = { ...previous, newContractId: 'SHARED', serviceType: 'Pest Control', newContractStartDate: '2026-01-01', newContractEndDate: '2026-12-31' };
+  const invoice = { _id: 'SHARED', items: [
+    { itemName: 'Pest Control', contractStartDate: '2026-01-24', contractEndDate: '2026-07-23' },
+    { itemName: 'Termite Control', contractStartDate: '2026-01-01', contractEndDate: '2026-12-31' }
+  ] };
+  const result = dates(enrichConverted([renewal], [invoice])[0]);
+  assert.equal(iso(result.start), '2026-01-24');
+  assert.equal(iso(result.end), '2026-07-23');
 });
 
 test('stale renewal expiry uses the current source invoice without rewriting either record', () => {
