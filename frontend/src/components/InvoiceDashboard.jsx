@@ -3383,7 +3383,8 @@ export default function InvoiceDashboard() {
       });
     }
     const paymentReceivedTotal = form.paymentReceivedEnabled ? sumPaymentSplits(normalizedPaymentSplits) : 0;
-    const baseStatus = (form.status || 'DRAFT').toUpperCase();
+    const savedStatus = String(form.status || '').trim().toUpperCase();
+    const baseStatus = !savedStatus || savedStatus === 'DRAFT' ? 'SENT' : savedStatus;
     const status = form.paymentReceivedEnabled
       ? paymentReceivedTotal >= invoiceTotal && invoiceTotal > 0
         ? 'PAID'
@@ -4519,22 +4520,6 @@ export default function InvoiceDashboard() {
                   <option value="NON GST">Non GST Invoice</option>
                 </select>
 
-                <label style={shell.label} htmlFor="contract-invoice-status">Invoice status</label>
-                <div>
-                  <select
-                    id="contract-invoice-status"
-                    style={compactContractControlStyle}
-                    value={form.status}
-                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, status: event.target.value }))}
-                  >
-                    <option value="DRAFT">Draft</option>
-                    <option value="SENT">Issued</option>
-                    {!['DRAFT', 'SENT'].includes(form.status) ? <option value={form.status}>{form.status}</option> : null}
-                  </select>
-                  <small style={{ display: 'block', marginTop: 4, color: 'var(--text-secondary)' }}>
-                    Choose Issued for a confirmed contract, even if unpaid. Recorded payments determine Paid status.
-                  </small>
-                </div>
               </div>
 
               {!modalOpenedFromContract ? (

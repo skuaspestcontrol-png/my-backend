@@ -160,7 +160,7 @@ function buildExistingHistory(options) {
     const serviceType = [...new Set(lines.map((line) => text(line.itemName || line.name)).filter(Boolean))].join(', ') || text(invoice.serviceType || invoice.subject);
     let reason = validationError;
     if (!reason && text(invoice._id) === text(sourceInvoice._id)) reason = 'This is the previous contract. Select the contract that renewed it.';
-    if (!reason && /draft/i.test(`${invoice.status || ''} ${invoice.invoiceType || ''}`)) reason = 'This invoice is saved as Draft. Open the existing contract / invoice, set Invoice status to Issued and save, then refresh records here.';
+    if (!reason && /draft/i.test(`${invoice.status || ''} ${invoice.invoiceType || ''}`)) reason = 'This invoice is saved as Draft. Open and save the existing contract / invoice to issue it automatically, then refresh records here.';
     if (!reason && /cancelled|canceled|void|proforma/i.test(`${invoice.status || ''} ${invoice.invoiceType || ''}`)) reason = 'Cancelled, void or proforma invoices cannot be linked.';
     if (!reason && !samePremise(sourceInvoice, invoice)) reason = 'Premises do not match or are not verified on both records.';
     if (!reason && !lines.some((line) => serviceKey(line.itemName || line.name) === serviceKey(renewal.serviceType)) && serviceKey(invoice.serviceType || invoice.subject) !== serviceKey(renewal.serviceType)) reason = 'The service does not match this renewal.';

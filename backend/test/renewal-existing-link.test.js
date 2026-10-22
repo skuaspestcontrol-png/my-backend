@@ -52,7 +52,7 @@ test('draft history explains how to issue the invoice; cancelled, void and profo
     assert.equal(candidates([invoice]).length, 0);
     const [record] = buildExistingHistory({ renewal, sourceInvoice: source, invoices: [invoice], deriveWindow, classifySource, itemTotals });
     assert.equal(record.eligible, false);
-    assert.match(record.eligibilityReason, patch.status === 'DRAFT' ? /Invoice status to Issued/ : /Cancelled, void or proforma/);
+    assert.match(record.eligibilityReason, patch.status === 'DRAFT' ? /save the existing contract \/ invoice to issue it automatically/ : /Cancelled, void or proforma/);
   }
 });
 

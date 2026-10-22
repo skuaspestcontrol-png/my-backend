@@ -12747,7 +12747,8 @@ app.post('/api/invoices', async (req, res) => {
     return res.status(400).json({ error: 'Amount received cannot be more than invoice total amount.' });
   }
 
-  const baseStatus = (req.body.status || 'DRAFT').toUpperCase();
+  const savedStatus = String(req.body.status || '').trim().toUpperCase();
+  const baseStatus = !savedStatus || savedStatus === 'DRAFT' ? 'SENT' : savedStatus;
   const status = paymentReceivedEnabled
     ? paymentReceivedTotal >= amount && amount > 0
       ? 'PAID'
@@ -12906,7 +12907,8 @@ app.put('/api/invoices/:id', async (req, res) => {
     return res.status(400).json({ error: 'Amount received cannot be more than invoice total amount.' });
   }
 
-  const baseStatus = (req.body.status || current.status || 'DRAFT').toUpperCase();
+  const savedStatus = String(req.body.status || current.status || '').trim().toUpperCase();
+  const baseStatus = !savedStatus || savedStatus === 'DRAFT' ? 'SENT' : savedStatus;
   const status = paymentReceivedEnabled
     ? paymentReceivedTotal >= amount && amount > 0
       ? 'PAID'
