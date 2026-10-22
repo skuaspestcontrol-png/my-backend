@@ -39,7 +39,6 @@ const ServiceCalendar = lazy(() => import('./ServiceCalendar'));
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const NOTIFICATION_READ_STORAGE_KEY = 'skuas_read_notification_ids';
 const DASHBOARD_NOTIFICATION_CACHE_KEY = 'dashboard_notifications_cache_v1';
-const OPEN_SERVICE_CALENDAR_ONCE_KEY = 'open_service_calendar_once_v1';
 
 const scheduleIdleTask = (callback, timeout = 2000) => {
   if (typeof window === 'undefined') return () => {};
@@ -414,14 +413,6 @@ export default function DashboardLayout({ children }) {
       setSidebarFocusWithin(false);
     }
   }, [isDrawerMode]);
-
-  useEffect(() => {
-    const shouldOpenServiceCalendar = sessionStorage.getItem(OPEN_SERVICE_CALENDAR_ONCE_KEY) === '1' || Boolean(location.state?.openServiceCalendar);
-    if (!shouldOpenServiceCalendar) return;
-    setServiceCalendarOpen(true);
-    sessionStorage.removeItem(OPEN_SERVICE_CALENDAR_ONCE_KEY);
-    navigate(location.pathname, { replace: true, state: null });
-  }, [location.pathname, location.state, navigate]);
 
   const isActive = (path) => location.pathname === path;
   const isPrefixActive = (prefix) => location.pathname.startsWith(prefix);
@@ -1200,7 +1191,7 @@ export default function DashboardLayout({ children }) {
                   Service Calendar
                 </div>
                 <div style={{ fontSize: '12px', color: serviceCalendarHeaderSubtitleColor }}>
-                  Scheduled services after login.
+                  View scheduled services.
                 </div>
               </div>
               <button

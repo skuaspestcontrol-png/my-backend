@@ -7,7 +7,6 @@ import { setPortalUser } from '../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const LOGIN_SETTINGS_CACHE_KEY = 'login_public_settings_cache_v1';
-const OPEN_SERVICE_CALENDAR_ONCE_KEY = 'open_service_calendar_once_v1';
 
 const readLoginSettingsCache = () => {
   try {
@@ -249,10 +248,8 @@ export default function Login() {
       } else {
         sessionStorage.removeItem('portal_remember_username');
       }
-      sessionStorage.setItem(OPEN_SERVICE_CALENDAR_ONCE_KEY, '1');
       navigate(getEmployeeLandingPath(user.role), {
-        replace: true,
-        state: { openServiceCalendar: true }
+        replace: true
       });
       setAuthLoading(false);
     } catch (error) {
