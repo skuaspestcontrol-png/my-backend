@@ -35,6 +35,27 @@ test('legacy premises need an exact verified address; name-only matching is neve
   assert.equal(candidates([{ ...target, customerPremiseId: '' }], renewal, { ...source, customerPremiseId: '' }).length, 0);
 });
 
+test('an unpaid issued contract can be linked without recording a payment', async () => {
+  const unpaid = { ...target, status: 'SENT', balanceDue: target.total, paymentReceivedEnabled: false, paymentReceivedTotal: 0 };
+  const { state, service, request } = setup([], [source, unpaid]);
+  const before = clone(state.invoices);
+  const choices = await service.list({ renewalId: 'R1', authorize: () => {} });
+  assert.equal(choices.find((item) => item.invoiceId === unpaid._id).eligible, true);
+  await service.link(request);
+  assert.equal(state.rows[0].renewalOutcome, 'WON');
+  assert.deepEqual(state.invoices, before, 'linking must not change invoice status, balance or payments');
+});
+
+test('draft history explains how to issue the invoice; cancelled, void and proforma stay blocked', () => {
+  for (const patch of [{ status: 'DRAFT' }, { status: 'CANCELLED' }, { status: 'CANCELED' }, { status: 'VOID' }, { invoiceType: 'PROFORMA' }]) {
+    const invoice = { ...target, ...patch };
+    assert.equal(candidates([invoice]).length, 0);
+    const [record] = buildExistingHistory({ renewal, sourceInvoice: source, invoices: [invoice], deriveWindow, classifySource, itemTotals });
+    assert.equal(record.eligible, false);
+    assert.match(record.eligibilityReason, patch.status === 'DRAFT' ? /Invoice status to Issued/ : /Cancelled, void or proforma/);
+  }
+});
+
 test('multi-service invoices allocate actual invoice total once, including tax, discount and rounding', () => {
   const second = { ...target.items[0], itemName: 'Termite control', amount: 200 };
   const invoice = { ...target, total: 300, items: [...target.items, second] };

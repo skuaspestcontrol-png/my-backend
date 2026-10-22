@@ -348,7 +348,7 @@ const emptyForm = {
   paymentSplits: [createEmptyPaymentSplit()],
   paymentReceivedTotal: '0',
   attachments: [],
-  status: 'DRAFT',
+  status: 'SENT',
   amount: '0',
   balanceDue: '0',
   subtotal: '0',
@@ -2376,7 +2376,7 @@ export default function InvoiceDashboard() {
       customerNotes: '',
       termsAndConditions: '',
       termsAndConditionsEdited: false,
-      status: 'DRAFT'
+      status: 'SENT'
     });
     setForm(nextForm);
     resetServiceScheduleBuilder(nextForm, nextForm);
@@ -3102,7 +3102,7 @@ export default function InvoiceDashboard() {
       withholdingAmount: autofill?.withholdingAmount || '0',
       discount: autofill?.discount || '0',
       roundOff: autofill?.roundOff || '0',
-      status: 'DRAFT',
+      status: 'SENT',
       amount: '0',
       balanceDue: '0',
       subtotal: '0',
@@ -4518,6 +4518,23 @@ export default function InvoiceDashboard() {
                   <option value="GST">GST Invoice</option>
                   <option value="NON GST">Non GST Invoice</option>
                 </select>
+
+                <label style={shell.label} htmlFor="contract-invoice-status">Invoice status</label>
+                <div>
+                  <select
+                    id="contract-invoice-status"
+                    style={compactContractControlStyle}
+                    value={form.status}
+                    onChange={(event) => setFormWithTotals((prev) => ({ ...prev, status: event.target.value }))}
+                  >
+                    <option value="DRAFT">Draft</option>
+                    <option value="SENT">Issued</option>
+                    {!['DRAFT', 'SENT'].includes(form.status) ? <option value={form.status}>{form.status}</option> : null}
+                  </select>
+                  <small style={{ display: 'block', marginTop: 4, color: 'var(--text-secondary)' }}>
+                    Choose Issued for a confirmed contract, even if unpaid. Recorded payments determine Paid status.
+                  </small>
+                </div>
               </div>
 
               {!modalOpenedFromContract ? (

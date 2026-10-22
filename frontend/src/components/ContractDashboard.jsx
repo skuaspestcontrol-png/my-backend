@@ -43,6 +43,10 @@ const CONTRACTS_DASHBOARD_CACHE_KEY = 'contracts_dashboard_cache_v1';
 const CONTRACTS_SORT_STORAGE_KEY = 'contracts_sort_direction_v1';
 
 const statusStyles = {
+  Draft: { background: 'rgba(100,116,139,0.16)', color: 'var(--text-secondary)' },
+  Cancelled: { background: 'rgba(220,38,38,0.16)', color: 'var(--color-danger)' },
+  Void: { background: 'rgba(220,38,38,0.16)', color: 'var(--color-danger)' },
+  Proforma: { background: 'rgba(100,116,139,0.16)', color: 'var(--text-secondary)' },
   Active: { background: 'rgba(22,163,74,0.16)', color: '#166534' },
   Upcoming: { background: 'rgba(159,23,77,0.16)', color: 'var(--color-primary-dark)' },
   'Expiring Soon': { background: 'rgba(217,119,6,0.16)', color: '#92400e' },
@@ -442,6 +446,10 @@ const deriveContractCode = (contractNo) => {
 
 const deriveContractStatus = (invoiceStatus, startDate, endDate) => {
   const statusText = String(invoiceStatus || '').trim().toLowerCase();
+  if (statusText.includes('draft')) return 'Draft';
+  if (/cancelled|canceled/.test(statusText)) return 'Cancelled';
+  if (statusText.includes('void')) return 'Void';
+  if (statusText.includes('proforma')) return 'Proforma';
   if (statusText.includes('renew')) return 'Renewed';
 
   const today = parseDateOnly(new Date());
@@ -1219,7 +1227,7 @@ export default function ContractDashboard() {
   }, [allContracts, filters, quickFilter]);
 
   const sortedContracts = useMemo(() => {
-    const statusOrder = { Active: 0, Upcoming: 1, 'Expiring Soon': 2, Expired: 3, Renewed: 4 };
+    const statusOrder = { Active: 0, Upcoming: 1, 'Expiring Soon': 2, Expired: 3, Renewed: 4, Draft: 5, Proforma: 6, Cancelled: 7, Void: 8 };
     const list = [...filteredContracts];
     list.sort((leftRow, rightRow) => {
       const leftValue = (() => {
@@ -2011,6 +2019,10 @@ export default function ContractDashboard() {
               <label style={shell.filterLabel}>Status</label>
               <select style={shell.input} value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}>
                 <option>All Status</option>
+                <option>Draft</option>
+                <option>Cancelled</option>
+                <option>Void</option>
+                <option>Proforma</option>
                 <option>Active</option>
                 <option>Upcoming</option>
                 <option>Expiring Soon</option>
