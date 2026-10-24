@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { ArrowDownLeft, ArrowUpRight, Users, ContactRound, BriefcaseBusiness, Receipt, Target, CircleCheck, Clock3, TrendingUp, Wallet } from 'lucide-react';
+import './Dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
@@ -57,144 +59,19 @@ const writeDashboardCache = (snapshot = {}) => {
   }
 };
 
+// Presentation tokens stay local to the Main Dashboard.
 const shell = {
-  page: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '18px',
-    background: 'transparent',
-    border: 'none',
-    borderRadius: 0,
-    padding: 0,
-    backdropFilter: 'none'
-  },
-  hero: {
-    background: '#1a1237',
-    color: '#ffffff',
-    borderRadius: '28px',
-    padding: '30px',
-    display: 'grid',
-    gridTemplateColumns: '1.25fr 0.75fr',
-    gap: '20px',
-    boxShadow: '0 30px 70px rgba(20, 12, 52, 0.28)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    backdropFilter: 'blur(14px)'
-  },
-  badge: { display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#FCE7F3' },
-  title: { margin: '12px 0 10px 0', fontSize: '34px', lineHeight: 1.05, letterSpacing: '-0.04em' },
-  description: { margin: 0, color: 'rgba(255,255,255,0.9)', fontSize: '14px', lineHeight: 1.8, maxWidth: '720px', fontWeight: 600 },
-  tagline: { margin: 0, color: 'rgba(255,255,255,0.94)', fontSize: '24px', lineHeight: 1.35, maxWidth: '720px', fontWeight: 500 },
-  heroCard: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(247,248,252,0.92) 100%)',
-    border: '1px solid rgba(255,255,255,0.5)',
-    borderRadius: '20px',
-    padding: '18px',
-    boxShadow: '0 16px 34px rgba(20, 12, 52, 0.16)',
-    backdropFilter: 'blur(10px)'
-  },
-  metrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '14px' },
-  metric: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,252,0.94) 100%)',
-    border: '1px solid rgba(148, 163, 184, 0.18)',
-    borderRadius: '20px',
-    padding: '18px',
-    boxShadow: '0 16px 34px rgba(15, 23, 42, 0.08)',
-    backdropFilter: 'blur(12px)'
-  },
-  targetSection: { display: 'grid', gap: '12px', padding: '2px 0 0' },
-  targetSectionHead: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
-    padding: '14px 16px',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,252,0.96) 100%)',
-    border: '1px solid rgba(148, 163, 184, 0.16)',
-    borderRadius: '20px',
-    boxShadow: '0 14px 30px rgba(15, 23, 42, 0.07)',
-    backdropFilter: 'blur(10px)'
-  },
-  targetSectionTitle: { margin: 0, color: '#0f172a', fontSize: '13px', fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' },
-  targetSectionHint: { margin: '4px 0 0 0', color: '#64748b', fontSize: '12px', fontWeight: 600, lineHeight: 1.35 },
-  targetMetrics: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '12px' },
-  targetMetric: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,249,252,0.96) 100%)',
-    border: '1px solid rgba(148, 163, 184, 0.16)',
-    borderRadius: '18px',
-    padding: '16px',
-    boxShadow: '0 14px 28px rgba(15, 23, 42, 0.07)',
-    backdropFilter: 'blur(12px)',
-    minHeight: '120px'
-  },
-  targetMetricValue: { margin: '8px 0 0 0', color: '#0f172a', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.04em' },
-  targetMetricSub: { margin: '6px 0 0 0', color: '#64748b', fontSize: '12px', fontWeight: 600 },
-  metricLabel: { margin: 0, color: 'var(--color-primary-dark)', fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' },
-  metricValue: { margin: '10px 0 0 0', color: '#0f172a', fontSize: '28px', fontWeight: 800, letterSpacing: '-0.04em' },
-  metricSub: { margin: '6px 0 0 0', color: '#475569', fontSize: '13px' },
-  graphGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '18px' },
-  panel: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.97) 100%)',
-    borderRadius: '22px',
-    border: '1px solid rgba(148, 163, 184, 0.16)',
-    padding: '18px 18px 20px',
-    boxShadow: '0 18px 38px rgba(15, 23, 42, 0.08)'
-  },
-  sourcePanel: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.97) 100%)',
-    borderRadius: '22px',
-    border: '1px solid rgba(148, 163, 184, 0.16)',
-    padding: 0,
-    overflow: 'hidden',
-    boxShadow: '0 18px 38px rgba(15, 23, 42, 0.08)'
-  },
-  sourceHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '10px',
-    padding: '11px 16px',
-    background: '#1a1237',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
-  },
-  sourceHeaderTitle: { margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 },
-  sourceHeaderBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '84px', color: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 10px', fontSize: '11px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', textAlign: 'center' },
-  sourceHeaderSelect: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px', minWidth: '104px', color: '#ffffff', WebkitTextFillColor: '#ffffff', fontWeight: 700, background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '0 26px 0 12px', fontSize: '12px', lineHeight: 1.1, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)', border: 'none', outline: 'none', appearance: 'none', WebkitAppearance: 'none', textAlign: 'center', textAlignLast: 'center', boxSizing: 'border-box' },
-  sourceBody: { padding: '14px 14px 14px', display: 'grid', gap: '12px', alignItems: 'center' },
-  panelHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' },
-  panelTitle: { margin: 0, color: '#475569', fontSize: '17px', fontWeight: 700 },
-  panelSub: { margin: 0, color: '#64748b', fontSize: '14px', fontWeight: 600 },
-  total: { margin: '8px 0 12px 0', color: '#111827', fontSize: '40px', fontWeight: 800, letterSpacing: '-0.03em' },
-  incomePanelHead: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' },
-  incomeLegend: { display: 'flex', alignItems: 'flex-start', gap: '28px', flexWrap: 'wrap' },
-  incomeLegendItem: { display: 'grid', gap: '4px' },
-  incomeLegendLabel: { display: 'inline-flex', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '13px', fontWeight: 800, lineHeight: 1.1 },
-  incomeLegendValue: { margin: 0, color: '#111827', fontSize: '15px', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1 },
-  modeToggle: { display: 'inline-flex', alignItems: 'center', border: '1px solid #d1d5db', borderRadius: '10px', overflow: 'hidden', background: '#fff', flexShrink: 0 },
-  modeToggleBtn: { border: 'none', background: '#fff', color: '#111827', minHeight: '42px', height: '42px', padding: '0 14px', fontSize: '16px', fontWeight: 500, cursor: 'pointer' },
-  modeToggleBtnActive: { background: '#e5e7eb', color: '#111827' },
-  incomeChartWrap: { display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' },
-  incomeYAxis: { display: 'grid', alignContent: 'space-between', padding: '8px 0 30px 0' },
-  incomeYAxisLabel: { color: '#334155', fontSize: '12px', fontWeight: 800, lineHeight: 1 },
-  incomeChart: { position: 'relative', minHeight: '280px', borderLeft: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', padding: '10px 12px 8px 12px', background: '#fff' },
-  incomeGridLine: { position: 'absolute', left: 0, right: 0, borderTop: '1px dashed #dbe4f0' },
-  incomeBars: { position: 'relative', zIndex: 1, display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', gap: '8px', alignItems: 'end', height: '100%' },
-  incomeMonth: { display: 'grid', gridTemplateRows: '1fr auto', gap: '10px', alignItems: 'end', minHeight: 0 },
-  incomeBarCluster: { display: 'flex', alignItems: 'end', justifyContent: 'center', gap: '4px', minHeight: 0, height: '100%' },
-  incomeBarItem: { width: '18px', borderRadius: '4px 4px 0 0', minHeight: '1px' },
-  incomeMonthLabel: { display: 'grid', gap: '2px', justifyItems: 'center', color: '#334155', fontSize: '12px', fontWeight: 800, lineHeight: 1.05, textAlign: 'center' },
-  progressTrack: { width: '100%', height: '20px', background: '#e5e7eb', borderRadius: '999px', overflow: 'hidden', display: 'flex' },
-  legendRow: { display: 'flex', gap: '18px', flexWrap: 'wrap', marginTop: '14px' },
-  legendItem: { display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#334155', fontSize: '13px', fontWeight: 600 },
-  dot: { width: '12px', height: '12px', borderRadius: '999px', display: 'inline-block' },
-  barWrap: { marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '10px' },
-  bars: { display: 'grid', gap: '10px' },
-  barRow: { display: 'grid', gridTemplateColumns: '42px 1fr auto auto', alignItems: 'center', gap: '10px' },
-  donutWrap: { display: 'grid', gridTemplateColumns: '1fr', gap: '14px', justifyItems: 'center', marginTop: '2px' },
-  donut: { width: '268px', height: '268px', borderRadius: '50%', position: 'relative' },
-  donutInner: { position: 'absolute', inset: '30%', borderRadius: '50%', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px' },
-  sourceLegend: { display: 'grid', gridTemplateColumns: '1fr', gap: '10px', width: '100%', alignContent: 'start' },
-  sourceLegendItem: { display: 'grid', gridTemplateColumns: '13px minmax(0, 1fr) auto', alignItems: 'center', gap: '10px', color: '#334155', fontSize: '13px', fontWeight: 800, lineHeight: 1.2 },
-  sourceLegendDot: { width: '13px', height: '13px', borderRadius: '999px', display: 'inline-block', flexShrink: 0 }
+  page: { display: 'flex', flexDirection: 'column', gap: 24, minWidth: 0 },
+  title: { margin: 0, fontSize: 'clamp(22px, 2.2vw, 32px)', lineHeight: 1.2, letterSpacing: '-0.035em' },
+  metricLabel: { margin: 0, color: 'var(--text-secondary)', fontSize: 12, fontWeight: 700 },
+  sourceHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '16px 20px', background: 'var(--dashboard-header)' },
+  sourceHeaderTitle: { margin: 0, color: '#ffffff', fontSize: 15, fontWeight: 700 },
+  sourceHeaderBadge: { color: '#ffffff', background: 'rgba(255,255,255,.1)', borderRadius: 8, padding: '6px 10px', fontSize: 12 },
+  dot: { width: 10, height: 10, borderRadius: '50%', display: 'inline-block', flexShrink: 0 },
+  legendRow: { display: 'flex', gap: 16, flexWrap: 'wrap' },
+  legendItem: { display: 'inline-flex', gap: 8, color: 'var(--text-secondary)', fontSize: 12 },
+  donutWrap: { display: 'grid', gap: 20, justifyItems: 'center' },
+  sourceLegendDot: { width: 10, height: 10, borderRadius: '50%', display: 'inline-block' }
 };
 
 const toNum = (value, fallback = 0) => {
@@ -279,7 +156,6 @@ export default function Dashboard() {
   const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
   const [selectedSalesPerformanceYear, setSelectedSalesPerformanceYear] = useState(() => String(new Date().getFullYear()));
   const [selectedSalesPersonId, setSelectedSalesPersonId] = useState('');
-  const [hoveredIncomeBar, setHoveredIncomeBar] = useState(null);
 
   useEffect(() => {
     if (hasLoadedRef.current) return undefined;
@@ -734,19 +610,14 @@ export default function Dashboard() {
     }
   ]), [selectedTargetYearNumber, yearlyTargetSummary]);
   const isMobile = viewportWidth < 768;
-  const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
-  const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
-  const isSmallMobile = viewportWidth < 420;
   const salesPerformanceEmployees = safeRows(salesPerformanceData?.employees);
   const salesPerformanceTrend = safeRows(salesPerformanceData?.monthlyTrend);
   const salesPerformanceChartHeight = getChartHeight({ mobile: isMobile });
   const salesPerformanceChartProps = getBarChartProps(salesPerformanceTrend.length, { mobile: isMobile });
   const salesPerformanceAxisProps = getChartAxisProps({ mobile: isMobile });
-  const salesPerformanceCurrencyAxisProps = getCurrencyAxisProps({ mobile: isMobile });
+  const salesPerformanceCurrencyAxisProps = { ...getCurrencyAxisProps({ mobile: isMobile }), width: isMobile ? 62 : 76 };
   const salesPerformanceMargin = getChartMargin({ mobile: isMobile });
-  const salesPerformanceChartMinWidth = isMobile
-    ? Math.max(920, salesPerformanceTrend.length * 84)
-    : 0;
+  const salesPerformanceChartMinWidth = isMobile ? Math.max(600, salesPerformanceTrend.length * 50) : 0;
   const salesPerformanceMonthlyTarget = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.target), 0);
   const salesPerformanceMonthlyAchieved = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.achieved), 0);
   const selectedSalesPersonLabel = selectedSalesPersonId
@@ -759,292 +630,50 @@ export default function Dashboard() {
   const companyName = String(settings.companyName || settings.gstCompanyName || 'SKUAS Pest Control Private Limited').trim();
   const aboutTagline = String(settings.aboutTagline || 'Professional in Pest Control').trim();
   const isDarkTheme = themeMode === 'dark';
-  const darkDashboardSurface = '#111936';
-  const darkDashboardPanel = '#0e1530';
-  const darkDashboardHeader = '#1a1237';
-  const darkDashboardBorder = 'rgba(73, 101, 221, 0.36)';
-  const darkDashboardText = '#f8fafc';
-  const darkDashboardMuted = '#a9b5d5';
-  const darkSurfaceStyle = isDarkTheme
-    ? {
-        background: darkDashboardSurface,
-        color: darkDashboardText,
-        borderColor: darkDashboardBorder,
-        boxShadow: 'none'
-      }
-    : null;
-  const darkPanelStyle = isDarkTheme
-    ? {
-        background: darkDashboardPanel,
-        color: darkDashboardText,
-        borderColor: darkDashboardBorder,
-        boxShadow: 'none'
-      }
-    : null;
-  const darkHeaderStyle = isDarkTheme
-    ? {
-        background: darkDashboardHeader,
-        color: '#ffffff',
-        borderBottomColor: 'rgba(255, 255, 255, 0.08)'
-      }
-    : null;
-
-  const heroStyle = isMobile
-    ? { ...shell.hero, ...darkSurfaceStyle, gridTemplateColumns: '1fr', padding: isSmallMobile ? '16px' : '20px' }
-    : isTablet || isLaptop
-      ? { ...shell.hero, ...darkSurfaceStyle, gridTemplateColumns: '1fr', padding: isTablet ? '22px' : '26px' }
-      : { ...shell.hero, ...darkSurfaceStyle };
-
-  const metricsStyle = isMobile
-    ? { ...shell.metrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }
-    : isTablet
-      ? { ...shell.metrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : isLaptop
-        ? { ...shell.metrics, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }
-        : shell.metrics;
-  const heroFinanceCardStyle = {
-    ...shell.heroCard,
-    border: 'none',
-    padding: isMobile ? '8px 12px' : '14px',
-    borderRadius: isMobile ? '16px' : shell.heroCard.borderRadius,
-    background: isDarkTheme ? '#202a4c' : '#ffffff',
-    display: 'grid',
-    placeItems: 'center'
-  };
-  const heroFinanceTextStyle = {
-    margin: 0,
-    textAlign: 'center',
-    color: isDarkTheme ? '#ffffff' : 'var(--color-primary-dark)',
-    lineHeight: isMobile ? 1.35 : 1.7,
-    fontSize: isMobile ? '12px' : '15px',
-    fontWeight: 700
-  };
-  const receivableColor = '#16a34a';
-  const payableColor = '#dc2626';
-  const heroPipeColor = isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : '#111827';
-  const taglineStyle = isMobile
-    ? { ...shell.tagline, fontSize: isSmallMobile ? '18px' : '20px', lineHeight: 1.3 }
-    : isTablet || isLaptop
-      ? { ...shell.tagline, fontSize: '22px' }
-      : shell.tagline;
-  const metricStyle = isMobile
-    ? { ...shell.metric, ...darkSurfaceStyle, padding: '12px 14px', borderRadius: '10px', minHeight: '122px' }
-    : { ...shell.metric, ...darkSurfaceStyle };
-  const metricLabelStyle = isMobile
-    ? { ...shell.metricLabel, color: isDarkTheme ? darkDashboardMuted : shell.metricLabel.color, fontSize: '9px', lineHeight: 1.25 }
-    : { ...shell.metricLabel, color: isDarkTheme ? darkDashboardMuted : shell.metricLabel.color };
-  const metricValueStyle = isMobile
-    ? { ...shell.metricValue, color: isDarkTheme ? darkDashboardText : shell.metricValue.color, margin: '8px 0 0 0', fontSize: '23px', lineHeight: 1.05 }
-    : { ...shell.metricValue, color: isDarkTheme ? darkDashboardText : shell.metricValue.color };
-  const metricSubStyle = isMobile
-    ? { ...shell.metricSub, color: isDarkTheme ? darkDashboardMuted : shell.metricSub.color, margin: '6px 0 0 0', fontSize: '11px', lineHeight: 1.35 }
-    : { ...shell.metricSub, color: isDarkTheme ? darkDashboardMuted : shell.metricSub.color };
-
-  const graphGridStyle = viewportWidth >= 1200
-    ? { ...shell.graphGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', alignItems: 'start' }
-    : { ...shell.graphGrid, gridTemplateColumns: '1fr' };
-  const graphCardStyle = viewportWidth >= 1200
-    ? { minHeight: '390px', boxSizing: 'border-box' }
-    : {};
-  const graphSourceCardStyle = viewportWidth >= 1200
-    ? { ...shell.sourcePanel, ...darkPanelStyle, minHeight: '390px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }
-    : { ...shell.sourcePanel, ...darkPanelStyle };
-  const sourceBodyStyle = isMobile
-    ? { ...shell.sourceBody, justifyItems: 'center' }
-    : viewportWidth >= 1200
-      ? { ...shell.sourceBody, gridTemplateColumns: 'minmax(180px, 0.92fr) minmax(130px, 0.78fr)', justifyItems: 'stretch', alignContent: 'center', gap: '8px', flex: 1 }
-      : { ...shell.sourceBody, gridTemplateColumns: 'minmax(280px, 520px) minmax(220px, 1fr)', justifyItems: 'stretch' };
-  const sourceLegendStyle = isMobile
-    ? { ...shell.sourceLegend, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px 12px', justifyItems: 'stretch', textAlign: 'left', maxWidth: '100%' }
-    : { ...shell.sourceLegend, justifyItems: 'stretch', textAlign: 'left', maxWidth: '250px' };
-  const sourceLegendItemStyle = isMobile
-    ? { ...shell.sourceLegendItem, gridTemplateColumns: '11px minmax(0, 1fr) auto', gap: '6px', fontSize: '12px', width: '100%', justifyContent: 'start' }
-    : { ...shell.sourceLegendItem, fontSize: '13px', gap: '8px' };
-  const salesChartSectionStyle = {
-    display: 'grid',
-    gap: '12px',
-    width: '100%',
-    minWidth: 0,
-    marginTop: '2px'
-  };
-  const salesChartCardStyle = {
-    background: '#fff',
-    border: '1px solid #dbe4f0',
-    borderRadius: '22px',
-    overflow: 'hidden',
-    boxShadow: 'none',
-    minHeight: isMobile ? 'auto' : '390px',
-    display: 'flex',
-    flexDirection: 'column',
-    ...(darkPanelStyle || {})
-  };
-  const salesChartCardHeaderStyle = {
-    ...shell.sourceHeader,
-    flexWrap: 'wrap',
-    ...(darkHeaderStyle || {})
-  };
-  const salesChartTitleStyle = { margin: 0, color: '#ffffff', fontSize: '16px', fontWeight: 700, lineHeight: 1.1 };
-  const salesChartSubtitleStyle = { margin: '4px 0 0 0', color: 'rgba(255, 255, 255, 0.78)', fontSize: '12px', fontWeight: 600, lineHeight: 1.2 };
-  const salesChartHeaderControlsStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    flexWrap: 'nowrap',
-    width: isMobile ? '100%' : 'auto',
-    marginLeft: isMobile ? 0 : 'auto',
-    justifyContent: isMobile ? 'flex-end' : 'flex-start',
-    overflowX: isMobile ? 'auto' : 'visible',
-    WebkitOverflowScrolling: 'touch'
-  };
-  const compactHeaderSelectStyle = {
-    ...shell.sourceHeaderSelect,
-    width: isMobile ? '104px' : '108px',
-    minWidth: isMobile ? '104px' : '108px',
-    height: '34px',
-    minHeight: '34px',
-    color: isDarkTheme ? '#ffffff' : '#0f172a',
-    WebkitTextFillColor: isDarkTheme ? '#ffffff' : '#0f172a',
-    background: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
-    boxShadow: isDarkTheme ? shell.sourceHeaderSelect.boxShadow : 'inset 0 0 0 1px rgba(15, 23, 42, 0.14)',
-    flexShrink: 0
-  };
-  const salesChartSelectStyle = {
-    ...shell.sourceHeaderSelect,
-    minWidth: '112px',
-    height: '34px',
-    minHeight: '34px',
-    color: isDarkTheme ? '#ffffff' : '#0f172a',
-    WebkitTextFillColor: isDarkTheme ? '#ffffff' : '#0f172a',
-    background: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : '#ffffff',
-    boxShadow: isDarkTheme ? shell.sourceHeaderSelect.boxShadow : 'inset 0 0 0 1px rgba(15, 23, 42, 0.14)',
-    flex: '1 1 0'
-  };
-  const salesChartYearSelectStyle = isMobile
-    ? { ...salesChartSelectStyle, flex: '0 0 104px', minWidth: '104px' }
-    : { ...salesChartSelectStyle, flex: '0 0 108px', minWidth: '108px' };
-  const salesChartPersonSelectStyle = isMobile
-    ? { ...salesChartSelectStyle, flex: '1 1 0', minWidth: '128px' }
-    : { ...salesChartSelectStyle, flex: '0 0 150px', minWidth: '150px' };
-  const salesChartBodyStyle = {
-    padding: '14px 16px 16px',
-    display: 'grid',
-    gap: '12px',
-    flex: 1
-  };
-  const salesChartLegendStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
-    flexWrap: 'wrap'
-  };
-  const salesChartLegendItemStyle = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    color: isDarkTheme ? darkDashboardMuted : '#334155',
-    fontSize: '12px',
-    fontWeight: 700
-  };
-  const salesChartChartWrapStyle = {
-    display: 'grid',
-    gridTemplateColumns: isMobile ? '36px minmax(0, 1fr)' : '44px minmax(0, 1fr)',
-    gap: '12px',
-    alignItems: 'stretch'
-  };
-  const salesChartScrollStyle = {
-    width: '100%',
-    maxWidth: '100%',
-    overflowX: 'auto',
-    overflowY: 'hidden',
-    WebkitOverflowScrolling: 'touch',
-    touchAction: 'pan-x',
-    overscrollBehaviorX: 'contain'
-  };
-  const salesChartYAxisStyle = {
-    display: 'grid',
-    alignContent: 'space-between',
-    padding: '8px 0 26px 0'
-  };
-  const salesChartYAxisLabelStyle = { color: isDarkTheme ? darkDashboardMuted : '#334155', fontSize: '12px', fontWeight: 800, lineHeight: 1 };
-  const yearlySummaryGridStyle = isMobile
-    ? { ...shell.targetMetrics, gridTemplateColumns: '1fr' }
-    : isTablet
-      ? { ...shell.targetMetrics, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-      : shell.targetMetrics;
-  const targetSectionHeadStyle = isMobile
-    ? { ...shell.targetSectionHead, ...darkSurfaceStyle, flexDirection: 'column', alignItems: 'stretch', padding: '14px' }
-    : { ...shell.targetSectionHead, ...darkSurfaceStyle };
-  const targetSectionTitleStyle = {
-    ...shell.targetSectionTitle,
-    color: isDarkTheme ? darkDashboardText : shell.targetSectionTitle.color
-  };
-  const targetSectionHintStyle = isMobile
-    ? { ...shell.targetSectionHint, color: isDarkTheme ? darkDashboardMuted : shell.targetSectionHint.color, maxWidth: '100%' }
-    : { ...shell.targetSectionHint, color: isDarkTheme ? darkDashboardMuted : shell.targetSectionHint.color };
-  const targetYearSelectStyle = {
-    border: isDarkTheme ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid #dbe4f0',
-    background: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : '#fff',
-    color: isDarkTheme ? '#ffffff' : '#334155',
-    fontWeight: 700,
-    borderRadius: '12px',
-    padding: '8px 12px',
-    fontSize: '12px',
-    outline: 'none',
-    minWidth: isMobile ? '100%' : '120px',
-    boxShadow: isDarkTheme ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.06)' : '0 1px 2px rgba(15, 23, 42, 0.04)'
-  };
-  const targetMetricValueStyle = isMobile
-    ? { ...shell.targetMetricValue, color: isDarkTheme ? darkDashboardText : shell.targetMetricValue.color, fontSize: '22px' }
-    : { ...shell.targetMetricValue, color: isDarkTheme ? darkDashboardText : shell.targetMetricValue.color };
-  const targetMetricSubStyle = isMobile
-    ? { ...shell.targetMetricSub, color: isDarkTheme ? darkDashboardMuted : shell.targetMetricSub.color, fontSize: '11px' }
-    : { ...shell.targetMetricSub, color: isDarkTheme ? darkDashboardMuted : shell.targetMetricSub.color };
-
-  const successGreen = '#16A34A';
-  const incomeGreen = '#24c17f';
-  const dangerRed = '#DC2626';
-  const axisGray = isDarkTheme ? darkDashboardMuted : '#334155';
-  const gridGray = '#dbe4f0';
-  const expenseColors = ['#16A34A', '#DC2626', isDarkTheme ? '#f8fafc' : '#111827', '#8B5CF6', '#0F766E'];
+  const darkDashboardText = 'var(--text-primary)';
+  const darkDashboardMuted = 'var(--text-secondary)';
+  const taglineStyle = { margin: '10px 0 0', color: 'var(--text-secondary)', fontSize: 15 };
+  const metricLabelStyle = shell.metricLabel;
+  const metricValueStyle = { margin: '14px 0 6px', color: 'var(--text-primary)', fontSize: 'clamp(24px, 2.3vw, 32px)', fontWeight: 800, letterSpacing: '-.035em', overflowWrap: 'anywhere' };
+  const metricSubStyle = { margin: 0, color: 'var(--text-secondary)', fontSize: 12 };
+  const sourceBodyStyle = { display: 'grid', gap: 24, alignItems: 'center', padding: 24, flex: 1 };
+  const sourceLegendStyle = { display: 'grid', gap: 14, width: '100%', minWidth: 0 };
+  const sourceLegendItemStyle = { display: 'grid', gridTemplateColumns: '10px minmax(0, 1fr) auto', gap: 10, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.4 };
+  const salesChartSectionStyle = { minWidth: 0 };
+  const salesChartCardHeaderStyle = { ...shell.sourceHeader, flexWrap: 'wrap' };
+  const salesChartTitleStyle = shell.sourceHeaderTitle;
+  const salesChartSubtitleStyle = { margin: '6px 0 0', color: '#d7daee', fontSize: 12, lineHeight: 1.4 };
+  const salesChartHeaderControlsStyle = { display: 'flex', flexWrap: 'wrap', gap: 8 };
+  const compactHeaderSelectStyle = { minWidth: 92 };
+  const salesChartYearSelectStyle = { minWidth: 92 };
+  const salesChartPersonSelectStyle = { minWidth: 140, maxWidth: '100%' };
+  const salesChartBodyStyle = { display: 'grid', gap: 24, padding: 20, minWidth: 0 };
+  const salesChartLegendStyle = { display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' };
+  const salesChartLegendItemStyle = { display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 12 };
+  const salesChartChartWrapStyle = { minWidth: 0 };
+  const salesChartScrollStyle = { width: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' };
+  const targetSectionTitleStyle = { margin: 0, color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, letterSpacing: '-.02em' };
+  const targetSectionHintStyle = { margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.5 };
+  const targetYearSelectStyle = { minWidth: 100 };
+  const targetMetricValueStyle = { ...metricValueStyle, fontSize: 'clamp(22px, 2vw, 28px)' };
+  const targetMetricSubStyle = metricSubStyle;
+  const incomeGreen = '#14a777';
+  const dangerRed = '#e05b71';
+  const expenseColors = ['#8b5cf6', '#14a777', '#3b82f6', '#f59e0b', '#e05b71'];
   const leadFunnelRows = [
     { label: 'Total Leads', value: leadPipeline.totalLeads, color: '#4965dd' },
     { label: 'Interested', value: leadPipeline.interested, color: '#12abc4' },
     { label: 'Converted', value: leadPipeline.converted, color: '#18b985' }
   ];
   const maxLeadFunnel = Math.max(...leadFunnelRows.map((row) => row.value), 1);
-  const incomeExpenseMaxValue = Math.max(
-    selectedYearAnalytics.totalIncome,
-    selectedYearAnalytics.totalExpenses,
-    ...selectedYearAnalytics.incomeSeries.map((row) => row.value),
-    ...selectedYearAnalytics.expenseSeries.map((row) => row.value),
-    1
-  );
-  const incomeExpenseYAxisStep = Math.max(20000, Math.ceil((incomeExpenseMaxValue || 1) / 5 / 10000) * 10000);
-  const incomeExpenseYAxisMax = incomeExpenseYAxisStep * 5;
-  const incomeExpenseYAxisValues = Array.from({ length: 6 }, (_, idx) => idx * incomeExpenseYAxisStep);
-  const incomeExpenseChartHeight = isMobile ? 220 : 225;
-  const incomeExpenseScale = incomeExpenseYAxisMax > 0 ? incomeExpenseChartHeight / incomeExpenseYAxisMax : 1;
-  const currencyLabel = (value) => (value >= 1000 ? `${Math.round(value / 1000)} K` : `${Math.round(value)}`);
-  const incomeExpenseChartStyle = isMobile
-    ? { ...shell.incomeChart, background: isDarkTheme ? darkDashboardPanel : shell.incomeChart.background, borderLeftColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, borderBottomColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, minHeight: '250px', padding: '10px 8px 8px 8px' }
-    : viewportWidth >= 1200
-      ? { ...shell.incomeChart, background: isDarkTheme ? darkDashboardPanel : shell.incomeChart.background, borderLeftColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, borderBottomColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, minHeight: '200px', padding: '8px 10px 6px 10px' }
-    : { ...shell.incomeChart, background: isDarkTheme ? darkDashboardPanel : shell.incomeChart.background, borderLeftColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined, borderBottomColor: isDarkTheme ? 'rgba(148, 163, 184, 0.28)' : undefined };
-  const incomeExpenseYAxisStyle = isMobile
-    ? { ...shell.incomeYAxis, padding: '8px 0 24px 0' }
-    : viewportWidth >= 1200
-      ? { ...shell.incomeYAxis, padding: '6px 0 18px 0' }
-    : shell.incomeYAxis;
-  const incomeExpenseLegendValueStyle = { ...shell.incomeLegendValue, color: isDarkTheme ? darkDashboardText : shell.incomeLegendValue.color, fontSize: '14px', lineHeight: 1.1 };
-  const incomeExpenseLegendLabelStyle = { ...shell.incomeLegendLabel, color: isDarkTheme ? darkDashboardText : shell.incomeLegendLabel.color, fontSize: '13px', lineHeight: 1.1 };
-  const formatCurrencyPrecise = (value) => {
-    const formatted = Number(value || 0).toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-    return formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted;
-  };
+  // Adapt the existing monthly series for rendering; accounting totals stay above.
+  const incomeExpenseChartData = selectedYearAnalytics.months.map((month, index) => ({
+    label: month.label,
+    income: selectedYearAnalytics.incomeSeries[index]?.value || 0,
+    expense: selectedYearAnalytics.expenseSeries[index]?.value || 0
+  }));
+  const incomeExpenseLegendValueStyle = { margin: 0, color: 'var(--text-primary)', fontSize: 18, fontWeight: 800 };
+  const incomeExpenseLegendLabelStyle = { display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 12 };
   const renderRoundedDonut = (segments, total, colors, size, strokeWidth, label, value, labelSize = '13px', valueSize = '22px') => {
     const radius = (size - strokeWidth) / 2;
     const circumference = 2 * Math.PI * radius;
@@ -1122,55 +751,52 @@ export default function Dashboard() {
     );
   };
   return (
-    <div className="dashboard-page" style={shell.page}>
-      <section className="hero-section command-center" style={heroStyle}>
+    <div className="dashboard-page dashboard-main" style={shell.page}>
+      <section className="hero-section command-center">
         <div>
-          <h1 style={{ ...shell.title, color: '#ffffff' }}>{companyName}</h1>
+          <h1 style={{ ...shell.title, color: 'var(--text-primary)' }}>{companyName}</h1>
           <p style={taglineStyle}>
             {aboutTagline}
           </p>
         </div>
 
-        <div style={heroFinanceCardStyle}>
-          <p style={heroFinanceTextStyle}>
-            <span style={{ color: receivableColor }}>
-              Receivables: <strong>{formatCurrency(analytics.totalReceivables)}</strong>
-            </span>
-            {' '}
-            <span style={{ color: heroPipeColor }}>|</span>
-            {' '}
-            <span style={{ color: payableColor }}>
-              Payables: <strong>{formatCurrency(analytics.totalPayables)}</strong>
-            </span>
-          </p>
+        <div className="dashboard-finance">
+          <div className="dashboard-finance-item">
+            <span className="dashboard-icon dashboard-icon-green"><ArrowDownLeft size={20} /></span>
+            <div><p>Receivables</p><strong>{formatCurrency(analytics.totalReceivables)}</strong></div>
+          </div>
+          <div className="dashboard-finance-item">
+            <span className="dashboard-icon dashboard-icon-rose"><ArrowUpRight size={20} /></span>
+            <div><p>Payables</p><strong>{formatCurrency(analytics.totalPayables)}</strong></div>
+          </div>
         </div>
       </section>
 
-      <section className="stats-grid dashboard-grid" style={metricsStyle}>
-        <div className="dashboard-metric-card" style={metricStyle}>
-          <p style={metricLabelStyle}>Leads</p>
+      <section className="stats-grid dashboard-grid">
+        <div className="dashboard-metric-card">
+          <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Leads</p><span className="dashboard-icon dashboard-icon-purple"><Users size={20} /></span></div>
           <p style={metricValueStyle}>{topCards.leadsCount}</p>
           <p style={metricSubStyle}>Total leads</p>
         </div>
-        <div className="dashboard-metric-card" style={metricStyle}>
-          <p style={metricLabelStyle}>Customers</p>
+        <div className="dashboard-metric-card">
+          <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Customers</p><span className="dashboard-icon dashboard-icon-blue"><ContactRound size={20} /></span></div>
           <p style={metricValueStyle}>{topCards.customersCount}</p>
           <p style={metricSubStyle}>Active customers</p>
         </div>
-        <div className="dashboard-metric-card" style={metricStyle}>
-          <p style={metricLabelStyle}>Employees</p>
+        <div className="dashboard-metric-card">
+          <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Employees</p><span className="dashboard-icon dashboard-icon-teal"><BriefcaseBusiness size={20} /></span></div>
           <p style={metricValueStyle}>{topCards.employeesCount}</p>
           <p style={metricSubStyle}>Workforce</p>
         </div>
-        <div className="dashboard-metric-card" style={metricStyle}>
-          <p style={metricLabelStyle}>Invoices Value</p>
+        <div className="dashboard-metric-card">
+          <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Invoices Value</p><span className="dashboard-icon dashboard-icon-amber"><Receipt size={20} /></span></div>
           <p style={metricValueStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
           <p style={metricSubStyle}>{topCards.invoicesCount} invoices</p>
         </div>
       </section>
 
-      <section style={shell.targetSection}>
-        <div className="dashboard-section-head" style={targetSectionHeadStyle}>
+      <section className="dashboard-target-section">
+        <div className="dashboard-section-head">
           <div>
             <h2 style={targetSectionTitleStyle}>Yearly Target vs Achievement</h2>
             <p style={targetSectionHintStyle}>Choose a year to review sales targets and progress.</p>
@@ -1187,10 +813,10 @@ export default function Dashboard() {
           </select>
         </div>
 
-        <div style={yearlySummaryGridStyle}>
-          {yearlyTargetCards.map((card) => (
-            <article key={card.label} className="dashboard-target-card" style={{ ...shell.targetMetric, ...darkSurfaceStyle }}>
-              <p style={shell.metricLabel}>{card.label}</p>
+        <div className="dashboard-target-grid">
+          {yearlyTargetCards.map((card, index) => (
+            <article key={card.label} className="dashboard-target-card">
+              <div className="dashboard-metric-heading"><p style={shell.metricLabel}>{card.label}</p><span className="dashboard-target-icon">{React.createElement([Target, CircleCheck, Clock3, TrendingUp][index], { size: 18 })}</span></div>
               <p style={targetMetricValueStyle}>{card.value}</p>
               <p style={targetMetricSubStyle}>{card.sub}</p>
             </article>
@@ -1198,8 +824,8 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section style={graphGridStyle}>
-        <article className="dashboard-panel" style={graphSourceCardStyle}>
+      <section className="dashboard-chart-grid">
+        <article className="dashboard-panel">
           <div className="dashboard-panel-header" style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Pipeline</h2>
             <select
@@ -1235,7 +861,7 @@ export default function Dashboard() {
                 }}
               >
                 <span style={{ color: isDarkTheme ? darkDashboardText : '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
-                <span style={{ display: 'block', width: '100%', minWidth: 0 }}>
+                <span style={{ display: 'block', width: '100%', minWidth: 0, background: 'var(--surface-muted)', borderRadius: 7 }}>
                   <span
                     style={{
                       display: 'flex',
@@ -1277,7 +903,7 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article className="dashboard-panel" style={graphSourceCardStyle}>
+        <article className="dashboard-panel">
           <div className="dashboard-panel-header" style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Income and Expense</h2>
             <select
@@ -1308,165 +934,34 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr)', gap: '12px', alignItems: 'stretch', marginTop: '18px' }}>
-              <div style={incomeExpenseYAxisStyle}>
-                {incomeExpenseYAxisValues.slice().reverse().map((value) => (
-                  <span key={value} style={{ ...shell.incomeYAxisLabel, color: value === 0 ? (isDarkTheme ? darkDashboardMuted : '#334155') : axisGray }}>
-                    {value === 0 ? '0' : currencyLabel(value)}
-                  </span>
-                ))}
-              </div>
-
-              <div style={{ position: 'relative', minWidth: 0 }}>
-                <div style={{ ...incomeExpenseChartStyle, height: `${incomeExpenseChartHeight + 42}px` }}>
-                  {incomeExpenseYAxisValues.slice(1).map((value) => (
-                    <div
-                      key={value}
-                      style={{
-                        ...shell.incomeGridLine,
-                        bottom: `${(value / incomeExpenseYAxisMax) * 100}%`
-                      }}
-                    />
-                  ))}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: '8px 10px 6px 10px',
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                      gap: isMobile ? '6px' : '8px',
-                      alignItems: 'end',
-                      overflow: 'visible'
-                    }}
-                  >
-                    {selectedYearAnalytics.months.map((month, index) => {
-                      const income = selectedYearAnalytics.incomeSeries[index]?.value || 0;
-                      const expense = selectedYearAnalytics.expenseSeries[index]?.value || 0;
-                      const incomeHeight = Math.max(income * incomeExpenseScale, income > 0 ? 6 : 0);
-                      const expenseHeight = Math.max(expense * incomeExpenseScale, expense > 0 ? 6 : 0);
-
-                      return (
-                        <div
-                          key={month.key}
-                          style={{ ...shell.incomeMonth, position: 'relative' }}
-                          onMouseLeave={() => setHoveredIncomeBar(null)}
-                        >
-                          <div style={shell.incomeBarCluster}>
-                            <div style={{ display: 'flex', alignItems: 'end', gap: '4px', height: '100%' }}>
-                              <button
-                                type="button"
-                                aria-label={`${month.label} income ${formatCurrencyPrecise(income)}`}
-                                onMouseEnter={() => setHoveredIncomeBar({
-                                  monthKey: month.key,
-                                  monthLabel: month.label,
-                                  year: selectedYearNumber,
-                                  value: income
-                                })}
-                                onFocus={() => setHoveredIncomeBar({
-                                  monthKey: month.key,
-                                  monthLabel: month.label,
-                                  year: selectedYearNumber,
-                                  value: income
-                                })}
-                                style={{
-                                  ...shell.incomeBarItem,
-                                  height: `${incomeHeight}px`,
-                                  background: incomeGreen,
-                                  border: 'none',
-                                  padding: 0,
-                                  cursor: 'pointer'
-                                }}
-                              />
-                              <button
-                                type="button"
-                                aria-label={`${month.label} expense ${formatCurrencyPrecise(expense)}`}
-                                onMouseEnter={() => setHoveredIncomeBar({
-                                  monthKey: month.key,
-                                  monthLabel: month.label,
-                                  year: selectedYearNumber,
-                                  value: expense
-                                })}
-                                onFocus={() => setHoveredIncomeBar({
-                                  monthKey: month.key,
-                                  monthLabel: month.label,
-                                  year: selectedYearNumber,
-                                  value: expense
-                                })}
-                                style={{
-                                  ...shell.incomeBarItem,
-                                  height: `${expenseHeight}px`,
-                                  background: dangerRed,
-                                  opacity: 0.78,
-                                  border: 'none',
-                                  padding: 0,
-                                  cursor: 'pointer'
-                                }}
-                              />
-                            </div>
-                          </div>
-                          <div style={{ ...shell.incomeMonthLabel, color: isDarkTheme ? darkDashboardMuted : shell.incomeMonthLabel.color }}>
-                            <span>{month.label}</span>
-                          </div>
-                          {hoveredIncomeBar?.monthKey === month.key ? (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                left: '50%',
-                                bottom: 'calc(100% + 14px)',
-                                transform: 'translateX(-50%)',
-                                background: isDarkTheme ? '#202a4c' : '#fff',
-                                border: isDarkTheme ? '1px solid rgba(73, 101, 221, 0.36)' : '1px solid #dbe4f0',
-                                borderRadius: '18px',
-                                boxShadow: '0 16px 34px rgba(15, 23, 42, 0.12)',
-                                padding: '14px 16px 12px',
-                                minWidth: '168px',
-                                pointerEvents: 'none',
-                                textAlign: 'left',
-                                zIndex: 20
-                              }}
-                            >
-                              <div style={{ color: isDarkTheme ? darkDashboardText : '#0f172a', fontSize: '22px', fontWeight: 800, lineHeight: 1.08 }}>
-                                {formatCurrencyPrecise(hoveredIncomeBar.value)}
-                              </div>
-                              <div style={{ marginTop: '10px', color: isDarkTheme ? darkDashboardMuted : '#334155', fontSize: '16px', fontWeight: 500, lineHeight: 1.1 }}>
-                                {`${hoveredIncomeBar.monthLabel} ${hoveredIncomeBar.year}`}
-                              </div>
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  left: '50%',
-                                  bottom: '-7px',
-                                  width: '14px',
-                                  height: '14px',
-                                  background: isDarkTheme ? '#202a4c' : '#fff',
-                                  borderRight: isDarkTheme ? '1px solid rgba(73, 101, 221, 0.36)' : '1px solid #dbe4f0',
-                                  borderBottom: isDarkTheme ? '1px solid rgba(73, 101, 221, 0.36)' : '1px solid #dbe4f0',
-                                  transform: 'translateX(-50%) rotate(45deg)'
-                                }}
-                              />
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+            <div className="dashboard-income-chart">
+              <div style={{ minWidth: isMobile ? 560 : 0 }}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={incomeExpenseChartData} margin={getChartMargin({ mobile: isMobile })} barGap={3} barCategoryGap="18%">
+                    <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
+                    <XAxis dataKey="label" {...getChartAxisProps({ mobile: isMobile })} />
+                    <YAxis {...getCurrencyAxisProps({ mobile: isMobile })} width={isMobile ? 62 : 76} />
+                    <Tooltip cursor={{ fill: 'var(--selected-bg)' }} content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />} />
+                    <Bar dataKey="income" name="Income" fill={incomeGreen} radius={[4, 4, 0, 0]} maxBarSize={18} />
+                    <Bar dataKey="expense" name="Expenses" fill={dangerRed} radius={[4, 4, 0, 0]} maxBarSize={18} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
         </article>
 
-        <article className="dashboard-panel" style={graphSourceCardStyle}>
+        <article className="dashboard-panel">
           <div className="dashboard-panel-header" style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
             <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
           </div>
-          <div style={sourceBodyStyle}>
+          <div className="dashboard-source-body" style={sourceBodyStyle}>
             {renderRoundedDonut(
               leadPipeline.sourceSeries,
               leadPipeline.sourceTotal,
               leadPipeline.sourceSeries.map((entry) => leadSourcePalette[entry.name] || leadSourcePalette.Other),
-              viewportWidth >= 1200 ? 220 : 268,
+              220,
               22,
               'Lead Sources',
               leadPipeline.sourceTotal,
@@ -1494,27 +989,33 @@ export default function Dashboard() {
           </div>
         </article>
 
-        <article className="dashboard-panel" style={graphSourceCardStyle}>
+        <article className="dashboard-panel">
           <div className="dashboard-panel-header" style={shell.sourceHeader}>
             <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
-            <span style={shell.sourceHeaderBadge}>{selectedYearNumber}</span>
+            <select value={selectedContractYear} onChange={(event) => setSelectedContractYear(event.target.value)} aria-label="Select expense year" style={compactHeaderSelectStyle}>
+              {dashboardYearOptions.map((year) => <option key={year} value={String(year)}>{year}</option>)}
+            </select>
           </div>
           <div style={{ ...shell.donutWrap, padding: '18px 18px 14px' }}>
-            {renderRoundedDonut(
+            {selectedYearAnalytics.totalExpenses !== 0 || selectedYearAnalytics.topExpenses.some((entry) => entry.amount !== 0) ? renderRoundedDonut(
               selectedYearAnalytics.topExpenses.map((entry) => ({ name: entry.name, value: entry.amount })),
               selectedYearAnalytics.totalExpenses,
               expenseColors,
-              viewportWidth >= 1200 ? 220 : 268,
+              220,
               22,
               'All Expenses',
               formatCurrency(selectedYearAnalytics.totalExpenses),
               '13px',
               '24px'
+            ) : (
+              <div className="dashboard-empty-state">
+                <span className="dashboard-icon dashboard-icon-purple"><Wallet size={26} /></span>
+                <strong>No expenses recorded</strong>
+                <p>Expense categories will appear here when data is available for {selectedYearNumber}.</p>
+              </div>
             )}
             <div style={{ display: 'grid', gap: '10px' }}>
-              {selectedYearAnalytics.topExpenses.length === 0 ? (
-                <div style={{ color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800, fontSize: '13px' }}>No expense data available.</div>
-              ) : selectedYearAnalytics.topExpenses.map((entry, idx) => (
+              {selectedYearAnalytics.topExpenses.map((entry, idx) => (
                 <div key={`${entry.name}-${idx}`} style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: '10px', alignItems: 'center' }}>
                   <span style={{ ...shell.dot, width: '16px', height: '16px', borderRadius: '5px', background: expenseColors[idx % expenseColors.length] }} />
                   <span style={{ color: isDarkTheme ? darkDashboardText : '#334155', fontWeight: 700 }}>{entry.name}</span>
@@ -1527,7 +1028,7 @@ export default function Dashboard() {
       </section>
 
       <section style={salesChartSectionStyle}>
-        <div className="dashboard-panel dashboard-sales-panel" style={salesChartCardStyle}>
+        <div className="dashboard-panel dashboard-sales-panel">
           <div className="dashboard-panel-header" style={salesChartCardHeaderStyle}>
             <div>
               <h2 style={salesChartTitleStyle}>Sales Team Performance</h2>
@@ -1580,24 +1081,6 @@ export default function Dashboard() {
               </div>
             ) : salesPerformanceTrend.length ? (
               <div style={salesChartChartWrapStyle}>
-                <div style={salesChartYAxisStyle}>
-                  {(() => {
-                    const maxValue = Math.max(
-                      salesPerformanceMonthlyTarget,
-                      salesPerformanceMonthlyAchieved,
-                      ...salesPerformanceTrend.map((row) => Math.max(toNum(row.target), toNum(row.achieved))),
-                      1
-                    );
-                    return Array.from({ length: 6 }, (_, index) => 5 - index).map((step) => {
-                      const value = (maxValue / 5) * step;
-                      return (
-                        <span key={step} style={salesChartYAxisLabelStyle}>
-                          {step === 0 ? '0' : money(value)}
-                        </span>
-                      );
-                    });
-                  })()}
-                </div>
                 <div style={salesChartScrollStyle}>
                   <ChartSurface height={salesPerformanceChartHeight} minWidth={salesPerformanceChartMinWidth}>
                     <ResponsiveContainer width="100%" height="100%">
@@ -1605,7 +1088,7 @@ export default function Dashboard() {
                         data={salesPerformanceTrend}
                         margin={salesPerformanceMargin}
                         barCategoryGap={salesPerformanceChartProps.barCategoryGap}
-                        barGap={0}
+                        barGap={4}
                       >
                         <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
                         <XAxis dataKey="label" {...salesPerformanceAxisProps} />
@@ -1614,8 +1097,8 @@ export default function Dashboard() {
                           cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
                           content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
                         />
-                        <Bar dataKey="target" name="Target" fill="var(--chart-target-bar)" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize} />
-                        <Bar dataKey="achieved" name="Achieved" radius={0} maxBarSize={salesPerformanceChartProps.maxBarSize}>
+                        <Bar dataKey="target" name="Target" fill="var(--chart-target-bar)" radius={[4, 4, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize} />
+                        <Bar dataKey="achieved" name="Achieved" radius={[4, 4, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize}>
                           {salesPerformanceTrend.map((entry) => (
                             <Cell key={entry.month} fill={Number(entry.achieved || 0) >= Number(entry.target || 0) ? '#16A34A' : '#DC2626'} />
                           ))}
