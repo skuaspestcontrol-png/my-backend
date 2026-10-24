@@ -18,6 +18,30 @@ import { apiGet, currentYear, money, safeRows, subscribeSalesPerformanceRefresh 
 import { subscribeDashboardRefresh } from '../utils/dashboardRefresh';
 import { loadPortalTheme } from '../utils/themePreference';
 
+// Keep phone tooltips below the plot, and bring the dock into view after a tap.
+function MobileDashboardTooltip({ active, payload, label }) {
+  const tooltipRef = useRef(null);
+  useEffect(() => {
+    if (!active || !payload?.length) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      tooltipRef.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [active, payload, label]);
+  if (!active || !payload?.length) return null;
+  return (
+    <div ref={tooltipRef} className="dashboard-mobile-tooltip" style={{ gridTemplateColumns: `28px repeat(${payload.length}, minmax(0, 1fr))` }}>
+      <strong className="dashboard-tooltip-month">{label}</strong>
+      {payload.map((entry) => (
+        <span key={entry.dataKey} className="dashboard-tooltip-value">
+          <span><i style={{ background: entry.color || 'var(--chart-target-bar)' }} />{entry.name}</span>
+          <strong>{money(entry.value || 0)}</strong>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const DASHBOARD_CACHE_KEY = 'skuasmaster-dashboard-cache-v1';
 
@@ -610,14 +634,29 @@ export default function Dashboard() {
     }
   ]), [selectedTargetYearNumber, yearlyTargetSummary]);
   const isMobile = viewportWidth < 768;
+  // Mobile presentation only; the original monthly series and financial values stay intact.
+  const mobileChartAxisProps = isMobile ? {
+    tick: { fontSize: 10, fontWeight: 600, fill: 'var(--chart-axis)' },
+    angle: 0,
+    textAnchor: 'middle',
+    height: 24,
+    interval: 'preserveStartEnd',
+    minTickGap: 8
+  } : {};
+  const mobileChartMargin = { top: 8, right: 8, left: 0, bottom: 0 };
+  const mobileTooltipProps = isMobile ? {
+    trigger: 'click',
+    isAnimationActive: false,
+    wrapperStyle: { maxWidth: '100%', pointerEvents: 'none' }
+  } : {};
   const salesPerformanceEmployees = safeRows(salesPerformanceData?.employees);
   const salesPerformanceTrend = safeRows(salesPerformanceData?.monthlyTrend);
   const salesPerformanceChartHeight = getChartHeight({ mobile: isMobile });
   const salesPerformanceChartProps = getBarChartProps(salesPerformanceTrend.length, { mobile: isMobile });
-  const salesPerformanceAxisProps = getChartAxisProps({ mobile: isMobile });
-  const salesPerformanceCurrencyAxisProps = { ...getCurrencyAxisProps({ mobile: isMobile }), width: isMobile ? 62 : 76 };
-  const salesPerformanceMargin = getChartMargin({ mobile: isMobile });
-  const salesPerformanceChartMinWidth = isMobile ? Math.max(600, salesPerformanceTrend.length * 50) : 0;
+  const salesPerformanceAxisProps = { ...getChartAxisProps({ mobile: isMobile }), ...mobileChartAxisProps };
+  const salesPerformanceCurrencyAxisProps = { ...getCurrencyAxisProps({ mobile: isMobile }), width: isMobile ? 58 : 76 };
+  const salesPerformanceMargin = isMobile ? mobileChartMargin : getChartMargin({ mobile: isMobile });
+  const salesPerformanceChartMinWidth = 0;
   const salesPerformanceMonthlyTarget = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.target), 0);
   const salesPerformanceMonthlyAchieved = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.achieved), 0);
   const selectedSalesPersonLabel = selectedSalesPersonId
@@ -755,7 +794,7 @@ export default function Dashboard() {
       <section className="hero-section command-center">
         <div>
           <h1 style={{ ...shell.title, color: 'var(--text-primary)' }}>{companyName}</h1>
-          <p style={taglineStyle}>
+          <p className="dashboard-tagline" style={taglineStyle}>
             {aboutTagline}
           </p>
         </div>
@@ -775,23 +814,23 @@ export default function Dashboard() {
       <section className="stats-grid dashboard-grid">
         <div className="dashboard-metric-card">
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Leads</p><span className="dashboard-icon dashboard-icon-purple"><Users size={20} /></span></div>
-          <p style={metricValueStyle}>{topCards.leadsCount}</p>
-          <p style={metricSubStyle}>Total leads</p>
+          <p className="dashboard-kpi-value" style={metricValueStyle}>{topCards.leadsCount}</p>
+          <p className="dashboard-kpi-support" style={metricSubStyle}>Total leads</p>
         </div>
         <div className="dashboard-metric-card">
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Customers</p><span className="dashboard-icon dashboard-icon-blue"><ContactRound size={20} /></span></div>
-          <p style={metricValueStyle}>{topCards.customersCount}</p>
-          <p style={metricSubStyle}>Active customers</p>
+          <p className="dashboard-kpi-value" style={metricValueStyle}>{topCards.customersCount}</p>
+          <p className="dashboard-kpi-support" style={metricSubStyle}>Active customers</p>
         </div>
         <div className="dashboard-metric-card">
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Employees</p><span className="dashboard-icon dashboard-icon-teal"><BriefcaseBusiness size={20} /></span></div>
-          <p style={metricValueStyle}>{topCards.employeesCount}</p>
-          <p style={metricSubStyle}>Workforce</p>
+          <p className="dashboard-kpi-value" style={metricValueStyle}>{topCards.employeesCount}</p>
+          <p className="dashboard-kpi-support" style={metricSubStyle}>Workforce</p>
         </div>
         <div className="dashboard-metric-card">
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Invoices Value</p><span className="dashboard-icon dashboard-icon-amber"><Receipt size={20} /></span></div>
-          <p style={metricValueStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
-          <p style={metricSubStyle}>{topCards.invoicesCount} invoices</p>
+          <p className="dashboard-kpi-value" style={metricValueStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
+          <p className="dashboard-kpi-support" style={metricSubStyle}>{topCards.invoicesCount} invoices</p>
         </div>
       </section>
 
@@ -799,7 +838,7 @@ export default function Dashboard() {
         <div className="dashboard-section-head">
           <div>
             <h2 style={targetSectionTitleStyle}>Yearly Target vs Achievement</h2>
-            <p style={targetSectionHintStyle}>Choose a year to review sales targets and progress.</p>
+            <p className="dashboard-target-hint" style={targetSectionHintStyle}>Choose a year to review sales targets and progress.</p>
           </div>
           <select
             value={selectedTargetYear}
@@ -817,8 +856,9 @@ export default function Dashboard() {
           {yearlyTargetCards.map((card, index) => (
             <article key={card.label} className="dashboard-target-card">
               <div className="dashboard-metric-heading"><p style={shell.metricLabel}>{card.label}</p><span className="dashboard-target-icon">{React.createElement([Target, CircleCheck, Clock3, TrendingUp][index], { size: 18 })}</span></div>
-              <p style={targetMetricValueStyle}>{card.value}</p>
-              <p style={targetMetricSubStyle}>{card.sub}</p>
+              <p className="dashboard-target-value" style={targetMetricValueStyle}>{card.value}</p>
+              <p className="dashboard-target-support" style={targetMetricSubStyle}>{card.sub}</p>
+              {isMobile && index === 3 ? <progress className="dashboard-achievement-progress" max={100} value={yearlyTargetSummary.achievementPercent} aria-label="Yearly target achievement" /> : null}
             </article>
           ))}
         </div>
@@ -839,10 +879,11 @@ export default function Dashboard() {
               ))}
             </select>
           </div>
-          <div style={{ padding: '18px 18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
-            <div style={{ display: 'grid', gap: '14px' }}>
+          <div className="dashboard-pipeline-body" style={{ padding: '18px 18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
+            <div className="dashboard-pipeline-rows" style={{ display: 'grid', gap: '14px' }}>
             {leadFunnelRows.map((row) => (
               <button
+                className="dashboard-pipeline-row"
                 key={row.label}
                 type="button"
                 onClick={() => navigate('/leads')}
@@ -860,15 +901,16 @@ export default function Dashboard() {
                   minHeight: '48px'
                 }}
               >
-                <span style={{ color: isDarkTheme ? darkDashboardText : '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
+                <span className="dashboard-pipeline-label" style={{ color: isDarkTheme ? darkDashboardText : '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
                 <span style={{ display: 'block', width: '100%', minWidth: 0, background: 'var(--surface-muted)', borderRadius: 7 }}>
                   <span
+                    className="dashboard-pipeline-fill"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       height: isMobile ? '42px' : '42px',
                       width: `${Math.max(row.value > 0 ? 12 : 0, (row.value / maxLeadFunnel) * 100)}%`,
-                      minWidth: row.value > 0 ? (isMobile ? '54px' : '70px') : '0',
+                      minWidth: row.value > 0 ? (isMobile ? '36px' : '70px') : '0',
                       borderRadius: '7px',
                       background: row.color,
                       color: '#fff',
@@ -886,7 +928,7 @@ export default function Dashboard() {
               </button>
             ))}
             </div>
-            <div style={{ ...shell.legendRow, marginTop: '14px', justifyContent: 'space-between' }}>
+            <div className="dashboard-pipeline-summary" style={{ ...shell.legendRow, marginTop: '14px', justifyContent: 'space-between' }}>
               <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
                 <strong style={{ color: '#4965dd', fontSize: '19px' }}>{`${leadPipeline.conversionRate.toFixed(0)}%`}</strong>
                 <span style={{ fontSize: '13px', color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800 }}>Conversion Rate</span>
@@ -918,9 +960,9 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div style={{ padding: '18px 18px 20px' }}>
+          <div className="dashboard-income-body" style={{ padding: '18px 18px 20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', color: isDarkTheme ? darkDashboardText : '#334155', fontSize: '13px', fontWeight: 800, lineHeight: 1.1 }}>
+              <div className="dashboard-income-legend" style={{ display: 'flex', alignItems: 'center', gap: '18px', flexWrap: 'wrap', color: isDarkTheme ? darkDashboardText : '#334155', fontSize: '13px', fontWeight: 800, lineHeight: 1.1 }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ ...shell.dot, width: '10px', height: '10px', background: incomeGreen }} />
                   <span style={incomeExpenseLegendLabelStyle}>Total Income-</span>
@@ -935,18 +977,19 @@ export default function Dashboard() {
             </div>
 
             <div className="dashboard-income-chart">
-              <div style={{ minWidth: isMobile ? 560 : 0 }}>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={incomeExpenseChartData} margin={getChartMargin({ mobile: isMobile })} barGap={3} barCategoryGap="18%">
+              <div style={{ minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height={isMobile ? 220 : 280}>
+                  <BarChart data={incomeExpenseChartData} margin={isMobile ? mobileChartMargin : getChartMargin({ mobile: isMobile })} barGap={3} barCategoryGap="18%">
                     <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
-                    <XAxis dataKey="label" {...getChartAxisProps({ mobile: isMobile })} />
-                    <YAxis {...getCurrencyAxisProps({ mobile: isMobile })} width={isMobile ? 62 : 76} />
-                    <Tooltip cursor={{ fill: 'var(--selected-bg)' }} content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />} />
+                    <XAxis dataKey="label" {...getChartAxisProps({ mobile: isMobile })} {...mobileChartAxisProps} />
+                    <YAxis {...getCurrencyAxisProps({ mobile: isMobile })} width={isMobile ? 58 : 76} />
+                    <Tooltip {...mobileTooltipProps} position={isMobile ? { x: 0, y: 220 } : undefined} cursor={{ fill: 'var(--selected-bg)' }} content={isMobile ? <MobileDashboardTooltip /> : <SalesChartTooltip valueFormatter={(value) => money(value || 0)} />} />
                     <Bar dataKey="income" name="Income" fill={incomeGreen} radius={[4, 4, 0, 0]} maxBarSize={18} />
                     <Bar dataKey="expense" name="Expenses" fill={dangerRed} radius={[4, 4, 0, 0]} maxBarSize={18} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              {isMobile ? <div className="dashboard-mobile-chart-dock"><span>Tap a month to view amounts.</span></div> : null}
             </div>
           </div>
         </article>
@@ -961,17 +1004,17 @@ export default function Dashboard() {
               leadPipeline.sourceSeries,
               leadPipeline.sourceTotal,
               leadPipeline.sourceSeries.map((entry) => leadSourcePalette[entry.name] || leadSourcePalette.Other),
-              220,
-              22,
+              isMobile ? 148 : 220,
+              isMobile ? 16 : 22,
               'Lead Sources',
               leadPipeline.sourceTotal,
-              '13px',
-              '22px'
+              isMobile ? '11px' : '13px',
+              isMobile ? '20px' : '22px'
             )}
             {leadPipeline.sourceSeries.length === 0 ? (
               <div style={{ color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800, fontSize: '13px' }}>No lead source data available.</div>
             ) : (
-              <div style={sourceLegendStyle}>
+              <div className="dashboard-source-legend" style={sourceLegendStyle}>
                 {leadPipeline.sourceSeries.map((entry) => (
                   <span key={entry.name} style={sourceLegendItemStyle}>
                     <span
@@ -996,17 +1039,17 @@ export default function Dashboard() {
               {dashboardYearOptions.map((year) => <option key={year} value={String(year)}>{year}</option>)}
             </select>
           </div>
-          <div style={{ ...shell.donutWrap, padding: '18px 18px 14px' }}>
+          <div className="dashboard-expense-body" style={{ ...shell.donutWrap, padding: '18px 18px 14px' }}>
             {selectedYearAnalytics.totalExpenses !== 0 || selectedYearAnalytics.topExpenses.some((entry) => entry.amount !== 0) ? renderRoundedDonut(
               selectedYearAnalytics.topExpenses.map((entry) => ({ name: entry.name, value: entry.amount })),
               selectedYearAnalytics.totalExpenses,
               expenseColors,
-              220,
-              22,
+              isMobile ? 148 : 220,
+              isMobile ? 16 : 22,
               'All Expenses',
               formatCurrency(selectedYearAnalytics.totalExpenses),
-              '13px',
-              '24px'
+              isMobile ? '11px' : '13px',
+              isMobile ? '17px' : '24px'
             ) : (
               <div className="dashboard-empty-state">
                 <span className="dashboard-icon dashboard-icon-purple"><Wallet size={26} /></span>
@@ -1034,7 +1077,7 @@ export default function Dashboard() {
               <h2 style={salesChartTitleStyle}>Sales Team Performance</h2>
               <p style={isMobile ? { ...salesChartSubtitleStyle, display: 'none' } : salesChartSubtitleStyle}>Month-wise target vs achievement for the selected year and salesperson.</p>
             </div>
-            <div style={salesChartHeaderControlsStyle}>
+            <div className="dashboard-sales-controls" style={salesChartHeaderControlsStyle}>
               <select
                 value={selectedSalesPerformanceYear}
                 onChange={(event) => setSelectedSalesPerformanceYear(event.target.value)}
@@ -1058,8 +1101,8 @@ export default function Dashboard() {
               </select>
             </div>
           </div>
-          <div style={salesChartBodyStyle}>
-            <div style={salesChartLegendStyle}>
+          <div className="dashboard-sales-body" style={salesChartBodyStyle}>
+            <div className="dashboard-sales-legend" style={salesChartLegendStyle}>
               <span style={salesChartLegendItemStyle}>
                 <span style={{ ...shell.dot, width: '10px', height: '10px', background: 'var(--chart-target-bar)' }} />
                 <span>Target</span>
@@ -1081,7 +1124,7 @@ export default function Dashboard() {
               </div>
             ) : salesPerformanceTrend.length ? (
               <div style={salesChartChartWrapStyle}>
-                <div style={salesChartScrollStyle}>
+                <div className="dashboard-sales-chart-scroll" style={salesChartScrollStyle}>
                   <ChartSurface height={salesPerformanceChartHeight} minWidth={salesPerformanceChartMinWidth}>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
@@ -1094,8 +1137,10 @@ export default function Dashboard() {
                         <XAxis dataKey="label" {...salesPerformanceAxisProps} />
                         <YAxis {...salesPerformanceCurrencyAxisProps} />
                         <Tooltip
+                          {...mobileTooltipProps}
+                          position={isMobile ? { x: 0, y: salesPerformanceChartHeight } : undefined}
                           cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                          content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
+                          content={isMobile ? <MobileDashboardTooltip /> : <SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
                         />
                         <Bar dataKey="target" name="Target" fill="var(--chart-target-bar)" radius={[4, 4, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize} />
                         <Bar dataKey="achieved" name="Achieved" radius={[4, 4, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize}>
@@ -1107,6 +1152,7 @@ export default function Dashboard() {
                     </ResponsiveContainer>
                   </ChartSurface>
                 </div>
+                {isMobile ? <div className="dashboard-mobile-chart-dock"><span>Tap a month to view amounts.</span></div> : null}
               </div>
             ) : (
               <div style={{ display: 'grid', placeItems: 'center', minHeight: salesPerformanceChartHeight, color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>
