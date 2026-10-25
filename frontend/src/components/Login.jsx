@@ -143,7 +143,7 @@ export default function Login() {
   }, []);
 
   const hasValidLogo = Boolean(settings.dashboardImageUrl) && !logoBroken;
-  const panelBg = 'linear-gradient(135deg, #122b4c 0%, #0b1b32 100%)';
+  const panelBg = 'linear-gradient(135deg, var(--skuas-header) 0%, var(--skuas-header-secondary) 100%)';
   const textSecondary = 'rgba(255, 255, 255, 0.82)';
   const fieldBg = 'rgba(255, 255, 255, 0.08)';
   const fieldBorder = 'rgba(255, 255, 255, 0.16)';
