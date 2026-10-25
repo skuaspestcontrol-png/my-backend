@@ -921,6 +921,14 @@ router.get('/dashboard', async (req, res) => {
     const teamRows = buildTeamRows(context, { year, month, salesPersonId: employeeId });
     const monthlyRows = teamRows.map((row) => row);
     const yearlyRows = teamRows;
+    // Configuration metadata only: keep all existing target/achievement totals unchanged.
+    const monthlyTargetCount = context.targets.filter((row) => (
+      row.isActive && row.targetType === 'monthly'
+      && Number(row.targetYear) === year && Number(row.targetMonth) === month
+      && context.employees.some((employee) => (
+        (!employeeId || employeeHasValue(employee, employeeId)) && matchesTargetEmployee(row, employee)
+      ))
+    )).length;
     const totalMonthlyTarget = teamRows.reduce((sum, row) => sum + num(row.monthlyTarget), 0);
     const totalMonthlyAchieved = teamRows.reduce((sum, row) => sum + num(row.monthlyAchieved), 0);
     const totalYearlyTarget = teamRows.reduce((sum, row) => sum + num(row.yearlyTarget), 0);
@@ -933,6 +941,7 @@ router.get('/dashboard', async (req, res) => {
       success: true,
       employees: context.employees,
       summary: {
+        monthlyTargetCount,
         totalMonthlyTarget,
         totalMonthlyAchieved,
         monthlyPending: Math.max(totalMonthlyTarget - totalMonthlyAchieved, 0),

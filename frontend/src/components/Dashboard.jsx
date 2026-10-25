@@ -17,6 +17,7 @@ import {
 import { apiGet, currentYear, money, safeRows, subscribeSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import { subscribeDashboardRefresh } from '../utils/dashboardRefresh';
 import { loadPortalTheme } from '../utils/themePreference';
+import { formatMonthlyTargetCurrency, getIndiaMonthPeriod, getMonthlyTargetSummary } from '../utils/monthlyTargetSummary';
 
 // Keep phone tooltips below the plot, and bring the dock into view after a tap.
 function MobileDashboardTooltip({ active, payload, label }) {
@@ -160,6 +161,7 @@ export default function Dashboard() {
   const loadDashboardRef = useRef(() => {});
   const loadSalesPerformanceSummaryRef = useRef(() => {});
   const loadSalesPerformanceRef = useRef(() => {});
+  const loadMonthlyTargetRef = useRef(() => {});
   const dashboardLoadingRef = useRef(false);
   const [themeMode, setThemeMode] = useState(() => (
     typeof document === 'undefined'
@@ -180,6 +182,8 @@ export default function Dashboard() {
   const [selectedTargetYear, setSelectedTargetYear] = useState(() => String(new Date().getFullYear()));
   const [selectedSalesPerformanceYear, setSelectedSalesPerformanceYear] = useState(() => String(new Date().getFullYear()));
   const [selectedSalesPersonId, setSelectedSalesPersonId] = useState('');
+  const [monthlyPeriod, setMonthlyPeriod] = useState(() => getIndiaMonthPeriod());
+  const [monthlyTargetState, setMonthlyTargetState] = useState({ status: 'loading', data: null });
 
   useEffect(() => {
     if (hasLoadedRef.current) return undefined;
@@ -258,6 +262,7 @@ export default function Dashboard() {
     const unsubscribe = subscribeSalesPerformanceRefresh(() => {
       loadSalesPerformanceSummaryRef.current();
       loadSalesPerformanceRef.current();
+      loadMonthlyTargetRef.current();
     });
     return unsubscribe;
   }, []);
@@ -372,6 +377,44 @@ export default function Dashboard() {
       active = false;
     };
   }, [selectedSalesPerformanceYearNumber, selectedSalesPersonId]);
+
+  useEffect(() => {
+    let active = true;
+    let requestId = 0;
+    let controller;
+    const loadMonthlyTarget = async () => {
+      const currentRequest = ++requestId;
+      controller?.abort();
+      controller = new AbortController();
+      setMonthlyTargetState({ status: 'loading', data: null });
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/sales-performance/dashboard`, {
+          params: { year: monthlyPeriod.year, month: monthlyPeriod.month, _: Date.now() },
+          timeout: 15000, signal: controller.signal
+        });
+        const res = response.data;
+        if (!active || currentRequest !== requestId) return;
+        if (res?.success === false || Number(res?.year) !== monthlyPeriod.year || Number(res?.month) !== monthlyPeriod.month) {
+          throw new Error('Monthly sales period is unavailable.');
+        }
+        const data = getMonthlyTargetSummary(res?.summary);
+        setMonthlyTargetState({ status: 'ready', data, period: monthlyPeriod });
+      } catch (error) {
+        if (!active || currentRequest !== requestId) return;
+        console.error('Monthly target load failed', error);
+        setMonthlyTargetState({ status: 'error', data: null });
+      }
+    };
+    loadMonthlyTargetRef.current = loadMonthlyTarget;
+    loadMonthlyTarget();
+    const onFocus = () => loadMonthlyTarget();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      active = false;
+      controller?.abort();
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [monthlyPeriod]);
 
   useEffect(() => {
     if (contractYears.length === 0) return;
@@ -633,6 +676,43 @@ export default function Dashboard() {
       sub: 'Target completion'
     }
   ]), [selectedTargetYearNumber, yearlyTargetSummary]);
+  const monthlyTargetData = monthlyTargetState.status === 'ready'
+    && monthlyTargetState.period?.year === monthlyPeriod.year
+    && monthlyTargetState.period?.month === monthlyPeriod.month ? monthlyTargetState.data : null;
+  const monthlyTargetStatus = monthlyTargetState.status === 'error' ? 'error' : monthlyTargetData ? 'ready' : 'loading';
+  const monthlyPeriodLabel = new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' })
+    .format(new Date(Date.UTC(monthlyPeriod.year, monthlyPeriod.month - 1, 1)));
+  const monthlyYearOptions = Array.from(new Set([
+    ...dashboardYearOptions, getIndiaMonthPeriod().year - 1, getIndiaMonthPeriod().year,
+    getIndiaMonthPeriod().year + 1, monthlyPeriod.year
+  ])).sort((a, b) => a - b);
+  const missingMonthlyTargetLabel = monthlyTargetData?.configurationKnown ? 'Target not configured' : 'Target configuration unavailable';
+  const monthlyTargetCards = [
+    {
+      label: 'Monthly Target',
+      value: monthlyTargetData?.targetConfigured ? formatMonthlyTargetCurrency(monthlyTargetData.target) : '—',
+      sub: monthlyTargetData?.targetConfigured ? monthlyPeriodLabel : missingMonthlyTargetLabel
+    },
+    {
+      label: 'Monthly Achieved', value: monthlyTargetData ? formatMonthlyTargetCurrency(monthlyTargetData.achieved) : '—',
+      sub: 'GST-inclusive invoice sales'
+    },
+    {
+      label: 'Monthly Pending Target',
+      value: monthlyTargetData && monthlyTargetData.pending !== null ? formatMonthlyTargetCurrency(monthlyTargetData.pending) : '—',
+      sub: monthlyTargetData?.overachievement > 0
+        ? `${formatMonthlyTargetCurrency(monthlyTargetData.overachievement)} above target`
+        : monthlyTargetData?.targetConfigured ? 'Target remaining' : missingMonthlyTargetLabel
+    },
+    {
+      label: 'Monthly Achievement Percentage',
+      value: monthlyTargetData && monthlyTargetData.achievementPercent !== null
+        ? `${monthlyTargetData.achievementPercent.toLocaleString('en-IN', { maximumFractionDigits: 1 })}%` : '—',
+      sub: monthlyTargetData?.targetConfigured
+        ? monthlyTargetData.target > 0 ? 'Target completion' : 'Percentage unavailable for a ₹0 target'
+        : missingMonthlyTargetLabel
+    }
+  ];
   const isMobile = viewportWidth < 768;
   // Mobile presentation only; the original monthly series and financial values stay intact.
   const mobileChartAxisProps = isMobile ? {
@@ -831,6 +911,44 @@ export default function Dashboard() {
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Invoices Value</p><span className="dashboard-icon dashboard-icon-amber"><Receipt size={20} /></span></div>
           <p className="dashboard-kpi-value" style={metricValueStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
           <p className="dashboard-kpi-support" style={metricSubStyle}>{topCards.invoicesCount} invoices</p>
+        </div>
+      </section>
+
+      <section className="dashboard-target-section dashboard-monthly-target" aria-labelledby="monthly-target-heading" aria-busy={monthlyTargetStatus === 'loading'}>
+        <div className="dashboard-section-head dashboard-monthly-head">
+          <div>
+            <h2 id="monthly-target-heading" style={targetSectionTitleStyle}>Current Month Target vs Achievement</h2>
+            <p className="dashboard-target-hint" style={targetSectionHintStyle}>{monthlyPeriodLabel} · Sales team · Calendar month</p>
+          </div>
+          <div className="dashboard-monthly-controls">
+            <select value={monthlyPeriod.month} aria-label="Select monthly target month"
+              onChange={(event) => setMonthlyPeriod((period) => ({ ...period, month: Number(event.target.value) }))}>
+              {Array.from({ length: 12 }, (_, index) => (
+                <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' }).format(new Date(Date.UTC(2000, index, 1)))}</option>
+              ))}
+            </select>
+            <select value={monthlyPeriod.year} aria-label="Select monthly target year"
+              onChange={(event) => setMonthlyPeriod((period) => ({ ...period, year: Number(event.target.value) }))}>
+              {monthlyYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
+          </div>
+        </div>
+        {monthlyTargetStatus === 'error' ? (
+          <div className="dashboard-monthly-status" role="alert">
+            <span>Unable to load monthly sales data. Please try again.</span>
+            <button type="button" onClick={() => loadMonthlyTargetRef.current()}>Retry</button>
+          </div>
+        ) : <p className="dashboard-monthly-status" role="status">{monthlyTargetStatus === 'loading' ? 'Loading monthly sales data…' : !monthlyTargetData.targetConfigured ? missingMonthlyTargetLabel : ''}</p>}
+        <div className="dashboard-target-grid">
+          {monthlyTargetCards.map((card, index) => (
+            <article key={card.label} className="dashboard-target-card">
+              <div className="dashboard-metric-heading"><p style={shell.metricLabel}>{card.label}</p><span className="dashboard-target-icon">{React.createElement([Target, CircleCheck, Clock3, TrendingUp][index], { size: 18, 'aria-hidden': true })}</span></div>
+              <p className="dashboard-target-value" style={targetMetricValueStyle}>{monthlyTargetStatus === 'loading' ? '—' : card.value}</p>
+              <p className="dashboard-target-support" style={targetMetricSubStyle}>{monthlyTargetStatus === 'ready' ? card.sub : monthlyTargetStatus === 'loading' ? 'Loading…' : 'Data unavailable'}</p>
+              {index === 3 ? <progress className="dashboard-achievement-progress" max={100} value={monthlyTargetData?.progress ?? 0} aria-label="Monthly target achievement"
+                aria-valuetext={monthlyTargetData && monthlyTargetData.achievementPercent !== null ? `${card.value} achieved` : 'Achievement percentage unavailable'} /> : null}
+            </article>
+          ))}
         </div>
       </section>
 

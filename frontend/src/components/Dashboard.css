@@ -175,3 +175,26 @@ html[data-theme] .dashboard-page.dashboard-main select {
   .dashboard-main .dashboard-tooltip-value strong { font-size: 11px; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) { .dashboard-main .dashboard-metric-card { transition: none; } }
+
+/* Monthly KPIs extend the existing dashboard without changing its other sections. */
+.dashboard-main .dashboard-monthly-head > div:first-child { flex: 1; min-width: 0; }
+.dashboard-main .dashboard-monthly-controls { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+html[data-theme] .dashboard-page.dashboard-main .dashboard-monthly-controls select { min-height: 44px; min-width: 100px; }
+.dashboard-main .dashboard-monthly-status { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; min-height: 20px; margin: -6px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.dashboard-main .dashboard-monthly-status button { min-height: 44px; padding: 8px 16px; border: 1px solid var(--dashboard-border); border-radius: 8px; color: var(--text-primary); background: var(--surface-card); cursor: pointer; }
+.dashboard-main .dashboard-monthly-target .dashboard-metric-heading { min-height: 36px; align-items: flex-start; }
+.dashboard-main .dashboard-monthly-target .dashboard-target-value { overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.dashboard-main .dashboard-monthly-target .dashboard-target-support { min-height: 34px; line-height: 1.5; overflow-wrap: anywhere; }
+.dashboard-main .dashboard-monthly-target .dashboard-achievement-progress { display: block; width: 100%; height: 6px; margin-top: 10px; border: 0; border-radius: 4px; background: var(--surface-muted); accent-color: #8b5cf6; overflow: hidden; }
+.dashboard-main .dashboard-monthly-target .dashboard-achievement-progress::-webkit-progress-bar { background: var(--surface-muted); }
+.dashboard-main .dashboard-monthly-target .dashboard-achievement-progress::-webkit-progress-value { background: #8b5cf6; border-radius: 4px; }
+.dashboard-main .dashboard-monthly-target .dashboard-achievement-progress::-moz-progress-bar { background: #8b5cf6; border-radius: 4px; }
+@media (max-width: 767px) {
+  html[data-theme] .dashboard-page.dashboard-main .dashboard-monthly-head { flex-wrap: wrap; align-items: flex-start; }
+  .dashboard-main .dashboard-monthly-head > div:first-child { flex-basis: 100%; }
+  .dashboard-main .dashboard-monthly-target .dashboard-metric-heading { min-height: 42px; }
+}
+@media (max-width: 359px) {
+  .dashboard-main .dashboard-monthly-target .dashboard-target-grid { grid-template-columns: minmax(0, 1fr); }
+  .dashboard-main .dashboard-monthly-target .dashboard-metric-heading { min-height: 24px; }
+}
