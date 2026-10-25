@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { ArrowDownLeft, ArrowUpRight, Users, ContactRound, BriefcaseBusiness, Receipt, Target, CircleCheck, Clock3, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowUpRight, Users, ContactRound, BriefcaseBusiness, Receipt, Target, CircleCheck, Clock3, TrendingUp, Wallet, CalendarDays } from 'lucide-react';
 import './Dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -772,7 +772,6 @@ export default function Dashboard() {
   const salesChartChartWrapStyle = { minWidth: 0 };
   const salesChartScrollStyle = { width: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' };
   const targetSectionTitleStyle = { margin: 0, color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, letterSpacing: '-.02em' };
-  const targetSectionHintStyle = { margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.5 };
   const targetYearSelectStyle = { minWidth: 100 };
   const targetMetricValueStyle = { ...metricValueStyle, fontSize: 'clamp(22px, 2vw, 28px)' };
   const targetMetricSubStyle = metricSubStyle;
@@ -879,16 +878,18 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="dashboard-finance">
-          <div className="dashboard-finance-item">
-            <span className="dashboard-icon dashboard-icon-green"><ArrowDownLeft size={20} /></span>
-            <div><p>Receivables</p><strong>{formatCurrency(analytics.totalReceivables)}</strong></div>
+          <div className="dashboard-monthly-controls" title="Monthly target period"><CalendarDays size={17} aria-hidden="true" />
+            <select value={monthlyPeriod.month} aria-label="Select monthly target month"
+              onChange={(event) => setMonthlyPeriod((period) => ({ ...period, month: Number(event.target.value) }))}>
+              {Array.from({ length: 12 }, (_, index) => (
+                <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' }).format(new Date(Date.UTC(2000, index, 1)))}</option>
+              ))}
+            </select>
+            <select value={monthlyPeriod.year} aria-label="Select monthly target year"
+              onChange={(event) => setMonthlyPeriod((period) => ({ ...period, year: Number(event.target.value) }))}>
+              {monthlyYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
+            </select>
           </div>
-          <div className="dashboard-finance-item">
-            <span className="dashboard-icon dashboard-icon-rose"><ArrowUpRight size={20} /></span>
-            <div><p>Payables</p><strong>{formatCurrency(analytics.totalPayables)}</strong></div>
-          </div>
-        </div>
       </section>
 
       <section className="stats-grid dashboard-grid">
@@ -912,25 +913,25 @@ export default function Dashboard() {
           <p className="dashboard-kpi-value" style={metricValueStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
           <p className="dashboard-kpi-support" style={metricSubStyle}>{topCards.invoicesCount} invoices</p>
         </div>
+        <div className="dashboard-metric-card dashboard-finance-card">
+          <span className="dashboard-icon dashboard-icon-green" aria-hidden="true">₹</span>
+          <div><p style={metricLabelStyle}>Receivables</p>
+            <p className="dashboard-kpi-value" style={metricValueStyle}>{formatCurrency(analytics.totalReceivables)}</p>
+            <p className="dashboard-kpi-support" style={metricSubStyle}>Pending payments</p></div>
+        </div>
+        <div className="dashboard-metric-card dashboard-finance-card">
+          <span className="dashboard-icon dashboard-icon-rose"><ArrowUpRight size={20} aria-hidden="true" /></span>
+          <div><p style={metricLabelStyle}>Payables</p>
+            <p className="dashboard-kpi-value" style={metricValueStyle}>{formatCurrency(analytics.totalPayables)}</p>
+            <p className="dashboard-kpi-support" style={metricSubStyle}>Pending bills</p></div>
+        </div>
       </section>
 
+      <div className="dashboard-summary-panels">
       <section className="dashboard-target-section dashboard-monthly-target" aria-labelledby="monthly-target-heading" aria-busy={monthlyTargetStatus === 'loading'}>
         <div className="dashboard-section-head dashboard-monthly-head">
           <div>
-            <h2 id="monthly-target-heading" style={targetSectionTitleStyle}>Current Month Target vs Achievement</h2>
-            <p className="dashboard-target-hint" style={targetSectionHintStyle}>{monthlyPeriodLabel} · Sales team · Calendar month</p>
-          </div>
-          <div className="dashboard-monthly-controls">
-            <select value={monthlyPeriod.month} aria-label="Select monthly target month"
-              onChange={(event) => setMonthlyPeriod((period) => ({ ...period, month: Number(event.target.value) }))}>
-              {Array.from({ length: 12 }, (_, index) => (
-                <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' }).format(new Date(Date.UTC(2000, index, 1)))}</option>
-              ))}
-            </select>
-            <select value={monthlyPeriod.year} aria-label="Select monthly target year"
-              onChange={(event) => setMonthlyPeriod((period) => ({ ...period, year: Number(event.target.value) }))}>
-              {monthlyYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
-            </select>
+            <h2 id="monthly-target-heading" style={targetSectionTitleStyle}><CalendarDays size={17} aria-hidden="true" />Current Month ({monthlyPeriodLabel})</h2>
           </div>
         </div>
         {monthlyTargetStatus === 'error' ? (
@@ -940,23 +941,23 @@ export default function Dashboard() {
           </div>
         ) : <p className="dashboard-monthly-status" role="status">{monthlyTargetStatus === 'loading' ? 'Loading monthly sales data…' : !monthlyTargetData.targetConfigured ? missingMonthlyTargetLabel : ''}</p>}
         <div className="dashboard-target-grid">
-          {monthlyTargetCards.map((card, index) => (
-            <article key={card.label} className="dashboard-target-card">
-              <div className="dashboard-metric-heading"><p style={shell.metricLabel}>{card.label}</p><span className="dashboard-target-icon">{React.createElement([Target, CircleCheck, Clock3, TrendingUp][index], { size: 18, 'aria-hidden': true })}</span></div>
+          {monthlyTargetCards.slice(0, 3).map((card, index) => (
+            <article key={card.label} className={`dashboard-target-card dashboard-summary-${index}`}>
+              <div className="dashboard-metric-heading"><p style={shell.metricLabel}>{['Target', 'Achieved', 'Pending'][index]}</p><span className="dashboard-target-icon">{React.createElement([Target, CircleCheck, Clock3, TrendingUp][index], { size: 18, 'aria-hidden': true })}</span></div>
               <p className="dashboard-target-value" style={targetMetricValueStyle}>{monthlyTargetStatus === 'loading' ? '—' : card.value}</p>
-              <p className="dashboard-target-support" style={targetMetricSubStyle}>{monthlyTargetStatus === 'ready' ? card.sub : monthlyTargetStatus === 'loading' ? 'Loading…' : 'Data unavailable'}</p>
-              {index === 3 ? <progress className="dashboard-achievement-progress" max={100} value={monthlyTargetData?.progress ?? 0} aria-label="Monthly target achievement"
-                aria-valuetext={monthlyTargetData && monthlyTargetData.achievementPercent !== null ? `${card.value} achieved` : 'Achievement percentage unavailable'} /> : null}
+              <p className={`dashboard-target-support ${monthlyTargetStatus !== 'ready' || !monthlyTargetData?.targetConfigured || monthlyTargetData.target === 0 || index === 2 && monthlyTargetData.overachievement > 0 ? 'dashboard-target-exception' : ''}`} style={targetMetricSubStyle}>{monthlyTargetStatus === 'ready' ? index === 1 && monthlyTargetData.targetConfigured && monthlyTargetData.target === 0 ? monthlyTargetCards[3].sub : card.sub : monthlyTargetStatus === 'loading' ? 'Loading…' : 'Data unavailable'}</p>
+              {index === 1 ? <div className="dashboard-summary-progress"><progress className="dashboard-achievement-progress" max={100} value={monthlyTargetData?.progress ?? 0} aria-label="Monthly target achievement"
+                aria-valuetext={monthlyTargetData && monthlyTargetData.achievementPercent !== null ? `${monthlyTargetCards[3].value} achieved` : 'Achievement percentage unavailable'} /><span aria-label="Monthly Achievement Percentage">{monthlyTargetCards[3].value}</span></div> : null}
+              {index === 2 ? <div className="dashboard-summary-progress"><progress className="dashboard-achievement-progress" max={100} value={monthlyTargetData?.target > 0 && monthlyTargetData.pending !== null ? Math.min(100, Math.max(0, monthlyTargetData.pending / monthlyTargetData.target * 100)) : 0} aria-label="Monthly pending target percentage" /><span>{monthlyTargetData?.target > 0 && monthlyTargetData.pending !== null ? `${(monthlyTargetData.pending / monthlyTargetData.target * 100).toLocaleString('en-IN', { maximumFractionDigits: 1 })}%` : '—'}</span></div> : null}
             </article>
           ))}
         </div>
       </section>
 
-      <section className="dashboard-target-section">
+      <section className="dashboard-target-section dashboard-yearly-target" aria-labelledby="yearly-target-heading">
         <div className="dashboard-section-head">
           <div>
-            <h2 style={targetSectionTitleStyle}>Yearly Target vs Achievement</h2>
-            <p className="dashboard-target-hint" style={targetSectionHintStyle}>Choose a year to review sales targets and progress.</p>
+            <h2 id="yearly-target-heading" style={targetSectionTitleStyle}><TrendingUp size={17} aria-hidden="true" />Yearly (FY {selectedTargetYearNumber})</h2>
           </div>
           <select
             value={selectedTargetYear}
@@ -971,16 +972,19 @@ export default function Dashboard() {
         </div>
 
         <div className="dashboard-target-grid">
-          {yearlyTargetCards.map((card, index) => (
-            <article key={card.label} className="dashboard-target-card">
-              <div className="dashboard-metric-heading"><p style={shell.metricLabel}>{card.label}</p><span className="dashboard-target-icon">{React.createElement([Target, CircleCheck, Clock3, TrendingUp][index], { size: 18 })}</span></div>
+          {yearlyTargetCards.slice(0, 3).map((card, index) => (
+            <article key={card.label} className={`dashboard-target-card dashboard-summary-${index}`}>
+              <div className="dashboard-metric-heading"><p style={shell.metricLabel}>{['Target', 'Achieved', 'Pending'][index]}</p><span className="dashboard-target-icon">{React.createElement([Target, CircleCheck, Clock3, TrendingUp][index], { size: 18 })}</span></div>
               <p className="dashboard-target-value" style={targetMetricValueStyle}>{card.value}</p>
               <p className="dashboard-target-support" style={targetMetricSubStyle}>{card.sub}</p>
-              {isMobile && index === 3 ? <progress className="dashboard-achievement-progress" max={100} value={yearlyTargetSummary.achievementPercent} aria-label="Yearly target achievement" /> : null}
+              {index === 1 ? <div className="dashboard-summary-progress"><progress className="dashboard-achievement-progress" max={100} value={Math.min(100, Math.max(0, yearlyTargetSummary.achievementPercent))} aria-label="Yearly target achievement" /><span aria-label="Yearly Achievement Percentage">{yearlyTargetCards[3].value}</span></div> : null}
+              {index === 2 ? <div className="dashboard-summary-progress"><progress className="dashboard-achievement-progress" max={100} value={yearlyTargetSummary.target > 0 ? Math.min(100, Math.max(0, yearlyTargetSummary.pending / yearlyTargetSummary.target * 100)) : 0} aria-label="Yearly pending target percentage" /><span>{yearlyTargetSummary.target > 0 ? `${Math.round(yearlyTargetSummary.pending / yearlyTargetSummary.target * 100)}%` : '—'}</span></div> : null}
             </article>
           ))}
         </div>
       </section>
+
+      </div>
 
       <section className="dashboard-chart-grid">
         <article className="dashboard-panel">
