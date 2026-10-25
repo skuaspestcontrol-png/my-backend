@@ -36,5 +36,5 @@ export const getMonthlyTargetSummary = (summary) => {
 };
 
 export const formatMonthlyTargetCurrency = (value) => new Intl.NumberFormat('en-IN', {
-  style: 'currency', currency: 'INR', maximumFractionDigits: 2
+  style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 0
 }).format(value);

@@ -41,11 +41,14 @@ test('missing or invalid financial data fails rather than presenting fabricated 
     assert.throws(() => getMonthlyTargetSummary(summary));
   }
 });
-test('finite decimal currency strings preserve INR precision and percentages', () => {
+test('decimal inputs preserve calculation precision while currency displays whole rupees', () => {
   const result = summarize('125000.50', '50000.20');
   assert.equal(result.achievementPercent, 40);
   assert.equal(result.pending, 75000.3);
-  assert.equal(formatMonthlyTargetCurrency(12345678.9), '₹1,23,45,678.90');
+  assert.equal(formatMonthlyTargetCurrency(12345678.9), '₹1,23,45,679');
+  assert.equal(formatMonthlyTargetCurrency(400000), '₹4,00,000');
+  assert.equal(formatMonthlyTargetCurrency(355609.82), '₹3,55,610');
+  assert.equal(formatMonthlyTargetCurrency(44390.18), '₹44,390');
 });
 test('India defaults cross December to January independently of the browser timezone', () => {
   assert.deepEqual(getIndiaMonthPeriod(new Date('2026-12-31T18:29:59Z')), { year: 2026, month: 12 });
