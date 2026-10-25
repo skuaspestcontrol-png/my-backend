@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Bug, Rat, Wind, ScanLine, BrickWall, ArrowRight } from 'lucide-react';
 import { setPortalUser } from '../utils/portalAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -51,7 +51,6 @@ export default function Login() {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [settings, setSettings] = useState(() => loadBrandingSettings() || {});
   const [logoBroken, setLogoBroken] = useState(false);
-  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [authLoading, setAuthLoading] = useState(false);
@@ -143,70 +142,11 @@ export default function Login() {
     };
   }, []);
 
-  useEffect(() => {
-    const onResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
-
-  const isNarrow = viewportWidth <= 480;
-  const isMobile = viewportWidth <= 640;
-  const isStacked = viewportWidth < 900;
-  const isTablet = viewportWidth >= 641 && viewportWidth < 1100;
   const hasValidLogo = Boolean(settings.dashboardImageUrl) && !logoBroken;
-  const panelBg = 'linear-gradient(135deg, #160f33 0%, #120d2a 100%)';
-  const textPrimary = '#ffffff';
+  const panelBg = 'linear-gradient(135deg, #122b4c 0%, #0b1b32 100%)';
   const textSecondary = 'rgba(255, 255, 255, 0.82)';
-  const textMuted = 'rgba(255, 255, 255, 0.64)';
   const fieldBg = 'rgba(255, 255, 255, 0.08)';
   const fieldBorder = 'rgba(255, 255, 255, 0.16)';
-  const pagePadding = isMobile ? 'clamp(10px, 3vw, 16px)' : isTablet ? '24px' : '28px';
-  const cardMaxWidth = isStacked ? (isMobile ? '430px' : '520px') : '760px';
-  const cardRadius = isMobile ? '14px' : '16px';
-  const cardMinHeight = isStacked ? 'auto' : '390px';
-  const logoWidth = isMobile ? 'clamp(112px, 42vw, 152px)' : isStacked ? '190px' : '220px';
-  const logoMaxHeight = isMobile ? '118px' : isStacked ? '160px' : '210px';
-  const logoPanelPadding = isMobile ? '14px 14px 0' : isStacked ? '20px 22px 0' : '24px 20px';
-  const formPanelPadding = isMobile ? '12px 14px 16px' : isStacked ? '22px 28px 28px' : '28px 30px';
-  const formMaxWidth = isStacked ? '100%' : '340px';
-  const loginInputStyle = isNarrow
-    ? {
-        width: '100%',
-        minHeight: '46px',
-        padding: '12px 13px',
-        borderRadius: '8px',
-        boxSizing: 'border-box',
-        background: 'rgba(255, 255, 255, 0.12)',
-        border: '1px solid rgba(255, 255, 255, 0.18)',
-        color: '#ffffff',
-        WebkitTextFillColor: '#ffffff',
-        caretColor: '#ffffff',
-        outline: 'none',
-        fontSize: '16px',
-        lineHeight: 1.25
-      }
-    : {
-        width: '100%',
-        minHeight: '46px',
-        padding: '12px 13px',
-        borderRadius: '8px',
-        boxSizing: 'border-box',
-        background: fieldBg,
-        border: `1px solid ${fieldBorder}`,
-        color: '#ffffff',
-        WebkitTextFillColor: '#ffffff',
-        caretColor: '#ffffff',
-        outline: 'none',
-        fontSize: isMobile ? '16px' : '14px',
-        lineHeight: 1.25
-      };
-  const calendarModalBodyStyle = {
-    flex: 1,
-    minHeight: 0,
-    overflow: 'auto',
-    padding: isNarrow ? '12px' : '16px',
-    background: '#f8fafc'
-  };
 
   const handleChange = (e) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
@@ -311,157 +251,98 @@ export default function Login() {
   };
 
   return (
-    <div className="login-page" style={{ padding: pagePadding, alignItems: isMobile ? 'start' : 'center' }}>
-      <div className="login-card" style={{ width: '100%', maxWidth: cardMaxWidth, borderRadius: cardRadius, border: '1px solid rgba(255, 255, 255, 0.08)', background: panelBg, boxShadow: '0 14px 34px rgba(15, 23, 42, 0.22)', overflow: 'hidden' }}>
-        <section style={{ display: 'grid', gridTemplateColumns: isStacked ? '1fr' : 'minmax(0, 0.9fr) minmax(320px, 1fr)', minHeight: cardMinHeight }}>
-          <div style={{ display: 'grid', placeItems: 'center', padding: logoPanelPadding }}>
+    <main className="login-page">
+      <div className="login-card">
+        <section className="login-brand-panel" aria-label="SKUAS Pest Control services">
+          <div className="login-logo-frame">
             {hasValidLogo ? (
-              <img
-                src={settings.dashboardImageUrl}
-                alt="Company Logo"
-                onError={() => setLogoBroken(true)}
-                style={{
-                  width: logoWidth,
-                  maxWidth: '95%',
-                  maxHeight: logoMaxHeight,
-                  height: 'auto',
-                  objectFit: 'contain',
-                  background: 'transparent'
-                }}
-              />
+              <img className="login-logo" src={settings.dashboardImageUrl}
+                alt="SKUAS Pest Control" onError={() => setLogoBroken(true)} />
             ) : (
-              <div
-                style={{
-                  width: isNarrow ? '72px' : '92px',
-                  height: isNarrow ? '72px' : '92px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                  borderRadius: '18px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  color: '#fff',
-                  fontWeight: 800,
-                  fontSize: isNarrow ? '20px' : '26px'
-                }}
-              >
-                SPC
-              </div>
+              <span className="login-brand-fallback">{settings.companyName || 'SKUAS Pest Control'}</span>
             )}
           </div>
-
-          <div style={{ padding: formPanelPadding, display: 'grid', alignContent: isStacked ? 'start' : 'center', justifyItems: 'stretch', gap: isMobile ? '10px' : '14px', minWidth: 0 }}>
-            <div>
-              <h2 style={{ margin: 0, fontSize: isMobile ? 'clamp(22px, 7vw, 24px)' : isStacked ? '28px' : '32px', color: textPrimary, fontWeight: 800, lineHeight: 1.08 }}>Welcome</h2>
-            </div>
-
-            <div style={{ width: '100%', maxWidth: formMaxWidth, padding: 0, justifySelf: 'stretch' }}>
-            <form onSubmit={handleLogin} style={{ display: 'grid', gap: isMobile ? '12px' : '14px' }}>
-            <div>
-              <label htmlFor="login-username" style={{ display: 'block', marginBottom: '8px', color: textSecondary, fontSize: '13px', fontWeight: 700 }}>Login Mobile Number / Username</label>
-              <input
-                id="login-username"
-                type="text"
-                name="username"
-                onChange={handleChange}
-                value={credentials.username}
-                className="login-credential-input"
-                style={loginInputStyle}
-                autoComplete="username"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                inputMode="text"
-                aria-invalid={Boolean(loginError)}
-                aria-describedby={loginError ? 'login-error' : undefined}
-                required
-              />
-              <p style={{ margin: '6px 0 0', fontSize: '12px', color: textMuted, fontWeight: 600 }}>For employees, use your 10-digit mobile number.</p>
-            </div>
-
-            <div>
-              <label htmlFor="login-password" style={{ display: 'block', marginBottom: '8px', color: textSecondary, fontSize: '13px', fontWeight: 700 }}>Password</label>
-              <div style={{ position: 'relative' }}>
-              <input
-                id="login-password"
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                onChange={handleChange}
-                value={credentials.password}
-                className="login-credential-input"
-                style={{ ...loginInputStyle, padding: '12px 48px 12px 13px' }}
-                autoComplete="current-password"
-                aria-invalid={Boolean(loginError)}
-                aria-describedby={loginError ? 'login-error' : undefined}
-                required
-              />
-                <button
-                  className="login-password-toggle"
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  style={{ position: 'absolute', right: '5px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: textSecondary, cursor: 'pointer', display: 'grid', placeItems: 'center' }}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+          <div className="login-brand-copy">
+            <p className="login-eyebrow">EXPERT CARE. EVERY SPACE.</p>
+            <h1>Complete Pest<br className="login-desktop-break" /> Control Solutions</h1>
+            <p className="login-brand-subtitle">Homes | Offices | Industries | Pre-Construction</p>
+          </div>
+          <ul className="login-services" aria-label="Our services">
+            {[
+              [BrickWall, 'Termite Control'],
+              [Bug, 'Cockroach Control'],
+              [Rat, 'Rodent Control'],
+              [Wind, 'Mosquito Control'],
+              [ScanLine, 'Fly Control'],
+              [BrickWall, 'Pre-Construction Solutions']
+            ].map(([Icon, label]) => (
+              <li key={label}><Icon size={25} strokeWidth={1.5} aria-hidden="true" /><span>{label}</span></li>
+            ))}
+          </ul>
+          <svg className="login-skyline" viewBox="0 0 540 120" fill="none" aria-hidden="true" focusable="false">
+            <path d="M0 112H540M8 112V74L42 50L76 74V112M23 112V85H59V112M82 112V42H135V112M94 55H104M114 55H124M94 70H104M114 70H124M94 85H104M114 85H124M146 112V65L177 43L208 65V112M160 112V80H194V112M220 112V20H279V112M234 35H245M255 35H266M234 52H245M255 52H266M234 69H245M255 69H266M234 86H245M255 86H266M291 112V55H333V112M301 68H323M301 83H323M345 112V38L374 18L403 38V112M357 52H391M357 70H391M357 88H391M416 112V62H464V112M428 75H452M428 91H452M475 112V81L503 61L531 81V112" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+          </svg>
+        </section>
+        <section className="login-form-panel" aria-labelledby="login-heading">
+          <div className="login-form-content">
+            <header className="login-form-heading">
+              <p className="login-eyebrow">SKUAS CRM</p>
+              <h2 id="login-heading">Welcome Back</h2>
+              <p>Please login to your account</p>
+            </header>
+            <form onSubmit={handleLogin} className="login-form" aria-busy={authLoading}>
+              <div>
+                <label htmlFor="login-username">Mobile Number / Username</label>
+                <input id="login-username" type="text" name="username"
+                  onChange={handleChange} value={credentials.username}
+                  className="login-credential-input" autoComplete="username"
+                  autoCapitalize="none" autoCorrect="off" spellCheck={false} inputMode="text"
+                  aria-invalid={Boolean(loginError)}
+                  aria-describedby={loginError ? 'login-username-help login-error' : 'login-username-help'} required />
+                <p id="login-username-help" className="login-field-help">For employees, use your 10-digit mobile number.</p>
               </div>
-            </div>
-
-            {loginError ? (
-              <div id="login-error" role="alert" style={{ color: '#fecaca', background: 'rgba(220, 38, 38, 0.14)', border: '1px solid rgba(248, 113, 113, 0.28)', borderRadius: '8px', padding: '10px 12px', fontSize: '13px', fontWeight: 700, lineHeight: 1.35, overflowWrap: 'anywhere' }}>
-                {loginError}
+              <div>
+                <label htmlFor="login-password">Password</label>
+                <div className="login-password-field">
+                  <input id="login-password" type={showPassword ? 'text' : 'password'} name="password"
+                    onChange={handleChange} value={credentials.password}
+                    className="login-credential-input" autoComplete="current-password"
+                    aria-invalid={Boolean(loginError)} aria-describedby={loginError ? 'login-error' : undefined} required />
+                  <button className="login-password-toggle" type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword}>
+                    {showPassword ? <EyeOff size={19} aria-hidden="true" /> : <Eye size={19} aria-hidden="true" />}
+                  </button>
+                </div>
               </div>
-            ) : null}
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', columnGap: '12px', rowGap: '8px', flexWrap: 'wrap' }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: textSecondary, fontSize: '13px', fontWeight: 600, minHeight: '32px' }}>
-                <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} style={{ accentColor: '#8b5cf6' }} />
-                Remember me
-              </label>
-              <button
-                className="login-link-button"
-                type="button"
-                onClick={() => {
+              {loginError ? <div id="login-error" role="alert" className="login-error">{loginError}</div> : null}
+              <div className="login-form-options">
+                <label className="login-remember">
+                  <input type="checkbox" checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
+                  Remember me
+                </label>
+                <button className="login-link-button" type="button" onClick={() => {
                   setForgotOpen(true);
                   setForgotStep('request');
-                }}
-                style={{ background: 'transparent', border: 'none', color: '#c7d2fe', fontWeight: 700, cursor: 'pointer', textAlign: 'center', marginTop: '2px' }}
-              >
-                Forgot password?
+                }}>Forgot password?</button>
+              </div>
+              <button className="login-submit-button" type="submit" disabled={authLoading}>
+                <span>{authLoading ? 'Signing In...' : 'Sign In'}</span><ArrowRight size={19} aria-hidden="true" />
               </button>
-            </div>
-
-            <button
-              className="login-submit-button"
-              type="submit"
-              disabled={authLoading}
-              style={{
-                marginTop: isMobile ? '4px' : '6px',
-                minHeight: '48px',
-                background: 'linear-gradient(135deg, #2f176d 0%, #6d5be3 100%)',
-                color: '#fff',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '7px',
-                cursor: 'pointer',
-                fontWeight: 800,
-                fontSize: '16px',
-                opacity: authLoading ? 0.75 : 1
-              }}
-            >
-              {authLoading ? 'Signing In...' : 'Sign In'}
-            </button>
-          </form>
-            </div>
+            </form>
           </div>
+          <footer className="login-footer">© 2026 SKUAS Pest Control. All rights reserved.</footer>
         </section>
       </div>
       {forgotOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '14px' }}>
+        <div className="login-reset-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', zIndex: 9999, padding: '14px' }}>
           <div style={{ width: '100%', maxWidth: '430px', background: panelBg, borderRadius: '14px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px', boxShadow: 'var(--shadow-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ margin: 0, color: '#ffffff' }}>Reset Password</h3>
               <button
                 type="button"
                 onClick={() => setForgotOpen(false)}
+                aria-label="Close password reset"
                 style={{ border: 'none', background: 'transparent', fontSize: '22px', cursor: 'pointer', lineHeight: 1, color: '#ffffff' }}
               >
                 ×
@@ -483,22 +364,25 @@ export default function Login() {
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '10px' }}>
-                <label style={{ color: textSecondary, fontWeight: 700 }}>OTP</label>
+                <label htmlFor="reset-otp" style={{ color: textSecondary, fontWeight: 700 }}>OTP</label>
                 <input
+                  id="reset-otp" autoComplete="one-time-code" inputMode="numeric"
                   type="text"
                   value={forgotOtp}
                   onChange={(e) => setForgotOtp(e.target.value)}
                   style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: fieldBg, border: `1px solid ${fieldBorder}`, color: '#ffffff' }}
                 />
-                <label style={{ color: textSecondary, fontWeight: 700 }}>New Password</label>
+                <label htmlFor="reset-new-password" style={{ color: textSecondary, fontWeight: 700 }}>New Password</label>
                 <input
+                  id="reset-new-password" autoComplete="new-password"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   style={{ width: '100%', padding: '12px', borderRadius: '10px', boxSizing: 'border-box', background: fieldBg, border: `1px solid ${fieldBorder}`, color: '#ffffff' }}
                 />
-                <label style={{ color: textSecondary, fontWeight: 700 }}>Confirm Password</label>
+                <label htmlFor="reset-confirm-password" style={{ color: textSecondary, fontWeight: 700 }}>Confirm Password</label>
                 <input
+                  id="reset-confirm-password" autoComplete="new-password"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -517,6 +401,6 @@ export default function Login() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }
