@@ -11,12 +11,10 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import {
-  attachPlacesAutocomplete,
   loadGooglePlacesScript,
   formatGoogleAddressParts,
   getGoogleAddressLineText,
   getGoogleFormattedAddressText,
-  searchGooglePlacesByText,
   stripAutoFilledIndiaSuffix
 } from '../utils/googlePlaces';
 import {
@@ -725,6 +723,8 @@ export default function CustomerDashboard() {
   const billingSearchInputRef = useRef(null);
   const shippingSearchInputRef = useRef(null);
   const addressSuggestionSeqRef = useRef({ billing: 0, shipping: 0 });
+  const addressSearchTimerRef = useRef({});
+  const addressSearchRequestRef = useRef({});
   const lastAutoDisplayNameRef = useRef('');
   const lastDisplayNameRef = useRef('');
   const {
@@ -1030,60 +1030,11 @@ export default function CustomerDashboard() {
     lastAutoDisplayNameRef.current = preferredDisplayName;
   }, [form.companyName, form.contactPersonName, form.displayName]);
 
-  useEffect(() => {
-    if (!showModal) return () => {};
-    let cleanups = [];
-
-    const initPlaces = async () => {
-      const billingSearchCleanup = await attachPlacesAutocomplete({
-        input: billingSearchInputRef.current,
-        onSelected: (place) => {
-          const queryText = String(billingSearchInputRef.current?.value || place.formatted_address || place.name || '').trim();
-          applyCustomerAddressSuggestion('billing', place, queryText);
-          setAddressSearchState((prev) => ({
-            ...prev,
-            billing: { ...prev.billing, error: '', suggestions: [], showSuggestions: false }
-          }));
-        },
-        onError: () => setAddressSearchState((prev) => ({
-          ...prev,
-          billing: { ...prev.billing, error: '' }
-        })),
-        onRequireSelection: (message) => setAddressSearchState((prev) => ({
-          ...prev,
-          billing: { ...prev.billing, error: message || 'Please select address/company from suggestions' }
-        }))
-      });
-
-      const shippingSearchCleanup = await attachPlacesAutocomplete({
-        input: shippingSearchInputRef.current,
-        onSelected: (place) => {
-          const queryText = String(shippingSearchInputRef.current?.value || place.formatted_address || place.name || '').trim();
-          applyCustomerAddressSuggestion('shipping', place, queryText);
-          setAddressSearchState((prev) => ({
-            ...prev,
-            shipping: { ...prev.shipping, error: '', suggestions: [], showSuggestions: false }
-          }));
-        },
-        onError: () => setAddressSearchState((prev) => ({
-          ...prev,
-          shipping: { ...prev.shipping, error: '' }
-        })),
-        onRequireSelection: (message) => setAddressSearchState((prev) => ({
-          ...prev,
-          shipping: { ...prev.shipping, error: message || 'Please select address/company from suggestions' }
-        }))
-      });
-
-      cleanups = [billingSearchCleanup, shippingSearchCleanup];
-    };
-
-    initPlaces();
-    return () => {
-      cleanups.forEach((fn) => {
-        if (typeof fn === 'function') fn();
-      });
-    };
+  useEffect(() => () => {
+    for (const section of ['billing', 'shipping']) {
+      clearTimeout(addressSearchTimerRef.current[section]);
+      addressSuggestionSeqRef.current[section] += 1;
+    }
   }, [showModal]);
 
   const displayNameOptions = useMemo(() => {
@@ -1607,9 +1558,7 @@ export default function CustomerDashboard() {
       googleWebsite
     }, options);
 
-    if (lat !== null && lng !== null) {
-      void enrichCustomerAddressFromLatLng(section, lat, lng);
-    }
+    // Search results already contain address components; avoid a second, racing geocode.
   };
 
   const enrichCustomerAddressFromLatLng = async (section, lat, lng, { preserveSearchAddress = false } = {}) => {
@@ -1732,7 +1681,15 @@ export default function CustomerDashboard() {
     }
   };
 
+  const cancelCustomerAddressSearch = (section) => {
+    clearTimeout(addressSearchTimerRef.current[section]);
+    addressSuggestionSeqRef.current[section] += 1;
+    return addressSuggestionSeqRef.current[section];
+  };
+
   const handleCustomerSearchAddressChange = (section, value) => {
+    const reqId = cancelCustomerAddressSearch(section);
+    setSectionAddressSearchState(section, { error: '', fetching: false, suggestions: [], showSuggestions: false });
     const isShipping = section === 'shipping';
     const key = isShipping ? 'shippingSearchAddress' : 'billingSearchAddress';
     setForm((prev) => {
@@ -1749,7 +1706,9 @@ export default function CustomerDashboard() {
         return;
       }
       setSectionAddressSearchState(section, { error: '' });
-      void fetchCustomerLiveSearchSuggestions(section, value);
+      addressSearchTimerRef.current[section] = window.setTimeout(() => {
+        void fetchCustomerLiveSearchSuggestions(section, value, reqId);
+      }, 350);
     }
   };
 
@@ -1765,33 +1724,42 @@ export default function CustomerDashboard() {
     }, 0);
   };
 
-  const fetchCustomerLiveSearchSuggestions = async (section, value) => {
+  const getCustomerAddressSearchError = (error) => error?.code === 'MAPS_KEY_MISSING'
+    ? 'Address search is not configured. Please enter the address manually.'
+    : 'Address search is unavailable. Please enter the address manually or try again later.';
+
+  const requestCustomerAddress = (section, query) => {
+    const current = addressSearchRequestRef.current[section];
+    if (current?.query === query) return current.promise;
+    const request = { query };
+    request.promise = resolveGoogleMapsPlaceText(query, { apiBaseUrl: API_BASE_URL, customerAddressSearch: true })
+      .finally(() => {
+        if (addressSearchRequestRef.current[section] === request) delete addressSearchRequestRef.current[section];
+      });
+    addressSearchRequestRef.current[section] = request;
+    return request.promise;
+  };
+
+  const fetchCustomerLiveSearchSuggestions = async (section, value, reqId) => {
     const queryText = String(value || '').trim();
     if (queryText.length < 2) {
       setSectionAddressSearchState(section, { suggestions: [], showSuggestions: false });
       return;
     }
 
-    const seq = addressSuggestionSeqRef.current;
-    seq[section] = (seq[section] || 0) + 1;
-    const reqId = seq[section];
     try {
-      const serverResult = await resolveGoogleMapsPlaceText(queryText, { apiBaseUrl: API_BASE_URL });
-      const places = serverResult?.success && serverResult.result
-        ? [serverResult.result]
-        : await searchGooglePlacesByText({
-            textQuery: queryText,
-            maxResultCount: 5
-          });
+      const serverResult = await requestCustomerAddress(section, queryText);
+      if (!serverResult.success) throw Object.assign(new Error(serverResult.message), { code: serverResult.code });
+      const places = serverResult.results || [];
       if (addressSuggestionSeqRef.current[section] !== reqId) return;
       const suggestions = Array.isArray(places) ? places : [];
       setSectionAddressSearchState(section, {
         suggestions,
         showSuggestions: suggestions.length > 0
       });
-    } catch {
+    } catch (error) {
       if (addressSuggestionSeqRef.current[section] !== reqId) return;
-      setSectionAddressSearchState(section, { suggestions: [], showSuggestions: false });
+      setSectionAddressSearchState(section, { error: getCustomerAddressSearchError(error), suggestions: [], showSuggestions: false });
     }
   };
 
@@ -1810,19 +1778,17 @@ export default function CustomerDashboard() {
       return;
     }
 
-    setSectionAddressSearchState(section, { fetching: true, error: '' });
+    const reqId = cancelCustomerAddressSearch(section);
+    setSectionAddressSearchState(section, { fetching: true, error: '', suggestions: [], showSuggestions: false });
     try {
       if (await resolveCustomerAddressSearchInput(section, query, { preserveSearchAddress: true })) {
         return;
       }
 
-      const serverResult = await resolveGoogleMapsPlaceText(query, { apiBaseUrl: API_BASE_URL });
-      const places = serverResult?.success && serverResult.result
-        ? [serverResult.result]
-        : await searchGooglePlacesByText({
-            textQuery: query,
-            maxResultCount: 10
-          });
+      const serverResult = await requestCustomerAddress(section, query);
+      if (addressSuggestionSeqRef.current[section] !== reqId) return;
+      if (!serverResult.success) throw Object.assign(new Error(serverResult.message), { code: serverResult.code });
+      const places = serverResult.results || [];
 
       if (!places || places.length === 0) {
         setSectionAddressSearchState(section, { error: 'No address found. Try full address with city.' });
@@ -1832,10 +1798,10 @@ export default function CustomerDashboard() {
       applyCustomerAddressSuggestion(section, places[0], query);
       setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
     } catch (error) {
-      setSectionAddressSearchState(section, { error: getCustomerSearchUnavailableMessage(error) });
-      console.error('Customer Google place text search error:', error);
+      if (addressSuggestionSeqRef.current[section] !== reqId) return;
+      setSectionAddressSearchState(section, { error: getCustomerAddressSearchError(error) });
     } finally {
-      setSectionAddressSearchState(section, { fetching: false });
+      if (addressSuggestionSeqRef.current[section] === reqId) setSectionAddressSearchState(section, { fetching: false });
     }
   };
 
@@ -2802,6 +2768,7 @@ export default function CustomerDashboard() {
                     type="button"
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => {
+                      cancelCustomerAddressSearch(section);
                       applyCustomerAddressSuggestion(section, place, form[searchKey]);
                       setSectionAddressSearchState(section, { error: '', suggestions: [], showSuggestions: false });
                     }}
@@ -2812,6 +2779,7 @@ export default function CustomerDashboard() {
                   </button>
                 );
               })}
+              <div style={{ padding: '8px 10px', fontFamily: 'Arial, sans-serif', fontSize: '12px', color: 'var(--text-secondary)' }}>Google Maps</div>
             </div>
           ) : null}
           {state.error ? (

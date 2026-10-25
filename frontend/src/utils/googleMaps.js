@@ -171,7 +171,7 @@ const normalizeGooglePlaceSearchResult = (result = {}, fallbackText = '') => {
   };
 };
 
-const resolveGoogleMapsPlaceText = async (text, { apiBaseUrl = '' } = {}) => {
+const resolveGoogleMapsPlaceText = async (text, { apiBaseUrl = '', customerAddressSearch = false } = {}) => {
   const address = String(text || '').trim();
   if (!address) {
     return { success: false, message: 'Address is required' };
@@ -179,20 +179,23 @@ const resolveGoogleMapsPlaceText = async (text, { apiBaseUrl = '' } = {}) => {
 
   const base = normalizeApiBaseUrl(apiBaseUrl || import.meta.env.VITE_API_BASE_URL || '');
   const endpoint = `${base}/api/maps/geocode`;
-  const response = await axios.post(endpoint, { address }, {
+  const response = await axios.post(endpoint, { address, ...(customerAddressSearch ? { customerAddressSearch: true } : {}) }, {
+    ...(customerAddressSearch ? { timeout: 20000 } : {}),
     withCredentials: true,
     validateStatus: () => true
   });
   const data = response?.data || {};
-  if (response.status >= 200 && response.status < 300 && data.result) {
+  if (response.status >= 200 && response.status < 300 && (data.result || (customerAddressSearch && Array.isArray(data.results)))) {
     return {
       success: true,
-      result: normalizeGooglePlaceSearchResult(data.result, address)
+      result: data.result ? normalizeGooglePlaceSearchResult(data.result, address) : null,
+      results: Array.isArray(data.results) ? data.results.map((place) => normalizeGooglePlaceSearchResult(place, address)) : undefined
     };
   }
 
   return {
     success: false,
+    code: String(data.code || ''),
     message: String(data.error || data.message || 'Could not find this address').trim() || 'Could not find this address'
   };
 };

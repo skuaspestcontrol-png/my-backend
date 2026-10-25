@@ -6227,6 +6227,8 @@ app.get('/api/maps/resolve', async (req, res) => {
   }
 });
 
+const { searchCustomerAddress } = require('./lib/customerAddressSearch');
+
 app.post('/api/maps/geocode', async (req, res) => {
   const address = String(req.body?.address || '').trim();
   const lat = String(req.body?.lat || '').trim();
@@ -6241,6 +6243,13 @@ app.post('/api/maps/geocode', async (req, res) => {
   if ((!address) && (!lat || !lng)) {
     res.status(400).json({ error: 'Address or coordinates are required.' });
     return;
+  }
+
+  if (req.body?.customerAddressSearch === true) {
+    const apiKey = String(process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_GEOCODING_API_KEY || '').trim();
+    const response = await searchCustomerAddress({ address, apiKey });
+    const { status, ...payload } = response;
+    return res.status(status).json(payload);
   }
 
   const buildGoogleLikeResultFromOsm = (payload = {}) => {
