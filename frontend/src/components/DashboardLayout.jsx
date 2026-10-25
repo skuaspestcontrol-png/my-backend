@@ -790,9 +790,10 @@ export default function DashboardLayout({ children }) {
           className="topbar"
           style={{
             backdropFilter: 'blur(16px)',
-            background: 'linear-gradient(135deg, #140e2f 0%, #0d1024 100%)',
-            color: '#fff',
-            boxShadow: '0 14px 32px rgba(15, 23, 42, 0.12)',
+            background: 'var(--surface-card)',
+            color: 'var(--text-primary)',
+            boxShadow: 'var(--shadow-card)',
+            borderBottom: '1px solid var(--border-soft)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: isDrawerMode ? 'space-between' : 'flex-end',
@@ -813,9 +814,9 @@ export default function DashboardLayout({ children }) {
             aria-label={isDrawerMode ? sidebarOpen ? 'Hide menu' : 'Show menu' : sidebarPinnedOpen ? 'Auto minimize menu' : 'Keep menu extended'}
             title={isDrawerMode ? sidebarOpen ? 'Hide menu' : 'Show menu' : sidebarPinnedOpen ? 'Auto minimize menu' : 'Keep menu extended'}
             style={{
-              border: '1px solid rgba(255, 255, 255, 0.14)',
-              background: 'rgba(255, 255, 255, 0.06)',
-              color: '#fff',
+              border: '1px solid var(--border-soft)',
+              background: 'var(--surface-secondary)',
+              color: 'var(--text-primary)',
               width: isMobile ? '38px' : '40px',
               height: isMobile ? '38px' : '40px',
               padding: 0,
@@ -834,9 +835,9 @@ export default function DashboardLayout({ children }) {
               type="button"
               onClick={() => setServiceCalendarOpen(true)}
               style={{
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                background: 'rgba(255, 255, 255, 0.06)',
-                color: '#fff',
+                border: '1px solid var(--border-soft)',
+                background: 'var(--surface-secondary)',
+                color: 'var(--text-primary)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
@@ -853,7 +854,7 @@ export default function DashboardLayout({ children }) {
             <span
               style={{
                 fontSize: '13px',
-                color: '#fff',
+                color: 'var(--text-primary)',
                 letterSpacing: '0.02em',
                 whiteSpace: 'nowrap',
                 display: isMobile ? 'none' : 'inline-flex',
@@ -871,9 +872,9 @@ export default function DashboardLayout({ children }) {
                 type="button"
                 onClick={() => setNotificationsOpen((prev) => !prev)}
                 style={{
-                  border: '1px solid rgba(255, 255, 255, 0.14)',
-                  background: 'rgba(255, 255, 255, 0.06)',
-                  color: '#fff',
+                  border: '1px solid var(--border-soft)',
+                  background: 'var(--surface-secondary)',
+                  color: 'var(--text-primary)',
                   width: isMobile ? '38px' : '42px',
                   height: isMobile ? '38px' : '42px',
                   borderRadius: '999px',
@@ -1074,9 +1075,9 @@ export default function DashboardLayout({ children }) {
               type="button"
               onClick={() => navigate('/settings')}
               style={{
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                background: 'rgba(255, 255, 255, 0.06)',
-                color: '#fff',
+                border: '1px solid var(--border-soft)',
+                background: 'var(--surface-secondary)',
+                color: 'var(--text-primary)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
@@ -1094,9 +1095,9 @@ export default function DashboardLayout({ children }) {
               type="button"
               onClick={toggleThemeMode}
               style={{
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                background: 'rgba(255, 255, 255, 0.06)',
-                color: '#fff',
+                border: '1px solid var(--border-soft)',
+                background: 'var(--surface-secondary)',
+                color: 'var(--text-primary)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
@@ -1114,9 +1115,9 @@ export default function DashboardLayout({ children }) {
               type="button"
               onClick={handleLogout}
               style={{
-                border: '1px solid rgba(255, 255, 255, 0.14)',
-                background: 'rgba(255, 255, 255, 0.06)',
-                color: '#fff',
+                border: '1px solid var(--border-soft)',
+                background: 'var(--surface-secondary)',
+                color: 'var(--text-primary)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
