@@ -1130,7 +1130,7 @@ export default function Attendance() {
 
   return (
     <div className="attendance-page" style={shell.page}>
-      <div style={shell.topbar}>
+      <div data-brand-header="true" style={shell.topbar}>
         <div style={shell.titleWrap}>
           <h2 style={shell.title}>Attendance</h2>
           <p style={shell.subtitle}>Maintain daily attendance, leave records, and working hours in one clean view.</p>

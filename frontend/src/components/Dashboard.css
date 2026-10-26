@@ -1,6 +1,6 @@
 /* Main Dashboard only; specificity protects these surfaces from legacy theme rules. */
 .dashboard-page.dashboard-main {
-  --dashboard-header: #20213f;
+  --dashboard-header: var(--card-header-bg);
   --dashboard-border: #e7e5f0;
   --dashboard-shadow: 0 4px 20px rgba(28, 23, 66, .045);
   padding: 20px;
@@ -9,7 +9,7 @@
   color: var(--text-primary);
 }
 html[data-theme="dark"] .dashboard-page.dashboard-main {
-  --dashboard-header: #1c2343;
+  --dashboard-header: var(--card-header-bg);
   --dashboard-border: #303b5b;
   --dashboard-shadow: none;
 }
@@ -197,9 +197,9 @@ html[data-theme] .dashboard-page.dashboard-main .dashboard-monthly-controls sele
 .dashboard-main .dashboard-summary-panels .dashboard-target-section { display: flex; flex-direction: column; gap: 0; min-width: 0; border: 1px solid var(--dashboard-border); border-radius: 12px; overflow: hidden; background: var(--surface-card); box-shadow: var(--dashboard-shadow); }
 html[data-theme] .dashboard-page.dashboard-main .dashboard-summary-panels .dashboard-section-head { min-height: 48px; padding: 8px 14px; gap: 10px; background: var(--skuas-header) !important; }
 html[data-theme="dark"] .dashboard-page.dashboard-main .dashboard-summary-panels .dashboard-section-head { background: var(--dashboard-header) !important; }
-.dashboard-main .dashboard-summary-panels .dashboard-section-head h2 { display: flex; align-items: center; gap: 8px; color: #fff !important; -webkit-text-fill-color: #fff !important; font-size: 14px !important; line-height: 1.4; }
+.dashboard-main .dashboard-summary-panels .dashboard-section-head h2 { display: flex; align-items: center; gap: 8px; color: var(--card-header-text) !important; -webkit-text-fill-color: var(--card-header-text) !important; font-size: 14px !important; line-height: 1.4; }
 .dashboard-main .dashboard-summary-panels .dashboard-section-head h2 svg { flex-shrink: 0; }
-html[data-theme] .dashboard-page.dashboard-main .dashboard-summary-panels .dashboard-section-head select { min-width: 80px !important; min-height: 30px; padding: 4px 24px 4px 8px; background-color: #ffffff12 !important; color: #fff !important; -webkit-text-fill-color: #fff !important; border-color: #ffffff30 !important; }
+html[data-theme] .dashboard-page.dashboard-main .dashboard-summary-panels .dashboard-section-head select { min-width: 80px !important; min-height: 30px; padding: 4px 24px 4px 8px; background-color: var(--card-header-bg) !important; color: var(--card-header-text) !important; -webkit-text-fill-color: var(--card-header-text) !important; border-color: #ffffff30 !important; }
 .dashboard-main .dashboard-summary-panels .dashboard-section-head select option { color: var(--text-primary) !important; -webkit-text-fill-color: var(--text-primary) !important; background: var(--surface-input); }
 .dashboard-main .dashboard-summary-panels .dashboard-target-grid { display: grid; flex: 1; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 12px; }
 html[data-theme] .dashboard-page.dashboard-main .dashboard-summary-panels .dashboard-target-card { display: flex; flex-direction: column; min-width: 0; min-height: 106px; padding: 12px 10px; border: 0 !important; border-radius: 8px; box-shadow: none !important; background: #f0ebff !important; }

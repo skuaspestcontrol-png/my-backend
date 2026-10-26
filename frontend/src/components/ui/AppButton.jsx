@@ -2,11 +2,11 @@ import { theme } from '../../styles/theme';
 import LoadingSpinner from './LoadingSpinner';
 
 const variants = {
-  primary: { bg: theme.colors.primary, fg: '#fff', border: theme.colors.primary, hover: theme.colors.primaryHover },
-  secondary: { bg: theme.colors.softPink, fg: theme.colors.primary, border: 'var(--color-primary-soft)', hover: 'var(--color-primary-soft)' },
-  outline: { bg: '#fff', fg: theme.colors.primary, border: 'color-mix(in srgb, var(--color-primary) 38%, #ffffff)', hover: theme.colors.softPink },
+  primary: { bg: theme.colors.primary, fg: 'var(--brand-on-primary)', border: theme.colors.primary, hover: theme.colors.primaryHover },
+  secondary: { bg: theme.colors.softPink, fg: 'var(--brand-ink)', border: 'var(--color-primary-soft)', hover: 'var(--color-primary-soft)' },
+  outline: { bg: 'var(--surface-card)', fg: 'var(--brand-ink)', border: 'color-mix(in srgb, var(--color-primary) 38%, #ffffff)', hover: theme.colors.softPink },
   danger: { bg: theme.colors.danger, fg: '#fff', border: theme.colors.danger, hover: '#B91C1C' },
-  ghost: { bg: 'transparent', fg: theme.colors.text, border: 'transparent', hover: '#F3F4F6' }
+  ghost: { bg: 'transparent', fg: theme.colors.text, border: 'transparent', hover: 'var(--surface-secondary)' }
 };
 
 export default function AppButton({
@@ -33,6 +33,7 @@ export default function AppButton({
       type="button"
       disabled={isDisabled}
       aria-busy={loading}
+      data-variant={variant}
       style={{
         minHeight: s.height,
         padding: `0 ${s.px}px`,

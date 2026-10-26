@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { applyBrandingTheme, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
+import { applyBrandingTheme, brandingTextColor, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
 import { getPortalUserRole, logoutPortalUser } from '../utils/portalAuth';
 import {
   CalendarClock,
@@ -48,16 +48,6 @@ const scheduleIdleTask = (callback, timeout = 2000) => {
   }
   const timerId = window.setTimeout(callback, timeout);
   return () => window.clearTimeout(timerId);
-};
-
-const isLightHex = (value) => {
-  const raw = String(value || '').trim().replace('#', '');
-  if (!/^[0-9A-Fa-f]{6}$/.test(raw)) return false;
-  const red = parseInt(raw.slice(0, 2), 16);
-  const green = parseInt(raw.slice(2, 4), 16);
-  const blue = parseInt(raw.slice(4, 6), 16);
-  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
-  return luminance > 0.62;
 };
 
 const toDateOnly = (value) => {
@@ -379,7 +369,7 @@ export default function DashboardLayout({ children }) {
   const isTablet = viewportWidth >= 768 && viewportWidth <= 991;
   const isLaptop = viewportWidth >= 992 && viewportWidth <= 1199;
   const isDrawerMode = viewportWidth < 992;
-  const headerAccentIsLight = isLightHex(settings.brandingAccentColor);
+  const headerAccentIsLight = brandingTextColor(settings.brandingAccentColor) === '#000000';
   const serviceCalendarHeaderTextColor = headerAccentIsLight ? '#0F172A' : '#FFFFFF';
   const serviceCalendarHeaderSubtitleColor = headerAccentIsLight ? 'rgba(15, 23, 42, 0.72)' : 'rgba(255, 255, 255, 0.88)';
   const serviceCalendarHeaderButtonBorder = headerAccentIsLight ? 'rgba(15, 23, 42, 0.14)' : 'rgba(255, 255, 255, 0.22)';
@@ -575,6 +565,7 @@ export default function DashboardLayout({ children }) {
         }}
       >
         <div
+          className="portal-brand-header"
           style={{
             minHeight: isDrawerMode ? '88px' : '66px',
             padding: isDrawerMode ? '10px 12px' : '0 16px',
@@ -585,7 +576,7 @@ export default function DashboardLayout({ children }) {
             top: 0,
             zIndex: 2,
             borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            background: 'linear-gradient(135deg, #160f33 0%, #120d2a 100%)'
+            background: 'var(--brand-header-bg)'
           }}
         >
           <Link
@@ -606,24 +597,24 @@ export default function DashboardLayout({ children }) {
                   width: isSidebarCollapsed ? '42px' : isDrawerMode ? '150px' : '170px',
                   height: isSidebarCollapsed ? '42px' : isDrawerMode ? '58px' : '64px',
                   borderRadius: 0,
-                  background: 'linear-gradient(135deg, #160f33 0%, #120d2a 100%)',
+                  background: 'var(--brand-header-bg)',
                   padding: isSidebarCollapsed ? '0' : '4px 8px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: '0 14px 28px rgba(15, 23, 42, 0.18)',
+                  boxShadow: 'none',
                   overflow: 'hidden',
                   flexShrink: 0
                 }}
               >
-                <img src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img className="portal-brand-logo" src={settings.dashboardImageUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
             ) : (
               <div
                 style={{
                   width: isSidebarCollapsed ? '42px' : isDrawerMode ? '150px' : '170px',
                   height: isSidebarCollapsed ? '42px' : isDrawerMode ? '58px' : '64px',
-                  background: 'linear-gradient(135deg, #140e2f 0%, #7c3aed 60%, #4f46e5 100%)',
+                  background: 'var(--brand-header-bg)',
                   borderRadius: isSidebarCollapsed ? '10px' : '12px',
                   display: 'flex',
                   justifyContent: 'center',
@@ -632,7 +623,7 @@ export default function DashboardLayout({ children }) {
                   fontSize: isSidebarCollapsed ? '15px' : isDrawerMode ? '20px' : '24px',
                   color: '#fff',
                   letterSpacing: '0.08em',
-                  boxShadow: '0 14px 28px rgba(15, 23, 42, 0.18)',
+                  boxShadow: 'none',
                   flexShrink: 0
                 }}
               >
@@ -790,8 +781,8 @@ export default function DashboardLayout({ children }) {
           className="topbar"
           style={{
             backdropFilter: 'blur(16px)',
-            background: 'var(--surface-card)',
-            color: 'var(--text-primary)',
+            background: 'var(--brand-header-bg)',
+            color: 'var(--brand-header-text)',
             boxShadow: 'var(--shadow-card)',
             borderBottom: '1px solid var(--border-soft)',
             display: 'flex',
@@ -815,8 +806,8 @@ export default function DashboardLayout({ children }) {
             title={isDrawerMode ? sidebarOpen ? 'Hide menu' : 'Show menu' : sidebarPinnedOpen ? 'Auto minimize menu' : 'Keep menu extended'}
             style={{
               border: '1px solid var(--border-soft)',
-              background: 'var(--surface-secondary)',
-              color: 'var(--text-primary)',
+              background: 'transparent',
+              color: 'var(--brand-header-text)',
               width: isMobile ? '38px' : '40px',
               height: isMobile ? '38px' : '40px',
               padding: 0,
@@ -836,8 +827,8 @@ export default function DashboardLayout({ children }) {
               onClick={() => setServiceCalendarOpen(true)}
               style={{
                 border: '1px solid var(--border-soft)',
-                background: 'var(--surface-secondary)',
-                color: 'var(--text-primary)',
+                background: 'transparent',
+                color: 'var(--brand-header-text)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
@@ -854,7 +845,7 @@ export default function DashboardLayout({ children }) {
             <span
               style={{
                 fontSize: '13px',
-                color: 'var(--text-primary)',
+                color: 'var(--brand-header-text)',
                 letterSpacing: '0.02em',
                 whiteSpace: 'nowrap',
                 display: isMobile ? 'none' : 'inline-flex',
@@ -873,8 +864,8 @@ export default function DashboardLayout({ children }) {
                 onClick={() => setNotificationsOpen((prev) => !prev)}
                 style={{
                   border: '1px solid var(--border-soft)',
-                  background: 'var(--surface-secondary)',
-                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  color: 'var(--brand-header-text)',
                   width: isMobile ? '38px' : '42px',
                   height: isMobile ? '38px' : '42px',
                   borderRadius: '999px',
@@ -1076,8 +1067,8 @@ export default function DashboardLayout({ children }) {
               onClick={() => navigate('/settings')}
               style={{
                 border: '1px solid var(--border-soft)',
-                background: 'var(--surface-secondary)',
-                color: 'var(--text-primary)',
+                background: 'transparent',
+                color: 'var(--brand-header-text)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
@@ -1096,8 +1087,8 @@ export default function DashboardLayout({ children }) {
               onClick={toggleThemeMode}
               style={{
                 border: '1px solid var(--border-soft)',
-                background: 'var(--surface-secondary)',
-                color: 'var(--text-primary)',
+                background: 'transparent',
+                color: 'var(--brand-header-text)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',
@@ -1116,8 +1107,8 @@ export default function DashboardLayout({ children }) {
               onClick={handleLogout}
               style={{
                 border: '1px solid var(--border-soft)',
-                background: 'var(--surface-secondary)',
-                color: 'var(--text-primary)',
+                background: 'transparent',
+                color: 'var(--brand-header-text)',
                 width: isMobile ? '38px' : '42px',
                 height: isMobile ? '38px' : '42px',
                 borderRadius: '999px',

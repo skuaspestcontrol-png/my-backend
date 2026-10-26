@@ -3138,7 +3138,7 @@ export default function TechnicianPortal() {
 
         {renderWizardStepContent()}
 
-        <div style={shell.wizardFooter}>
+        <div data-brand-footer="true" style={shell.wizardFooter}>
           <button
             type="button"
             ref={wizardBackButtonRef}
@@ -3169,7 +3169,7 @@ export default function TechnicianPortal() {
       {showCostModal ? (
         <div style={shell.costModalOverlay} onClick={closeAddCostModal}>
           <div style={shell.costModalCard} onClick={(event) => event.stopPropagation()}>
-            <div style={shell.costModalHead}>
+            <div data-brand-header="true" style={shell.costModalHead}>
               <h3 style={shell.costModalTitle}>Add Cost</h3>
               <button type="button" style={shell.backBtn} onClick={closeAddCostModal}>Close</button>
             </div>
@@ -3254,7 +3254,7 @@ export default function TechnicianPortal() {
               </div>
               {costModalError ? <p style={{ margin: 0, color: '#b91c1c', fontSize: '12px', fontWeight: 700 }}>{costModalError}</p> : null}
             </div>
-            <div style={shell.costModalFooter}>
+            <div data-brand-footer="true" style={shell.costModalFooter}>
               <button type="button" style={shell.backBtn} onClick={closeAddCostModal} disabled={costModalSaving}>Cancel</button>
               <button type="button" style={shell.actionBtn} onClick={submitCostDraft} disabled={costModalSaving}>
                 {costModalSaving ? 'Saving...' : 'Save Cost'}

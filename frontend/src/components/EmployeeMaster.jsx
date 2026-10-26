@@ -782,7 +782,7 @@ export default function EmployeeMaster() {
 
   return (
     <section className="employee-master-page" style={shell.page}>
-      <div style={shell.topbar}>
+      <div data-brand-header="true" style={shell.topbar}>
         <h2 style={shell.title}>Employee Master</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <label style={{ display: 'grid', gap: '4px' }}>

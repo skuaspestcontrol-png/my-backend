@@ -105,9 +105,9 @@ export default function EmailPreviewModal({
           </div>
           {error ? <div style={{ color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{error}</div> : null}
         </div>
-        <div style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' }}>
+        <div data-brand-footer="true" style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' }}>
           <button type="button" onClick={onClose} style={{ minHeight: '36px', borderRadius: '10px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 12px', fontWeight: 700, fontSize: '13px' }}>Cancel</button>
-          <button type="button" onClick={handleSend} disabled={busy || !recipientEmail || !subject.trim() || !body.trim()} style={{ minHeight: '36px', borderRadius: '10px', border: 'none', background: '#1d4ed8', color: '#fff', padding: '0 14px', fontWeight: 800, fontSize: '13px' }}>{busy ? 'Sending...' : 'Send Email'}</button>
+          <button type="button" onClick={handleSend} disabled={busy || !recipientEmail || !subject.trim() || !body.trim()} style={{ minHeight: '36px', borderRadius: '10px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 800, fontSize: '13px' }}>{busy ? 'Sending...' : 'Send Email'}</button>
         </div>
       </div>
     </div>

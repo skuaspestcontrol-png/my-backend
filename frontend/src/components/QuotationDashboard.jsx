@@ -543,7 +543,7 @@ function QuotationDashboardInner() {
 
   return (
     <section className="quotation-dashboard-page" style={shell.page}>
-      <header style={headerStyle}>
+      <header data-brand-header="true" style={headerStyle}>
         <div>
           <h1 style={titleStyle}>Quotation</h1>
           <p style={subtitleStyle}>Professional proposal tracking with settings-based numbering, content, and PDF style.</p>

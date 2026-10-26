@@ -376,7 +376,7 @@ export default function VendorBillsDashboard() {
 
   return (
     <section className="vendor-bills-page" style={shell.page}>
-      <div style={shell.topbar}>
+      <div data-brand-header="true" style={shell.topbar}>
         <h1 style={shell.title}>Vendor Bills</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <button type="button" style={shell.buttonPrimary} onClick={openNew}><Plus size={16} />New Bill</button>

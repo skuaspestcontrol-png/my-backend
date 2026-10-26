@@ -5752,3 +5752,204 @@ body .crm-compact-table select[size="1"] {
   line-height: 1.3 !important;
   white-space: nowrap !important;
 }
+
+/* Branding is the single colour source for portal chrome and action controls.
+   Keep structural/layout rules and semantic success/warning/danger colours separate. */
+:root {
+  --brand-soft: var(--brand-soft-light, #f5f3ff);
+  --brand-outline: var(--brand-border-light, rgba(124, 58, 237, 0.3));
+  --brand-ink: var(--brand-ink-light, #5b21b6);
+}
+html[data-theme="dark"] {
+  --brand-soft: var(--brand-soft-dark, #292442);
+  --brand-outline: var(--brand-border-dark, rgba(167, 139, 250, 0.38));
+  --brand-ink: var(--brand-ink-dark, #c4b5fd);
+}
+
+html[data-branding="true"][data-theme] body :is(.topbar, .portal-brand-header) {
+  background: var(--brand-header-bg) !important;
+  color: var(--brand-header-text) !important;
+  -webkit-text-fill-color: var(--brand-header-text);
+}
+html[data-branding="true"][data-theme] .portal-brand-logo {
+  filter: var(--brand-logo-filter);
+}
+html[data-branding="true"][data-theme] body .topbar > button,
+html[data-branding="true"][data-theme] body .topbar > div > button,
+html[data-branding="true"][data-theme] body .topbar [data-topbar-notifications] > button {
+  background: transparent !important;
+  color: var(--brand-header-text) !important;
+  -webkit-text-fill-color: var(--brand-header-text);
+  border-color: currentColor !important;
+}
+html[data-branding="true"][data-theme] body .topbar > button:hover,
+html[data-branding="true"][data-theme] body .topbar > div > button:hover,
+html[data-branding="true"][data-theme] body .topbar [data-topbar-notifications] > button:hover {
+  background: var(--color-primary-dark) !important;
+  color: var(--brand-on-hover) !important;
+  -webkit-text-fill-color: var(--brand-on-hover);
+}
+
+html[data-branding="true"][data-theme] body :is(.crm-modal-header, .crm-modal-surface-header, .crm-card-header, .dashboard-panel-header) {
+  background: var(--card-header-bg) !important;
+  color: var(--card-header-text) !important;
+  -webkit-text-fill-color: var(--card-header-text) !important;
+}
+html[data-branding="true"][data-theme] body :is(.crm-modal-header, .crm-modal-surface-header, .crm-card-header, .dashboard-panel-header)
+  :is(h1, h2, h3, h4, p, span, strong, small, svg, button),
+html[data-branding="true"][data-theme] body .dashboard-summary-panels .dashboard-section-head :is(h2, svg, select) {
+  color: var(--card-header-text) !important;
+  -webkit-text-fill-color: var(--card-header-text) !important;
+}
+
+html[data-branding="true"][data-theme] body :is(footer, .crm-modal-footer, .crm-modal-surface-footer, .modal-footer, [data-brand-footer], .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination, tfoot, tfoot tr, tfoot td) {
+  background: var(--table-footer-bg) !important;
+  color: var(--table-footer-text) !important;
+  -webkit-text-fill-color: var(--table-footer-text) !important;
+}
+html[data-branding="true"][data-theme] body :is(footer, .crm-modal-footer, .crm-modal-surface-footer, .modal-footer, [data-brand-footer], .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination, tfoot)
+  :is(p, span, small, strong, label) {
+  color: var(--table-footer-text) !important;
+  -webkit-text-fill-color: var(--table-footer-text) !important;
+}
+/* Pagination and neutral footer actions retain a readable neutral surface. */
+html[data-branding="true"][data-theme] body :is(footer, .crm-modal-footer, .crm-modal-surface-footer, .modal-footer, [data-brand-footer], .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination, tfoot)
+  :is(button, select, input):where(:not([data-variant="danger"], .btn-danger, .danger-btn, .danger,
+    [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"],
+    [style*="color: rgb(185, 28, 28)"], [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"], [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])) {
+  background: var(--surface-input) !important;
+  color: var(--input-text) !important;
+  -webkit-text-fill-color: var(--input-text) !important;
+}
+html[data-branding="true"][data-theme] body :is(footer, .crm-modal-footer, .crm-modal-surface-footer, .modal-footer, [data-brand-footer], .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination, tfoot) button
+  :is(span, svg, strong, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+/* Existing modules use both shared classes and inline semantic colour tokens. */
+html[data-branding="true"][data-theme] body :is(button, .btn, input[type="submit"]):is(.btn-primary, .primary-btn, .primary, [data-variant="primary"], [style*="background: var(--color-primary)"], [style*="background-color: var(--color-primary)"]),
+html[data-branding="true"][data-theme] body button[type="submit"]:not(:is([data-variant="danger"], .btn-danger, .danger-btn, .danger)) {
+  background: var(--color-primary) !important;
+  color: var(--brand-on-primary) !important;
+  -webkit-text-fill-color: var(--brand-on-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+html[data-branding="true"][data-theme] body :is(button, .btn):is(.btn-primary, .primary-btn, .primary, [data-variant="primary"], [style*="background: var(--color-primary)"], [style*="background-color: var(--color-primary)"]):hover,
+html[data-branding="true"][data-theme] body button[type="submit"]:not(:is([data-variant="danger"], .btn-danger, .danger-btn, .danger)):hover {
+  background: var(--color-primary-dark) !important;
+  color: var(--brand-on-hover) !important;
+  -webkit-text-fill-color: var(--brand-on-hover) !important;
+}
+html[data-branding="true"][data-theme] body :is(button, .btn):is(.btn-primary, .primary-btn, .primary, [data-variant="primary"], [style*="background: var(--color-primary)"], [style*="background-color: var(--color-primary)"], [type="submit"]) :is(span, strong, svg, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html[data-branding="true"][data-theme] body :is(button, .btn):is(.secondary-btn, .btn-secondary, [data-variant="secondary"], [data-variant="outline"], [style*="background: var(--color-primary-light)"], [style*="background: var(--color-primary-soft)"]) {
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  -webkit-text-fill-color: var(--brand-ink) !important;
+  border-color: var(--brand-ink) !important;
+}
+html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item.active {
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  border-color: var(--color-primary) !important;
+}
+html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item.active svg {
+  color: inherit !important;
+}
+
+/* Page title/tool bars and older inline modal chrome opt into the same tokens. */
+html[data-branding="true"][data-theme] body :is([data-brand-header], .crm-page-header) {
+  background: var(--brand-header-bg) !important;
+  color: var(--brand-header-text) !important;
+  -webkit-text-fill-color: var(--brand-header-text);
+}
+html[data-branding="true"][data-theme] body :is([data-brand-header], .crm-page-header)
+  :is(h1, h2, h3, h4, p, label, .crm-page-header-copy) {
+  color: var(--brand-header-text) !important;
+  -webkit-text-fill-color: var(--brand-header-text) !important;
+}
+html[data-branding="true"][data-theme] body :is([data-brand-header], .crm-page-header)
+  button[style*="background: var(--color-primary)"] {
+  border: 1px solid var(--brand-header-text) !important;
+}
+
+/* Override older dark-mode rules that colour first/last children and sticky cells. */
+html[data-branding="true"][data-theme] body .app-layout .main-content :is([data-brand-header], .crm-page-header, .crm-card-header, .crm-modal-header, .crm-modal-surface-header) {
+  background: var(--brand-header-bg) !important;
+  color: var(--brand-header-text) !important;
+  -webkit-text-fill-color: var(--brand-header-text) !important;
+}
+html[data-branding="true"][data-theme] body .app-layout .main-content :is(thead th, thead td) {
+  background: var(--table-header-bg) !important;
+  color: var(--table-header-text) !important;
+  -webkit-text-fill-color: var(--table-header-text) !important;
+}
+html[data-branding="true"][data-theme] body .app-layout .main-content :is(footer, .crm-modal-footer, .crm-modal-surface-footer, [data-brand-footer], .crm-table-footer, .table-footer, .pagination, .invoice-table-pagination, tfoot, tfoot tr, tfoot td) {
+  background: var(--table-footer-bg) !important;
+  color: var(--table-footer-text) !important;
+  -webkit-text-fill-color: var(--table-footer-text) !important;
+}
+
+/* Header badges and the notification popover keep their own readable surfaces. */
+html[data-branding="true"][data-theme] .topbar :is(span, strong, small),
+html[data-branding="true"][data-theme] .topbar [data-topbar-notifications] > div,
+html[data-branding="true"][data-theme] .topbar [data-topbar-notifications] > div * {
+  -webkit-text-fill-color: currentColor !important;
+}
+html[data-branding="true"][data-theme] .topbar [data-topbar-notifications] > div {
+  background: var(--dropdown-bg) !important;
+  color: var(--text-primary) !important;
+}
+html[data-branding="true"][data-theme] .topbar [data-topbar-notifications] > div button {
+  background: var(--surface-secondary) !important;
+  color: var(--brand-ink) !important;
+}
+html[data-branding="true"][data-theme] .portal-brand-header a > div {
+  color: var(--brand-header-text) !important;
+}
+html[data-branding="true"][data-theme] body .app-layout .main-content [data-brand-header] label > span {
+  color: var(--brand-header-text) !important;
+  -webkit-text-fill-color: var(--brand-header-text) !important;
+}
+
+/* Legacy neutral actions use the same outline/tint; destructive actions remain distinct. */
+html[data-branding="true"][data-theme] body :is(button, .btn):is(
+  [style*="background: var(--surface-card"], [style*="background: var(--surface-secondary)"],
+  [style*="background: rgb(255, 255, 255)"], [style*="background: transparent"]
+):where(:not(.topbar button, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
+  [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"],
+  [style*="color: rgb(185, 28, 28)"], [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"], [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])) {
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  -webkit-text-fill-color: var(--brand-ink) !important;
+  border-color: var(--brand-outline) !important;
+}
+html[data-branding="true"][data-theme] body :is(button, .btn):is(
+  [style*="background: var(--surface-card"], [style*="background: var(--surface-secondary)"],
+  [style*="background: rgb(255, 255, 255)"], [style*="background: transparent"]
+):where(:not(.topbar button, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
+  [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"],
+  [style*="color: rgb(185, 28, 28)"], [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"], [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])) :is(span, svg, strong, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html[data-branding="true"][data-theme] body :is(button, .btn):is([data-variant="danger"], .btn-danger, .danger-btn, .danger) {
+  background: var(--color-danger) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  border-color: var(--color-danger) !important;
+}
+html[data-branding="true"][data-theme] body :is(button, .btn):is([data-variant="danger"], .btn-danger, .danger-btn, .danger) :is(span, svg, strong, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html[data-branding="true"][data-theme] body button:is(
+  [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"], [style*="color: rgb(185, 28, 28)"],
+  [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"],
+  [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i]
+) { -webkit-text-fill-color: currentColor !important; }

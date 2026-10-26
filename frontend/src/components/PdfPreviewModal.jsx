@@ -336,7 +336,7 @@ export default function PdfPreviewModal({
         aria-modal="true"
         aria-label={title || 'PDF preview'}
       >
-        <div style={shell.header}>
+        <div data-brand-header="true" style={shell.header}>
           <div style={{ minWidth: 0 }}>
             <h3 style={shell.title}><FileText size={16} /> {title || 'PDF Preview'}</h3>
             {policyNote ? <p style={shell.policyNote}>{policyNote}</p> : null}

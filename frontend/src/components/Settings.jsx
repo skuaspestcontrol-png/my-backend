@@ -13,7 +13,7 @@ import {
   normalizeInvoiceTemplate,
   normalizeInvoiceVisibleColumns
 } from '../utils/invoicePreferences';
-import { applyBrandingTheme, saveBrandingSettings } from '../utils/brandingTheme';
+import { applyBrandingTheme, brandingTextColor, saveBrandingSettings } from '../utils/brandingTheme';
 import WhatsAppSettings from '../pages/settings/WhatsAppSettings';
 import WhatsAppTemplates from '../pages/settings/WhatsAppTemplates';
 import WhatsAppLogs from '../pages/whatsapp/WhatsAppLogs';
@@ -1555,7 +1555,7 @@ export default function Settings({ modalMode = false }) {
 
       <div style={shell.divider} />
       <h4 style={brandingSectionTitleStyle}>Branding</h4>
-      <p style={{ ...shell.hint, fontSize: '14px' }}>Appearance and accent settings moved here from Branding tab.</p>
+      <p style={{ ...shell.hint, fontSize: '14px' }}>Choose one brand colour for portal headers, footers, primary buttons and selected states. Text contrast adjusts automatically in light and dark mode. Save changes to apply it throughout the portal.</p>
       <div style={{ ...shell.profileCard, borderStyle: 'solid' }}>
         <p style={{ ...shell.fieldLabel, margin: 0 }}>Live Preview</p>
         <div
@@ -1574,14 +1574,14 @@ export default function Settings({ modalMode = false }) {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '0 12px',
-              color: '#fff',
+              color: brandingTextColor(form.brandingAccentColor),
               fontSize: '11px',
               fontWeight: 800,
               letterSpacing: '0.08em',
               textTransform: 'uppercase'
             }}
           >
-            <span>Brand Header</span>
+            <span>Logo &amp; Portal Header</span>
             <span style={{ opacity: 0.85 }}>{form.brandingAccentColor || '#EF4444'}</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', minHeight: '96px' }}>
@@ -1602,6 +1602,10 @@ export default function Settings({ modalMode = false }) {
               <div style={{ fontWeight: 800, color: form.brandingAppearance === 'dark' ? '#e5e7eb' : 'var(--text-primary)' }}>Branding Preview</div>
               <div style={{ marginTop: '8px', fontSize: '12px', color: form.brandingAppearance === 'dark' ? '#94a3b8' : 'var(--text-secondary)' }}>
                 Pane: {form.brandingAppearance === 'dark' ? 'Dark' : 'Light'} • Accent: {form.brandingAccentColor || '#EF4444'}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                <span style={{ background: form.brandingAccentColor, color: brandingTextColor(form.brandingAccentColor), padding: '7px 10px', borderRadius: '6px', fontWeight: 700 }}>Primary button</span>
+                <span style={{ background: form.brandingAccentColor, color: brandingTextColor(form.brandingAccentColor), padding: '7px 10px', borderRadius: '6px', fontWeight: 700 }}>Table header &amp; footer</span>
               </div>
             </div>
           </div>
@@ -1657,7 +1661,7 @@ export default function Settings({ modalMode = false }) {
       </div>
 
       <div style={shell.divider} />
-      <p style={{ ...shell.fieldLabel, margin: 0 }}>Accent Color</p>
+      <p style={{ ...shell.fieldLabel, margin: 0 }}>Portal Brand Colour</p>
       <div
         style={{
           display: 'flex',
@@ -2958,7 +2962,7 @@ export default function Settings({ modalMode = false }) {
     <section className="settings-page" style={pageStyle}>
       <div style={shell.workspaceShell}>
         <div style={panelStyle}>
-          <header style={panelHeaderStyle}>
+          <header data-brand-header="true" style={panelHeaderStyle}>
             <div
               style={{
                 width: '100%',
@@ -3029,7 +3033,7 @@ export default function Settings({ modalMode = false }) {
 
             <div ref={panelBodyRef} style={panelBodyStyle}>{renderSectionContent()}</div>
           </div>
-          <div
+          <div data-brand-footer="true"
             style={{
               borderTop: '1px solid var(--border)',
               padding: isCompactLayout ? '12px' : '14px 16px',

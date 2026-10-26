@@ -409,7 +409,7 @@ export default function LeadFollowups() {
 
   return (
     <div className="lead-followups-page" style={shell.page}>
-      <div style={shell.header}>
+      <div data-brand-header="true" style={shell.header}>
         <div>
           <h1 style={shell.title}>Lead Follow-ups</h1>
           <p style={shell.subtitle}>Track and manage all your lead follow-up activities</p>

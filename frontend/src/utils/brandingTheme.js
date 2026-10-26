@@ -1,7 +1,8 @@
+import { applyPortalTheme, loadPortalTheme } from './themePreference.js';
+
 export const accentPalette = {
   '#3B82F6': { primary: '#3B82F6', dark: '#1D4ED8', deep: '#1E3A8A', light: '#EFF6FF', soft: '#DBEAFE' },
   '#22C55E': { primary: '#22C55E', dark: '#15803D', deep: '#166534', light: '#F0FDF4', soft: '#DCFCE7' },
-  '#EF4444': { primary: '#EF4444', dark: '#B91C1C', deep: '#991B1B', light: '#FEF2F2', soft: '#FEE2E2' },
   '#F59E0B': { primary: '#F59E0B', dark: '#B45309', deep: '#92400E', light: '#FFFBEB', soft: '#FEF3C7' },
   '#EF4444': { primary: '#EF4444', dark: '#DC2626', deep: '#B91C1C', light: '#FEF2F2', soft: '#FEE2E2' }
 };
@@ -54,33 +55,84 @@ const derivePaletteFromAccent = (accent) => {
   };
 };
 
-export const applyBrandingTheme = (settings = {}) => {
-  const root = document.documentElement;
+// Use actual contrast, rather than brightness, for arbitrary customer-selected colours.
+const luminance = (hex) => {
+  const { r, g, b } = hexToRgb(hex);
+  const linear = [r, g, b].map((channel) => {
+    const value = channel / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+};
+
+export const brandingContrast = (foreground, background) => {
+  const a = luminance(foreground);
+  const b = luminance(background);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+};
+
+export const brandingTextColor = (background) => (
+  brandingContrast('#FFFFFF', background) >= brandingContrast('#000000', background) ? '#FFFFFF' : '#000000'
+);
+
+const readableAccent = (accent, background, endpoint) => {
+  for (let step = 0; step <= 20; step += 1) {
+    const candidate = rgbToHex(mixRgb(hexToRgb(accent), hexToRgb(endpoint), step / 20));
+    if ([background].flat().every((surface) => brandingContrast(candidate, surface) >= 4.5)) return candidate;
+  }
+  return endpoint;
+};
+
+export const getBrandingTokens = (settings = {}) => {
   const accent = normalizeHex(settings.brandingAccentColor || '#EF4444');
   const palette = accentPalette[accent] || derivePaletteFromAccent(accent);
-  const neutralLight = '#F3F4F6';
-  const neutralSoft = '#E5E7EB';
-  root.style.setProperty('--color-primary', palette.primary);
-  root.style.setProperty('--color-primary-dark', palette.dark);
-  root.style.setProperty('--color-primary-deep', palette.deep);
-  root.style.setProperty('--color-primary-light', neutralLight);
-  root.style.setProperty('--color-primary-soft', neutralSoft);
-  root.style.setProperty('--brand-border-color', brandBorderFromAccent(palette.primary));
+  const text = brandingTextColor(accent);
+  const softDark = rgbToHex(mixRgb(hexToRgb('#151A33'), hexToRgb(accent), 0.22));
+  return {
+    '--color-primary': accent,
+    '--color-primary-dark': palette.dark,
+    '--color-primary-deep': palette.deep,
+    '--brand-on-primary': text,
+    '--brand-on-hover': brandingTextColor(palette.dark),
+    '--brand-soft-light': palette.light,
+    '--brand-soft-dark': softDark,
+    '--brand-ink-light': readableAccent(accent, [palette.light, '#FFFFFF'], '#000000'),
+    '--brand-ink-dark': readableAccent(accent, [softDark, '#151A33'], '#FFFFFF'),
+    '--color-primary-light': 'var(--brand-soft)',
+    '--color-primary-soft': 'var(--brand-soft)',
+    '--brand-border-color': brandBorderFromAccent(accent),
+    '--brand-border-light': brandBorderFromAccent(accent, 0.3),
+    '--brand-border-dark': brandBorderFromAccent(readableAccent(accent, [softDark, '#151A33'], '#FFFFFF'), 0.38),
+    '--border': 'var(--brand-outline)',
+    '--border-color': 'var(--brand-outline)',
+    '--border-soft': 'var(--brand-outline)',
+    '--input-border': 'var(--brand-outline)',
+    '--card-border': 'var(--brand-outline)',
+    '--focus-ring': brandBorderFromAccent(accent, 0.3),
+    '--selected-bg': 'var(--brand-soft)',
+    '--sky-soft': 'var(--brand-soft)',
+    '--brand-header-bg': accent,
+    '--brand-header-text': text,
+    '--brand-logo-filter': text === '#000000' ? 'brightness(0)' : 'none',
+    '--skuas-header': accent,
+    '--skuas-header-secondary': accent,
+    '--skuas-header-hover': palette.dark,
+    '--card-header-bg': 'var(--brand-header-bg)',
+    '--card-header-text': 'var(--brand-header-text)',
+    '--table-header-bg': 'var(--brand-header-bg)',
+    '--table-header-text': 'var(--brand-header-text)',
+    '--table-footer-bg': 'var(--brand-header-bg)',
+    '--table-footer-text': 'var(--brand-header-text)'
+  };
+};
 
-  const appearance = String(settings.brandingAppearance || 'light').toLowerCase();
-  if (appearance === 'dark') {
-    root.style.setProperty('--color-bg', '#0F172A');
-    root.style.setProperty('--color-text', '#E5E7EB');
-    root.style.setProperty('--color-muted', '#94A3B8');
-    root.style.setProperty('--color-border', 'var(--brand-border-color)');
-    root.style.setProperty('--color-white', '#111827');
-  } else {
-    root.style.setProperty('--color-bg', '#F8FAFC');
-    root.style.setProperty('--color-text', '#111827');
-    root.style.setProperty('--color-muted', '#6B7280');
-    root.style.setProperty('--color-border', 'var(--brand-border-color)');
-    root.style.setProperty('--color-white', '#FFFFFF');
-  }
+export const applyBrandingTheme = (settings = {}) => {
+  const root = document.documentElement;
+  root.dataset.branding = 'true';
+  Object.entries(getBrandingTokens(settings)).forEach(([key, value]) => root.style.setProperty(key, value));
+
+  // Branding changes colours; the user's existing portal theme owns surfaces.
+  applyPortalTheme(loadPortalTheme());
 };
 
 export const BRANDING_STORAGE_KEY = 'skuas_branding_settings';

@@ -558,7 +558,7 @@ export default function ComplaintsDashboard() {
                 <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 12, color: '#0f172a', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{selectedComplaint.description || '-'}</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => openComplaintWhatsappComposer(selectedComplaint)} style={{ minHeight: 40, borderRadius: 10, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#166534', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Send WhatsApp</button>
+                <button type="button" onClick={() => openComplaintWhatsappComposer(selectedComplaint)} style={{ minHeight: 40, borderRadius: 10, border: '1px solid var(--brand-border-color)', background: 'var(--color-primary-light)', color: 'var(--brand-ink)', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Send WhatsApp</button>
                 <button type="button" onClick={() => startEditingComplaint(selectedComplaint)} style={{ minHeight: 40, borderRadius: 10, border: '1px solid var(--color-primary)', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Edit Complaint</button>
                 <button type="button" onClick={closeComplaintActions} style={{ minHeight: 40, borderRadius: 10, border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 14px', fontWeight: 800, cursor: 'pointer' }}>Done</button>
               </div>

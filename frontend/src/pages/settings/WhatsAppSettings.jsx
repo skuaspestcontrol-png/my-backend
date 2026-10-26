@@ -164,7 +164,7 @@ export default function WhatsAppSettings() {
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button type="submit" disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Save Settings</button>
-          <button type="button" onClick={sendTest} disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: '1px solid #16a34a', background: '#ecfdf5', color: '#166534', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Test Connection</button>
+          <button type="button" onClick={sendTest} disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: '1px solid var(--brand-border-color)', background: 'var(--color-primary-light)', color: 'var(--brand-ink)', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Test Connection</button>
         </div>
         {status ? <p style={{ margin: 0, fontSize: '12px', color: '#334155', fontWeight: 700 }}>{status}</p> : null}
       </form>

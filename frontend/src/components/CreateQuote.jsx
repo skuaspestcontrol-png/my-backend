@@ -725,7 +725,7 @@ export default function CreateQuote() {
 
   return (
     <section style={pageStyle}>
-      <div style={headerStyle}>
+      <div data-brand-header="true" style={headerStyle}>
         <h2 style={titleStyle}>{isEditMode ? 'Edit Quotation' : 'Create Quotation'}</h2>
         <div style={{ fontWeight: 800, color: 'var(--sky-deep)' }}>Preview Number: {form.quotation_number || quotationPreview}</div>
       </div>

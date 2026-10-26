@@ -430,7 +430,7 @@ export default function VendorDashboard() {
 
   return (
     <section className="vendor-dashboard-page" style={shell.page}>
-      <div style={shell.topbar}>
+      <div data-brand-header="true" style={shell.topbar}>
         <h1 style={shell.title}>Vendors Dashboard</h1>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" style={shell.buttonPrimary} onClick={openNew}>

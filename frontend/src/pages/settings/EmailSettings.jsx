@@ -92,8 +92,8 @@ export default function EmailSettings() {
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>Test Email Address<input value={form.testEmailAddress} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, testEmailAddress: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button type="submit" disabled={busy} style={{ minHeight: '34px', borderRadius: '8px', border: 'none', background: '#1d4ed8', color: '#fff', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>Save</button>
-          <button type="button" onClick={sendTest} disabled={busy} style={{ minHeight: '34px', borderRadius: '8px', border: '1px solid #16a34a', background: '#ecfdf5', color: '#166534', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>Send Test Email</button>
+          <button type="submit" disabled={busy} style={{ minHeight: '34px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>Save</button>
+          <button type="button" onClick={sendTest} disabled={busy} style={{ minHeight: '34px', borderRadius: '8px', border: '1px solid var(--brand-border-color)', background: 'var(--color-primary-light)', color: 'var(--brand-ink)', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>Send Test Email</button>
         </div>
         {status ? <p style={{ margin: 0, fontSize: '12px', color: '#334155', fontWeight: 700 }}>{status}</p> : null}
       </form>

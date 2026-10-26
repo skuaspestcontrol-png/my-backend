@@ -404,7 +404,7 @@ const shell = {
   },
   saveButton: {
     border: 'none',
-    background: 'linear-gradient(180deg, rgba(12, 12, 12, 0.98) 0%, rgba(4, 4, 4, 1) 100%)',
+    background: 'var(--color-primary)',
     color: '#fff',
     borderRadius: '10px',
     minHeight: '42px',
@@ -829,7 +829,7 @@ export default function ItemsDashboard() {
 
   return (
     <section className="crm-page crm-section items-dashboard-page" style={{ ...shell.page, gap: 0 }}>
-      <div style={topbarStyle}>
+      <div data-brand-header="true" style={topbarStyle}>
         <div style={shell.titleWrap}>
           <div style={shell.titleLine}>
             <h1 style={titleStyle}>All Items</h1>

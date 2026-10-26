@@ -365,7 +365,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
   return (
     <div style={shell.overlay}>
       <div style={shell.modal}>
-        <div style={shell.header}>
+        <div data-brand-header="true" style={shell.header}>
           <div>
             <h2 style={shell.title}>Smart Customer Import / Export</h2>
             <p style={shell.sub}>Deduplicate, merge, and add customer premises without duplicate customer spam.</p>
@@ -587,7 +587,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
           ) : null}
         </div>
 
-        <div style={shell.footer}>
+        <div data-brand-footer="true" style={shell.footer}>
           <span style={shell.note}>Smart import protects customer records and stores multiple addresses as premises.</span>
           <div style={shell.actions}>
             <button type="button" style={shell.lightBtn} onClick={step === 1 ? close : () => setStep((prev) => Math.max(1, prev - 1))}>{step === 1 ? 'Cancel' : 'Back'}</button>

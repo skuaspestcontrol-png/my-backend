@@ -498,7 +498,7 @@ const shell = {
   toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
   paginationInfo: { fontSize: '12px', color: 'var(--table-footer-text)', fontWeight: 700 },
   customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', width: '34px', height: '34px', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
-  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: '#6b7280', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
+  buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
   buttonGhost: { border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '12px', width: '48px', height: '48px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   summaryWrap: { padding: '16px 18px', background: 'var(--surface-card)' },
   summaryCard: { display: 'grid', gap: '12px' },
@@ -4053,7 +4053,7 @@ export default function InvoiceDashboard() {
         visibility: hideInvoiceShellWhileOpeningModal ? 'hidden' : 'visible'
       }}
     >
-      <div style={topbarStyle}>
+      <div data-brand-header="true" style={topbarStyle}>
         <div style={shell.titleWrap}>
           <h1 style={titleStyle}>All Invoices</h1>
         </div>
@@ -5162,7 +5162,7 @@ export default function InvoiceDashboard() {
                 Enter invoice numbers manually
               </label>
             </div>
-            <div style={shell.miniFooter}>
+            <div data-brand-footer="true" style={shell.miniFooter}>
               <button type="button" style={shell.saveButton} onClick={saveInvoiceNumberPrefs}>Save</button>
               <button type="button" style={shell.cancelButton} onClick={() => setShowInvoiceNumberPrefs(false)}>Cancel</button>
             </div>
@@ -5363,7 +5363,7 @@ export default function InvoiceDashboard() {
                 onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, pincode: toSixDigitPincode(event.target.value) }))}
               />
             </div>
-            <div style={shell.miniFooter}>
+            <div data-brand-footer="true" style={shell.miniFooter}>
               <button type="button" style={shell.saveButton} onClick={saveShippingAddressDraft}>
                 Save Address
               </button>
