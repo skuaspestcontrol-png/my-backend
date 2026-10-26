@@ -27,10 +27,9 @@ const STALE_MINUTES = 30;
 const MAX_FUTURE_CLOCK_SKEW_MINUTES = 5;
 const TRACK_TECHNICIANS_CACHE_KEY = 'track_technicians_ops_cache_v1';
 const TILE_SIZE = 256;
-const TILE_SUBDOMAINS = ['a', 'b', 'c'];
+// OSM requires a valid Referer; both map views set an explicit image referrerPolicy.
 const mapTileUrl = (zoom, x, y) => {
-  const subdomain = TILE_SUBDOMAINS[Math.abs(zoom + x + y) % TILE_SUBDOMAINS.length];
-  return `https://${subdomain}.basemaps.cartocdn.com/light_all/${zoom}/${x}/${y}.png`;
+  return `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`;
 };
 const MAX_USABLE_ACCURACY_METERS = 100;
 const DEFAULT_ACCURACY_METERS = 25;
@@ -288,7 +287,11 @@ const routeMovementSegments = (points = [], summary = null) => {
     })
     .filter(Boolean);
   if (validatedSegments.length) return validatedSegments;
-  return routeMovementSummary(clean).movementSegments || [];
+  return (routeMovementSummary(clean).movementSegments || []).map((segment) => ({
+    from: segment.points[0],
+    to: segment.points[1],
+    distanceKm: segment.distanceKm,
+  }));
 };
 
 const readCache = () => {
@@ -474,7 +477,7 @@ function MiniMap({ technicians, selectedKey, onSelect }) {
     <div style={styles.map}>
       <div style={{ position: 'absolute', left: '50%', top: '50%', width: map.width, height: map.height, transform: 'translate(-50%, -50%)' }}>
         {map.tiles.map((tile) => (
-          <img key={tile.key} src={tile.url} alt="" style={{ ...styles.tile, left: tile.left, top: tile.top }} loading="lazy" draggable="false" />
+          <img key={tile.key} src={tile.url} alt="" style={{ ...styles.tile, left: tile.left, top: tile.top }} loading="lazy" draggable="false" referrerPolicy="strict-origin-when-cross-origin" />
         ))}
       </div>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 2, pointerEvents: 'none' }}>
@@ -538,7 +541,7 @@ function MiniMap({ technicians, selectedKey, onSelect }) {
         );
       })}
       <div style={styles.attribution}>
-        &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>CARTO</a>
+        &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>OpenStreetMap contributors</a>
       </div>
       {!points.length ? (
         <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', padding: 20 }}>
@@ -563,7 +566,7 @@ function RouteMap({ points = [], stops = [], summary = null }) {
     <div style={styles.routeCanvas}>
       <div style={{ position: 'absolute', left: '50%', top: '50%', width: map.width, height: map.height, transform: 'translate(-50%, -50%)' }}>
         {map.tiles.map((tile) => (
-          <img key={tile.key} src={tile.url} alt="" style={{ ...styles.tile, left: tile.left, top: tile.top }} loading="lazy" draggable="false" />
+          <img key={tile.key} src={tile.url} alt="" style={{ ...styles.tile, left: tile.left, top: tile.top }} loading="lazy" draggable="false" referrerPolicy="strict-origin-when-cross-origin" />
         ))}
       </div>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', zIndex: 2 }}>
@@ -592,7 +595,7 @@ function RouteMap({ points = [], stops = [], summary = null }) {
         </div>
       ) : null}
       <div style={styles.attribution}>
-        &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>CARTO</a>
+        &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>OpenStreetMap contributors</a>
       </div>
     </div>
   );
