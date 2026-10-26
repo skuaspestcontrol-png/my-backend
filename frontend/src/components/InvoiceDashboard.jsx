@@ -139,8 +139,7 @@ const paymentDepositOptions = ['Current Account', 'Saving Account'];
 const contractCustomerTypeOptions = ['New', 'Existing', 'Renewal'];
 const serviceRelationshipOptions = [
   { value: 'CONTRACT', label: 'Contract' },
-  { value: 'ONE_TIME', label: 'Jobbing' },
-  { value: 'RECURRING', label: 'Recurring' }
+  { value: 'ONE_TIME', label: 'Jobbing' }
 ];
 const getDefaultPaymentDepositTo = (invoiceType = 'GST') => String(invoiceType || '').trim().toUpperCase() === 'NON GST'
   ? 'Saving Account'
@@ -4592,6 +4591,9 @@ export default function InvoiceDashboard() {
 	                                        renewalEligible: event.target.value === 'CONTRACT'
 	                                      })}
 	                                    >
+	                                      {line.serviceRelationshipType && !serviceRelationshipOptions.some((option) => option.value === line.serviceRelationshipType) ? (
+	                                        <option value={line.serviceRelationshipType} disabled hidden>Existing relationship (unchanged)</option>
+	                                      ) : null}
 	                                      {serviceRelationshipOptions.map((option) => (
 	                                        <option key={option.value} value={option.value}>{option.label}</option>
 	                                      ))}
@@ -4630,30 +4632,6 @@ export default function InvoiceDashboard() {
 	                                  </div>
 	                                  {line.serviceRelationshipType === 'CONTRACT' ? (
 	                                    <>
-	                                      {(!editingId || contractViewOnly) ? (
-	                                        <>
-	                                      <div style={itemMetaFieldStyle}>
-	                                        <span style={itemMetaLabelStyle}>Duration Value</span>
-	                                        <input
-	                                          style={compactItemMetaInputStyle}
-	                                          value={line.contractDurationValue || ''}
-	                                          onChange={(event) => updateLine(index, { contractDurationValue: event.target.value })}
-	                                        />
-	                                      </div>
-	                                      <div style={itemMetaFieldStyle}>
-	                                        <span style={itemMetaLabelStyle}>Duration Unit</span>
-	                                        <select
-	                                          style={compactItemMetaInputStyle}
-	                                          value={line.contractDurationUnit || 'MONTH'}
-	                                          onChange={(event) => updateLine(index, { contractDurationUnit: event.target.value })}
-	                                        >
-	                                          <option value="DAY">Day</option>
-	                                          <option value="MONTH">Month</option>
-	                                          <option value="YEAR">Year</option>
-	                                        </select>
-	                                      </div>
-	                                        </>
-	                                      ) : null}
 	                                      <div style={itemMetaFieldStyle}>
 	                                        <span style={itemMetaLabelStyle}>Renewal Eligible</span>
 	                                        <select
