@@ -45,7 +45,7 @@ function withSourceContractDates(renewal, sourceInvoice, deriveWindow) {
     previousContractEnd: dateOnly(window.contractEndDate) || renewal.previousContractEnd
   };
 }
-function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, allowPremiseReview = false }) {
+function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, allowPremiseReview = false, allowPeriodReview = false, allowServiceReview = false, allowClassificationReview = false }) {
   renewal = withSourceContractDates(renewal, sourceInvoice, deriveWindow);
   const customerId = text(sourceInvoice?.customerId);
   const expectedCustomer = text(renewal.customerExternalId);
@@ -91,16 +91,32 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
     for (let index = 0; index < remainder; index += 1) allocations[fractions[index % fractions.length].index] += 1;
     ordered.forEach((group, index) => {
       const amountCents = allocations[index];
-      if (serviceKey(group.serviceType) !== wantedService || group.start < previousEnd || group.end <= previousEnd) return;
-      if (!isExistingContract({ ...invoice, items: group.lines }, classifySource)) return;
-      const identity = JSON.stringify([text(invoice._id), wantedService, group.start, group.end]);
+      const serviceReviewRequired = serviceKey(group.serviceType) !== wantedService;
+      const periodReviewRequired = group.start < previousEnd || group.end <= previousEnd;
+      const classificationReviewRequired = !isExistingContract({ ...invoice, items: group.lines }, classifySource);
+      if ((serviceReviewRequired && !allowServiceReview) || (periodReviewRequired && !allowPeriodReview) ||
+          (classificationReviewRequired && !allowClassificationReview)) return;
+      const reviewWarnings = [
+        ...(premiseReviewRequired ? [{ code: 'PREMISES_MISMATCH', message: 'Premises differ or are unverified. Confirm the same service location.' }] : []),
+        ...(periodReviewRequired ? [{ code: 'PERIOD_MISMATCH', message: 'This contract period does not follow the previous contract. Compare and approve the selected period.' }] : []),
+        ...(serviceReviewRequired ? [{ code: 'SERVICE_MISMATCH', message: 'The service name differs from this renewal. Confirm the selected service fulfils this renewal.' }] : []),
+        ...(classificationReviewRequired ? [{ code: 'CONTRACT_CLASSIFICATION', message: 'This issued record is not classified as a contract. Confirm it represents the renewal contract.' }] : [])
+      ];
+      const identity = JSON.stringify(serviceReviewRequired
+        ? [text(invoice._id), wantedService, serviceKey(group.serviceType), group.start, group.end]
+        : [text(invoice._id), wantedService, group.start, group.end]);
       candidates.push({
         key: crypto.createHash('sha256').update(identity).digest('hex'), invoiceId: text(invoice._id),
         invoiceNumber: text(invoice.invoiceNumber), customerName: text(invoice.customerName),
-        premiseReviewRequired,
+        premiseReviewRequired, periodReviewRequired, serviceReviewRequired, classificationReviewRequired, reviewWarnings,
+        renewalVersion: crypto.createHash('sha256').update(JSON.stringify({ renewalId: renewal.renewalId,
+          previousContractId: renewal.previousContractId || renewal.contractId, customerExternalId: renewal.customerExternalId,
+          serviceType: renewal.serviceType, previousContractStart: renewal.previousContractStart, previousContractEnd: previousEnd,
+          previousContractAmount: money(renewal.previousContractAmount), renewalOutcome: renewal.renewalOutcome,
+          convertedContractId: renewal.convertedContractId, newContractId: renewal.newContractId })).digest('hex'),
         sourceInvoiceVersion: crypto.createHash('sha256').update(JSON.stringify(sourceInvoice)).digest('hex'),
         previousContract: {
-          invoiceNumber: text(sourceInvoice.invoiceNumber), customerName: text(sourceInvoice.customerName),
+          invoiceId: text(sourceInvoice._id), invoiceNumber: text(sourceInvoice.invoiceNumber), customerName: text(sourceInvoice.customerName),
           premiseId: text(sourceInvoice.customerPremiseId),
           address: text(sourceInvoice.premiseAddress || sourceInvoice.shippingAddressText || sourceInvoice.billingAddressText),
           start: dateOnly(renewal.previousContractStart), end: previousEnd, serviceType: renewal.serviceType,
@@ -109,7 +125,9 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
         premiseId: text(invoice.customerPremiseId),
         address: text(invoice.premiseAddress || invoice.shippingAddressText || invoice.billingAddressText),
         premiseLabel: text(invoice.premiseLabel || invoice.premiseAddress || invoice.shippingAddressText),
-        serviceType: group.serviceType, serviceKey: wantedService, start: group.start, end: group.end,
+        serviceType: group.serviceType, serviceKey: serviceKey(group.serviceType), start: group.start, end: group.end,
+        classification: classificationReviewRequired ? 'Not classified as contract' : 'Contract',
+        expectedStart: new Date(Date.parse(`${previousEnd}T00:00:00Z`) + 86400000).toISOString().slice(0, 10),
         amount: amountCents / 100, invoiceTotal: total,
         amountBasis: groups.size === 1 ? 'Existing invoice total' : 'Invoice total allocated by service value, including tax and discounts',
         agreementDate: dateOnly(invoice.agreementDate || invoice.date),
@@ -135,18 +153,15 @@ function buildExistingHistory(options) {
     validationError = error.message;
   }
   const history = [];
-  const reviewCandidates = options.canReview && !validationError ? buildExistingCandidates({ ...options, allowPremiseReview: true }).filter((item) => item.premiseReviewRequired) : [];
+  const reviewCandidates = options.canReview && !validationError ? buildExistingCandidates({ ...options, allowPremiseReview: true, allowPeriodReview: true, allowServiceReview: true, allowClassificationReview: true }).filter((item) => item.reviewWarnings.length) : [];
   for (const invoice of invoices) {
     if (text(invoice.customerId) !== text(sourceInvoice.customerId) || !text(invoice.invoiceNumber)) continue;
     const matches = eligible.filter((item) => item.invoiceId === text(invoice._id));
-    if (matches.length) {
-      history.push(...matches.map((item) => ({ ...item, eligible: true, contractStatusLabel: contractStatusLabel(item.start, item.end, options.today) })));
-      continue;
-    }
     const reviewMatches = reviewCandidates.filter((item) => item.invoiceId === text(invoice._id));
-    if (reviewMatches.length) {
+    if (matches.length || reviewMatches.length) {
+      history.push(...matches.map((item) => ({ ...item, eligible: true, contractStatusLabel: contractStatusLabel(item.start, item.end, options.today) })));
       history.push(...reviewMatches.map((item) => ({ ...item, eligible: false, reviewAllowed: true,
-        eligibilityReason: 'Premises differ or are unverified. Compare both records and confirm the same service location before saving.',
+        eligibilityReason: item.reviewWarnings.map((warning) => warning.message).join(' '),
         contractStatusLabel: contractStatusLabel(item.start, item.end, options.today) })));
       continue;
     }
@@ -173,6 +188,10 @@ function buildExistingHistory(options) {
       customerName: text(invoice.customerName), premiseLabel: text(invoice.premiseLabel || invoice.premiseAddress || invoice.shippingAddressText),
       serviceType, start, end, invoiceTotal: money(invoice.total ?? invoice.amount), amount: money(invoice.total ?? invoice.amount),
       amountBasis: 'Existing invoice total', agreementDate: dateOnly(invoice.agreementDate || invoice.date),
+      previousContract: { invoiceId: text(sourceInvoice._id), invoiceNumber: text(sourceInvoice.invoiceNumber), customerName: text(sourceInvoice.customerName),
+        premiseId: text(sourceInvoice.customerPremiseId), address: text(sourceInvoice.premiseAddress || sourceInvoice.shippingAddressText || sourceInvoice.billingAddressText),
+        start: dateOnly(renewal.previousContractStart), end: dateOnly(renewal.previousContractEnd), serviceType: renewal.serviceType, amount: renewal.previousContractAmount },
+      address: text(invoice.premiseAddress || invoice.shippingAddressText || invoice.billingAddressText), premiseId: text(invoice.customerPremiseId),
       contractStatusLabel: contractStatusLabel(start, end, options.today), eligible: false, eligibilityReason: reason
     });
   }
@@ -180,7 +199,7 @@ function buildExistingHistory(options) {
 }
 
 function createExistingLinkService({ getConnection, toRenewal, toInvoice, deriveWindow, classifySource, itemTotals, deriveTiming, priceDelta, audit }) {
-  const build = (renewal, sourceInvoice, invoices, allowPremiseReview = false) => buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, allowPremiseReview });
+  const build = (renewal, sourceInvoice, invoices, approvals = {}) => buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, ...approvals });
   const loadRenewal = async (conn, id, lock = false) => {
     const [rows] = await conn.query(`SELECT * FROM renewals WHERE renewal_id = ? LIMIT 1${lock ? ' FOR UPDATE' : ''}`, [id]);
     if (!rows[0]) fail(404, 'Renewal not found.');
@@ -230,8 +249,9 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
     const today = todayInIndia();
     if (!agreementDate || agreementDate > today) fail(400, 'Enter the actual agreement date (today or earlier).');
     if (body.correctLink === true && !text(body.notes)) fail(400, 'Enter a reason for correcting the existing link.');
-    if (body.reviewPremises === true && !canCorrect) fail(403, 'Only a manager can approve a premises mismatch.');
-    if (body.reviewPremises === true && !text(body.notes)) fail(400, 'Enter the reason for approving the premises mismatch.');
+    const reviewFlags = ['reviewPremises', 'reviewPeriod', 'reviewService', 'reviewClassification'];
+    if (reviewFlags.some((key) => body[key] === true) && !canCorrect) fail(403, 'Only a manager can approve renewal exceptions.');
+    if (reviewFlags.some((key) => body[key] === true) && !text(body.notes)) fail(400, 'Enter the reason for approving the renewal exceptions.');
     if (!text(body.candidateKey) || !text(body.invoiceId) || !text(body.invoiceVersion)) fail(400, 'Select and review an existing contract/invoice first.');
     const conn = await getConnection();
     let committed = false;
@@ -256,17 +276,40 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
       if (renewal.convertedContractId || renewal.newContractId) {
         if (!(existing && canCorrect && body.correctLink === true)) fail(409, 'This renewal already has a linked contract. Only a manager can correct an existing-record link.');
       }
-      const candidate = build(renewal, source, invoiceRows.map(toInvoice), body.reviewPremises === true && canCorrect).find((item) => item.key === body.candidateKey && item.invoiceId === body.invoiceId);
+      const candidate = build(renewal, source, invoiceRows.map(toInvoice), { allowPremiseReview: body.reviewPremises === true && canCorrect,
+        allowPeriodReview: body.reviewPeriod === true && canCorrect, allowServiceReview: body.reviewService === true && canCorrect,
+        allowClassificationReview: body.reviewClassification === true && canCorrect }).find((item) => item.key === body.candidateKey && item.invoiceId === body.invoiceId);
       if (!candidate) fail(409, 'The selected record no longer matches the customer, premises, service or renewal period. Refresh the matches.');
       if (candidate.invoiceVersion !== body.invoiceVersion) fail(409, 'The invoice changed after your preview. Refresh and review it again.');
-      if (candidate.premiseReviewRequired && candidate.sourceInvoiceVersion !== body.sourceInvoiceVersion) fail(409, 'The previous invoice changed after comparison. Refresh and review both records again.');
+      if (candidate.reviewWarnings.length && candidate.renewalVersion !== body.renewalVersion) fail(409, 'The renewal changed after comparison. Refresh and review both records again.');
+      if (candidate.reviewWarnings.length && candidate.sourceInvoiceVersion !== body.sourceInvoiceVersion) fail(409, 'The previous invoice changed after comparison. Refresh and review both records again.');
       const [linkedRows] = await conn.query('SELECT * FROM renewals WHERE converted_contract_id = ? OR new_contract_id = ? OR contract_id IN (?) FOR UPDATE', [candidate.invoiceId, candidate.invoiceId, invoiceRows.map((row) => row.external_id)]);
       if (conflictsWithLink(candidate, renewal, source, invoiceRows.map(toInvoice), linkedRows)) {
         fail(409, 'This service and renewed period are already linked to another renewal. Review that renewal instead.');
       }
+      const edges = new Map();
+      for (const row of linkedRows) {
+        const other = toRenewal(row);
+        if (other.renewalId === renewal.renewalId) continue;
+        const parent = text(other.previousContractId || other.contractId);
+        const child = text(other.convertedContractId || other.newContractId);
+        if (parent && child) edges.set(parent, [...(edges.get(parent) || []), child]);
+      }
+      const pending = [candidate.invoiceId], seen = new Set();
+      while (pending.length) {
+        const id = pending.pop();
+        if (id === text(source._id)) fail(409, 'This link would create a circular renewal chain. Review the existing links instead.');
+        if (seen.has(id)) continue;
+        seen.add(id); pending.push(...(edges.get(id) || []));
+      }
       const now = new Date().toISOString();
       const linkInfo = { ...candidate, mode: 'existing', agreementDate, linkedAt: now, linkedBy: actor, notes: text(body.notes),
-        premisesReview: candidate.premiseReviewRequired ? { approvedBy: actor, approvedAt: now, reason: text(body.notes) } : null };
+        premisesReview: candidate.premiseReviewRequired ? { approvedBy: actor, approvedAt: now, reason: text(body.notes) } : null,
+        exceptionReview: candidate.reviewWarnings.length ? { issues: candidate.reviewWarnings.map((warning) => warning.code),
+          approvedBy: actor, approvedAt: now, reason: text(body.notes), renewalVersion: candidate.renewalVersion, sourceInvoiceVersion: candidate.sourceInvoiceVersion,
+          invoiceVersion: candidate.invoiceVersion, previousContract: candidate.previousContract,
+          selectedContract: { invoiceId: candidate.invoiceId, invoiceNumber: candidate.invoiceNumber, serviceType: candidate.serviceType,
+            premiseId: candidate.premiseId, address: candidate.address, start: candidate.start, end: candidate.end, amount: candidate.amount } } : null };
       delete linkInfo.invoiceVersion;
       const reminderPlan = { ...(payload.reminderPlan || {}), autoEnabled: false, nextReminderDate: '' };
       const nextPayload = { ...payload, existingRenewalLink: linkInfo, reminderPlan };

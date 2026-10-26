@@ -199,7 +199,7 @@ async function premisesReviewSetup() {
   const choices = await fixture.service.list({ renewalId: 'R1', authorize: () => {}, canReview: true });
   const candidate = choices.find((item) => item.invoiceId === 'NEW');
   Object.assign(fixture.request.body, { candidateKey: candidate.key, invoiceVersion: candidate.invoiceVersion,
-    sourceInvoiceVersion: candidate.sourceInvoiceVersion, reviewPremises: true, notes: 'Reviewed both invoices; same customer service location, legacy premises ID differs.' });
+    sourceInvoiceVersion: candidate.sourceInvoiceVersion, renewalVersion: candidate.renewalVersion, reviewPremises: true, notes: 'Reviewed both invoices; same customer service location, legacy premises ID differs.' });
   fixture.request.canCorrect = true;
   return { ...fixture, candidate };
 }
@@ -256,7 +256,9 @@ test('review cannot bypass changed source invoice, wrong service, period, custom
 test('reviewed multi-service invoice retains separate service candidates and amount allocation', () => {
   const invoice = { ...target, total: 236, customerPremiseId: 'OTHER', items: [...target.items, { ...target.items[0], itemName: 'Other service' }] };
   const history = buildExistingHistory({ renewal, sourceInvoice: source, invoices: [invoice], deriveWindow, classifySource, itemTotals, canReview: true });
-  assert.equal(history.length, 1);
+  assert.equal(history.length, 2);
+  assert.equal(new Set(history.map((item) => item.key)).size, 2);
+  assert.ok(history.some((item) => item.reviewWarnings.some((warning) => warning.code === 'SERVICE_MISMATCH')));
   assert.equal(history[0].serviceType, renewal.serviceType);
   assert.equal(history[0].amount, 118);
   assert.equal(history[0].reviewAllowed, true);
@@ -390,4 +392,94 @@ test('correction requires manager permission and a reason; generated links canno
   assert.equal(state.audit[1].action, 'renewal_correct_existing_link'); assert.equal(state.audit[1].previousValue.existingRenewalLink.agreementDate, '2025-12-20');
   const generated = setup(); generated.state.rows[0].convertedContractId = 'GENERATED';
   await assert.rejects(generated.service.link({ ...generated.request, canCorrect: true, body: { ...generated.request.body, correctLink: true, notes: 'Try replacement' } }), /already has a linked contract/);
+});
+
+async function exceptionSetup(change, approvals = {}) {
+  const fixture = setup();
+  change(fixture.state);
+  const choices = await fixture.service.list({renewalId:'R1',authorize:()=>{},canReview:true});
+  const candidate = choices.find(item=>item.invoiceId==='NEW'&&item.reviewAllowed);
+  assert.ok(candidate,'Expected a reviewable candidate');
+  Object.assign(fixture.request.body,{candidateKey:candidate.key,invoiceVersion:candidate.invoiceVersion,
+    sourceInvoiceVersion:candidate.sourceInvoiceVersion,renewalVersion:candidate.renewalVersion,notes:'Reviewed the source and selected records; this is the intended renewal.',...approvals});
+  fixture.request.canCorrect=true;
+  return {...fixture,candidate};
+}
+const periodMismatch = state => {Object.assign(state.invoices[1].items[0],{contractStartDate:'2025-01-01',contractEndDate:'2025-12-31'});};
+
+test('a manager can approve a period mismatch only after explicit comparison consent and a reason',async()=>{
+  const {state,service,request,candidate}=await exceptionSetup(periodMismatch,{reviewPeriod:true});
+  assert.equal(candidate.periodReviewRequired,true);assert.equal(candidate.eligible,false);assert.equal(candidate.previousContract.end,'2025-12-31');assert.equal(candidate.expectedStart,'2026-01-01');
+  const before=clone(state.invoices);await service.link(request);
+  assert.equal(state.rows[0].renewalOutcome,'WON');assert.equal(state.rows[0].newContractStartDate,'2025-01-01');
+  const saved=JSON.parse(state.rows[0].payload).existingRenewalLink;
+  assert.deepEqual(saved.exceptionReview.issues,['PERIOD_MISMATCH']);assert.equal(saved.exceptionReview.approvedBy,'Manager');
+  assert.equal(saved.exceptionReview.reason,request.body.notes);assert.equal(saved.exceptionReview.previousContract.end,'2025-12-31');
+  assert.equal(saved.exceptionReview.selectedContract.start,'2025-01-01');assert.ok(saved.exceptionReview.approvedAt);
+  assert.equal(state.audit[0].nextValue.existingRenewalLink.exceptionReview.invoiceVersion,candidate.invoiceVersion);assert.deepEqual(state.invoices,before);
+});
+
+test('period review cannot be silently enabled by a generic force flag, another consent, missing reason or non-manager',async()=>{
+  for(const change of [r=>{r.body.reviewPeriod=false;r.body.force=true},r=>{r.body.reviewPeriod='true'},r=>{r.body.reviewPeriod=false;r.body.reviewPremises=true},r=>{r.body.notes=' '},r=>{r.canCorrect=false}]){
+    const {state,service,request}=await exceptionSetup(periodMismatch,{reviewPeriod:true});change(request);
+    await assert.rejects(service.link(request));assert.equal(state.commits,0);assert.equal(state.audit.length,0);
+  }
+});
+
+test('each simultaneous exception needs its own acknowledgement',async()=>{
+  const change=state=>{periodMismatch(state);state.invoices[1].customerPremiseId='LEGACY';state.invoices[1].items[0].itemName='Alternative service label';state.invoices[1].serviceRelationshipType='ONE_TIME';};
+  for(const missing of ['reviewPremises','reviewPeriod','reviewService','reviewClassification']){
+    const {state,service,request}=await exceptionSetup(change,{reviewPremises:true,reviewPeriod:true,reviewService:true,reviewClassification:true});
+    request.body[missing]=false;await assert.rejects(service.link(request));assert.equal(state.commits,0);
+  }
+  const {state,service,request,candidate}=await exceptionSetup(change,{reviewPremises:true,reviewPeriod:true,reviewService:true,reviewClassification:true});
+  assert.equal(candidate.reviewWarnings.length,4);await service.link(request);
+  const saved=JSON.parse(state.rows[0].payload).existingRenewalLink;assert.equal(saved.exceptionReview.issues.length,4);assert.equal(saved.premisesReview.approvedBy,'Manager');
+});
+
+test('reviewed service identity prevents duplicate allocation through a differently named renewal',async()=>{
+  const {state,service,request}=await exceptionSetup(state=>{state.invoices[1].items[0].itemName='Alternative service';},{reviewService:true});
+  state.rows.push({...clone(renewal),renewalId:'R2',serviceType:'Alternative service',convertedContractId:'NEW',newContractStartDate:'2026-01-01',newContractEndDate:'2026-12-31'});
+  await assert.rejects(service.link(request),/already linked/);assert.equal(state.commits,0);
+});
+
+test('review still rejects changed source/target data, invalid status/dates/amount and cross-customer records',async()=>{
+  for(const change of [
+    s=>{s.invoices[0].shippingAddressText='Changed after preview'},s=>{s.invoices[1].total=999},s=>{s.rows[0].previousContractAmount=999},
+    s=>{s.invoices[1].status='CANCELLED'},s=>{s.invoices[1].status='DRAFT'},s=>{s.invoices[1].invoiceType='PROFORMA'},
+    s=>{s.invoices[1].customerId='OTHER'},s=>{s.invoices[1].items[0].contractStartDate=''},
+    s=>{s.invoices[1].items[0].contractEndDate='2024-01-01'},s=>{s.invoices[1].total=null},
+    s=>{s.rows.push({...clone(renewal),renewalId:'R2',convertedContractId:'NEW',newContractStartDate:'2025-01-01',newContractEndDate:'2025-12-31'})}
+  ]){
+    const {state,service,request}=await exceptionSetup(periodMismatch,{reviewPeriod:true});change(state);
+    await assert.rejects(service.link(request));assert.equal(state.commits,0);assert.equal(state.audit.length,0);
+  }
+});
+
+test('a period exception cannot create a circular renewal chain',async()=>{
+  for(const chain of [
+    [{renewalId:'R2',contractId:'NEW',previousContractId:'NEW',convertedContractId:'OLD',serviceType:'Different service'}],
+    [{renewalId:'R2',contractId:'NEW',previousContractId:'NEW',convertedContractId:'MIDDLE',serviceType:'Different service'},
+     {renewalId:'R3',contractId:'MIDDLE',previousContractId:'MIDDLE',convertedContractId:'OLD',serviceType:'Different service'}]
+  ]){
+    const {state,service,request}=await exceptionSetup(periodMismatch,{reviewPeriod:true});state.rows.push(...chain);
+    await assert.rejects(service.link(request),/circular renewal chain/);assert.equal(state.commits,0);
+  }
+});
+
+test('normal users see blocked history, not manager-only override controls, for a period exception',async()=>{
+  const {service}=await exceptionSetup(periodMismatch,{reviewPeriod:true});const rows=await service.list({renewalId:'R1',authorize:()=>{}});
+  const selected=rows.find(r=>r.invoiceId==='NEW');assert.equal(selected.eligible,false);assert.equal(selected.reviewAllowed,undefined);assert.ok(selected.previousContract);
+});
+
+
+test('review approval is atomic with the audit record',async()=>{
+  const {state,service,request}=await exceptionSetup(periodMismatch,{reviewPeriod:true});state.auditError=true;
+  await assert.rejects(service.link(request),/Audit unavailable/);assert.equal(state.commits,0);assert.equal(state.rows[0].renewalOutcome,'PENDING');
+});
+
+
+test('retrying a reviewed link is idempotent and does not duplicate the audit',async()=>{
+  const {state,service,request}=await exceptionSetup(periodMismatch,{reviewPeriod:true});await service.link(request);
+  const retry=await service.link(request);assert.equal(retry.alreadyLinked,true);assert.equal(state.audit.length,1);
 });
