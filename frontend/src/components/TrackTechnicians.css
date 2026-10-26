@@ -1,0 +1,5 @@
+/* Map name badges keep white text on their dark surface despite branded button rules. */
+html[data-theme] body .app-layout .main-content .technician-tracking .technician-map-label {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}

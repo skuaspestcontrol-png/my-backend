@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 import { formatIndiaDateTime } from '../utils/indiaTime';
+import './TrackTechnicians.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const EARTH_RADIUS_KM = 6371;
@@ -521,7 +522,7 @@ function MiniMap({ technicians, selectedKey, onSelect }) {
             <span style={{ ...styles.markerDot, background: tone.color }}>
               <MapPin size={14} color="#fff" />
             </span>
-            {(selected || technicians.length <= 6) ? <span style={styles.markerLabel}>{tech.name}</span> : null}
+            {(selected || technicians.length <= 6) ? <span className="technician-map-label" style={styles.markerLabel}>{tech.name}</span> : null}
             {selected ? (
               <span style={styles.markerPopup}>
                 <strong>{tech.name}</strong>
@@ -743,7 +744,7 @@ export default function TrackTechnicians() {
   const alerts = technicians.map((tech) => tech.geofenceAlert ? { ...tech.geofenceAlert, key: tech.key } : null).filter(Boolean);
 
   return (
-    <section style={styles.page}>
+    <section className="technician-tracking" style={styles.page}>
       <div data-page-toolbar="true" style={styles.header}>
         <div>
           <h2 style={styles.title}>Track Technicians</h2>
