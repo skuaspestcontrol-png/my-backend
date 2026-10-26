@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
+import './HRDashboard.css';
 import {
   Activity,
   CalendarCheck,
@@ -8,7 +10,7 @@ import {
 } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
 import useAutoRefresh from '../hooks/useAutoRefresh';
-import { buildPortalAuthHeaders, getPortalUserRole } from '../utils/portalAuth';
+import { buildPortalAuthHeaders, getPortalUserRole, getPortalUserId } from '../utils/portalAuth';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const now = new Date();
@@ -215,6 +217,8 @@ const baseHeaders = () => ({
 });
 
 const buildHrDashboardCacheKey = ({ month, year, filters }) => JSON.stringify({
+  actor: String(getPortalUserId() || ''),
+  actorRole: String(getPortalUserRole() || ''),
   month,
   year,
   search: String(filters?.search || '').trim(),
@@ -268,7 +272,7 @@ function MiniBarChart({ rows = [], nameKey = 'name', valueKey = 'value', color =
     <div style={{ display: 'grid', gap: '7px' }}>
       {rows.map((row) => {
         const value = Number(row[valueKey] || 0);
-        const percent = Math.max(3, Math.round((value / max) * 100));
+        const percent = Math.max(0, Math.round((value / max) * 100));
         return (
           <div key={`${row[nameKey]}-${value}`} style={{ display: 'grid', gap: '4px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '12px' }}>
@@ -297,7 +301,7 @@ function InsightList({ title, rows = [], valuePrefix = '' }) {
               <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{row.employeeName}</p>
               {row.date ? <p style={shell.tiny}>Date: {row.date}</p> : null}
             </div>
-            <span style={{ ...shell.badge, color: 'var(--color-primary-dark)', borderColor: 'rgba(159, 23, 77, 0.26)' }}>{valuePrefix}{money(row.value || 0)}</span>
+            <span style={{ ...shell.badge, color: 'var(--color-primary-dark)', borderColor: 'rgba(159, 23, 77, 0.26)' }}>{Number.isFinite(row.days) ? (row.days === 0 ? 'Today' : `${row.days} days`) : row.value != null ? `${valuePrefix}${money(row.value)}` : '—'}</span>
           </li>
         ))}
       </ul>
@@ -318,6 +322,14 @@ export default function HRDashboard() {
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  const canViewHr = ['admin', 'hr', 'hr manager', 'human resources'].includes(String(getPortalUserRole() || '').trim().toLowerCase());
+  const [loadStates, setLoadStates] = useState({ overview: 'loading', leaves: 'loading', balances: 'loading', employees: 'loading' });
+  const requestVersion = useRef(0);
+  const entitlementVersion = useRef(0);
+  const liveScope = useRef({});
+  const [entitlementState, setEntitlementState] = useState('loading');
+  const [loadedSnapshotKey, setLoadedSnapshotKey] = useState('');
+  const [loadedLeavePeriod, setLoadedLeavePeriod] = useState('');
   const [month, setMonth] = useState(initialMonth);
   const [year, setYear] = useState(initialYear);
 
@@ -334,6 +346,10 @@ export default function HRDashboard() {
   const [editingLeaveEntitlementType, setEditingLeaveEntitlementType] = useState('');
   const [editingLeaveEntitlementOriginal, setEditingLeaveEntitlementOriginal] = useState(null);
   const [employees, setEmployees] = useState([]);
+  liveScope.current = {
+    query: buildHrDashboardCacheKey({ month, year, filters }),
+    entitlement: JSON.stringify([leaveEntitlementEmployeeId, leaveEntitlementYear])
+  };
 
   const [leaveForm, setLeaveForm] = useState({ employeeId: '', leaveType: 'Paid Leave', fromDate: new Date().toISOString().slice(0, 10), toDate: new Date().toISOString().slice(0, 10), days: 1, reason: '' });
 
@@ -367,9 +383,11 @@ export default function HRDashboard() {
   }), [filters, month, year]);
 
   const fetchAll = useCallback(async (silent = false) => {
-    if (loadRequestRef.current) return loadRequestRef.current;
-
+    if (!canViewHr) return;
     const queryKey = buildHrDashboardCacheKey({ month, year, filters });
+    if (queryKey !== liveScope.current.query) return;
+    if (loadRequestRef.current?.key === queryKey) return loadRequestRef.current.promise;
+    const version = ++requestVersion.current;
     const cachedForQuery = readHrDashboardCache(queryKey);
     const shouldSilenceLoad = silent || Boolean(cachedForQuery);
     const refreshToken = Date.now();
@@ -381,20 +399,26 @@ export default function HRDashboard() {
           axios.get(`${API_BASE}/api/hr/dashboard-summary`, { params: { ...queryParams, _ts: refreshToken }, headers }),
           axios.get(`${API_BASE}/api/hr/leaves`, { params: { month, year, _ts: refreshToken }, headers }),
           axios.get(`${API_BASE}/api/hr/leaves/balance`, { params: { month, year, _ts: refreshToken }, headers }),
-          axios.get(`${API_BASE}/api/employees`, { params: { _ts: refreshToken }, headers })
+          axios.get(`${API_BASE}/api/hr/employees/overview`, { params: { _ts: refreshToken }, headers })
         ]);
 
+        if (version !== requestVersion.current || queryKey !== liveScope.current.query) return;
         const hasFailure = results.some((entry) => entry.status === 'rejected');
         const getData = (index, fallback) => (
           results[index]?.status === 'fulfilled' ? results[index].value?.data : fallback
         );
-        const nextFilterOptions = getData(0, { departments: [], roles: [], locations: [], statuses: [] });
-        const nextSummary = getData(1, null);
+        const rawFilters = getData(0, null);
+        const nextFilterOptions = Object.fromEntries(['departments', 'roles', 'locations', 'statuses'].map((key) => [key, Array.isArray(rawFilters?.[key]) ? rawFilters[key].filter((value) => typeof value === 'string') : []]));
+        const rawSummary = getData(1, null);
+        const nextSummary = rawSummary?.cards && typeof rawSummary.cards === 'object' ? rawSummary : null;
+        setLoadStates({ overview: nextSummary ? 'ready' : 'unavailable', leaves: results[2].status === 'fulfilled' && Array.isArray(getData(2, null)) ? 'ready' : 'unavailable', balances: results[3].status === 'fulfilled' && Array.isArray(getData(3, null)) ? 'ready' : 'unavailable', employees: results[4].status === 'fulfilled' && Array.isArray(getData(4, null)) ? 'ready' : 'unavailable' });
         const nextLeaves = Array.isArray(getData(2, [])) ? getData(2, []) : [];
         const nextLeaveBalances = Array.isArray(getData(3, [])) ? getData(3, []) : [];
         const nextEmployees = Array.isArray(getData(4, [])) ? getData(4, []) : [];
         const nextStatus = hasFailure ? 'Some HR data could not be loaded. Showing available data.' : '';
 
+        setLoadedSnapshotKey(queryKey);
+        setLoadedLeavePeriod(`${year}-${month}`);
         setFilterOptions(nextFilterOptions);
         setSummary(nextSummary);
         setLeaves(nextLeaves);
@@ -411,21 +435,22 @@ export default function HRDashboard() {
           updatedAt: Date.now()
         });
       } catch (error) {
+        if (queryKey !== liveScope.current.query) return;
         console.error('HR dashboard load failed', error);
         setStatus(error?.response?.data?.error || 'Unable to load HR dashboard right now.');
       } finally {
-        if (!shouldSilenceLoad) setBusy(false);
+        if (version === requestVersion.current) setBusy(false);
       }
     })();
 
-    loadRequestRef.current = request;
+    loadRequestRef.current = { key: queryKey, promise: request };
     request.finally(() => {
-      if (loadRequestRef.current === request) {
+      if (loadRequestRef.current?.promise === request) {
         loadRequestRef.current = null;
       }
     });
     return request;
-  }, [filters, headers, month, queryParams, year]);
+  }, [canViewHr, filters, headers, month, queryParams, year]);
 
   useEffect(() => {
     fetchAll();
@@ -448,27 +473,37 @@ export default function HRDashboard() {
   };
 
   useEffect(() => {
-    if (leaveEntitlementEmployeeId || !employees.length) return;
+    if (employees.some((employee) => employee._id === leaveEntitlementEmployeeId)) return;
     setLeaveEntitlementEmployeeId(employees[0]?._id || '');
   }, [employees, leaveEntitlementEmployeeId]);
 
   const fetchLeaveEntitlements = useCallback(async () => {
+    const selectionKey = JSON.stringify([leaveEntitlementEmployeeId, leaveEntitlementYear]);
+    if (selectionKey !== liveScope.current.entitlement) return;
+    const version = ++entitlementVersion.current;
     if (!leaveEntitlementEmployeeId) {
+      setEntitlementState('unavailable');
       setLeaveEntitlementRows([]);
       return;
     }
     try {
       setLeaveEntitlementBusy(true);
+      setEntitlementState('loading');
+      setLeaveEntitlementRows([]);
       const response = await axios.get(`${API_BASE}/api/hr/leave-entitlements`, {
         params: { employeeId: leaveEntitlementEmployeeId, year: leaveEntitlementYear },
         headers
       });
+      if (version !== entitlementVersion.current || selectionKey !== liveScope.current.entitlement) return;
+      setEntitlementState(Array.isArray(response.data?.balances) ? 'ready' : 'unavailable');
       setLeaveEntitlementRows(Array.isArray(response.data?.balances) ? response.data.balances : []);
     } catch (error) {
+      if (version !== entitlementVersion.current || selectionKey !== liveScope.current.entitlement) return;
+      setEntitlementState('unavailable');
       setLeaveEntitlementRows([]);
       setStatus(error?.response?.data?.error || 'Unable to load leave entitlements.');
     } finally {
-      setLeaveEntitlementBusy(false);
+      if (version === entitlementVersion.current) setLeaveEntitlementBusy(false);
     }
   }, [headers, leaveEntitlementEmployeeId, leaveEntitlementYear]);
 
@@ -614,47 +649,70 @@ export default function HRDashboard() {
     textAlign: align
   });
 
+  const isMetricValue = (value) => value != null && typeof value !== 'boolean' && String(value).trim() !== '' && Number.isFinite(Number(value));
+  const displayCount = (value) => isMetricValue(value) ? Number(value).toLocaleString('en-IN') : '—';
+  const snapshotLoading = loadedSnapshotKey !== buildHrDashboardCacheKey({ month, year, filters });
+  const overviewReady = !snapshotLoading && loadStates.overview === 'ready' && Boolean(summary);
+  const leavePeriodReady = loadedLeavePeriod === `${year}-${month}`;
+  const visibleLeaves = leavePeriodReady ? leaves : [];
+  const visibleLeaveBalances = leavePeriodReady ? leaveBalances : [];
+  const period = `${monthOptions.find((entry) => entry.value === month)?.label || month} ${year}`;
+  const pendingRequests = leavePeriodReady && loadStates.leaves === 'ready' ? visibleLeaves.filter((entry) => entry.status === 'Pending').length : null;
+  const metric = (label, value, caption, tone = 'blue', currency = false) => (
+    <article className={`hr-metric ${tone}`} key={label}>
+      <div className="hr-metric-icon">{currency ? <span aria-hidden="true">₹</span> : <Users size={18} />}</div>
+      <h3>{label}</h3><strong>{isMetricValue(value) && overviewReady ? `${currency ? '₹' : ''}${currency ? money(value) : displayCount(value)}` : '—'}</strong><p>{!overviewReady ? busy || snapshotLoading ? 'Loading…' : 'Data unavailable' : !isMetricValue(value) && !caption.startsWith('Unavailable') ? 'Data unavailable' : caption}</p>
+    </article>
+  );
+  if (!canViewHr) return <div role="status" style={shell.panel}>HR dashboard access is restricted to authorised HR users.</div>;
   return (
-    <div className="hr-dashboard-page" style={shell.page}>
-      <section style={shell.hero}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <div>
-            <h1 style={shell.title}>HR Dashboard</h1>
-            <p style={shell.subtitle}>Eagle-eye view for workforce, attendance, payroll, leaves, productivity, and employee lifecycle actions.</p>
-          </div>
-        </div>
-      </section>
+    <div className="hr-dashboard-page hr-live-overview">
+      <div className="hr-heading"><div><p className="hr-eyebrow">PEOPLE &amp; WORKFORCE</p><h1>HR Dashboard</h1><p>Workforce, attendance, leave and monthly payroll.</p></div><span className="hr-period-label">{period}</span></div>
+      {status ? <div role="status" className="hr-data-notice">{status}</div> : null}
+      {Object.values(summary?.dataState || {}).includes('unavailable') ? <p role="status" className="hr-data-notice">Some source data is unavailable. Affected figures are not replaced with zero.</p> : null}
+      {busy ? <p role="status" className="hr-data-note">Loading live HR data…</p> : null}
+      {!summary && !busy ? <p role="status" className="hr-data-notice">Overview unavailable. No zero values have been substituted.</p> : null}
+      <details className="hr-filter-panel" open={viewportWidth >= 768}><summary><h2>Snapshot filters</h2></summary><p>Department, role, location, workflow and search apply to snapshot cards and employee distribution. Leave requests use the selected month; entitlements use their own employee/year.</p><div className="hr-filters">
+        <label>Month<select value={month} onChange={(event) => setMonth(Number(event.target.value))}>{monthOptions.map((entry) => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label>
+        <label>Year<select value={year} onChange={(event) => setYear(Number(event.target.value))}>{Array.from({ length: 101 }, (_, index) => 2000 + index).map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+        {['department', 'role', 'location', 'status'].map((key) => <label key={key}>{key === 'status' ? 'Workflow status' : key.charAt(0).toUpperCase() + key.slice(1)}<select value={filters[key]} onChange={(event) => setFilters((prev) => ({ ...prev, [key]: event.target.value }))}><option value="">All</option>{(filterOptions[key === 'department' ? 'departments' : key === 'role' ? 'roles' : key === 'location' ? 'locations' : 'statuses'] || []).map((value) => <option key={value} value={value}>{value}</option>)}</select></label>)}
+        <label>Search<input value={filters.search} placeholder="Search employees" onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))} /></label>
+      </div></details>
+      <section className="hr-card-section"><div className="hr-section-title"><h2>Workforce &amp; today's records</h2><span>{summary?.attendanceReferenceDate || 'Date unavailable'} · {summary?.reportingTimeZone || 'Timezone unavailable'}</span></div><div className="hr-workforce-cards">
+        {metric('Total Employees', cards.totalEmployees, 'All employment statuses')}
+        {metric('Active Employees', cards.activeEmployees, 'Employment status: Active', 'green')}
+        {metric('Present Today', cards.presentToday, 'Explicit recorded Present; half-days separate', 'teal')}
+        {metric('Technicians On Duty', summary?.reviewRequired?.technicianDuty === false ? cards.techniciansOnDutyToday : null, summary?.reviewRequired?.technicianDuty === false ? 'Recorded technician duty' : 'Unavailable · technician role definition requires review')}
+        {metric('Absent Today', summary?.reviewRequired?.absence === false ? cards.absentToday : null, summary?.reviewRequired?.absence === false ? 'Verified attendance coverage' : 'Unavailable · calendar and sync coverage require review', 'rose')}
+        {metric('On Leave Today', cards.onLeaveToday, 'Recorded leave; not a verified approved-leave count', 'amber')}
+      </div></section>
+      <section className="hr-card-section"><div className="hr-section-title"><h2>Selected month</h2><span>{period} · separate from today's records</span></div><div className="hr-month-cards">
+        {metric('Total Payroll (Month)', cards.totalPayrollCurrentMonth, 'Stored net payroll · snapshot filters applied', 'purple', true)}
+        {metric('Pending Salary', cards.pendingSalaryPayments, 'Full net of non-Paid rows; partial-payment basis unverified', 'rose', true)}
+        <article className="hr-metric amber"><div className="hr-metric-icon"><CalendarCheck size={18} /></div><h3>Pending Leave Requests</h3><strong>{displayCount(pendingRequests)}</strong><p>{!leavePeriodReady ? 'Loading selected month…' : loadStates.leaves === 'ready' ? 'All accessible requests starting in this month' : 'Leave requests unavailable'}</p></article>
+      </div></section>
+      <div className="hr-insights-grid">
+        <section style={shell.panel}><h3 style={shell.panelTitle}><Users size={16} /> Department-wise Employee Count</h3><p style={shell.panelSub}>Uses role where department is not set.</p>{summary?.dataState?.employees === 'unavailable' || !overviewReady ? <p>Employee distribution unavailable.</p> : <MiniBarChart rows={departmentChart} nameKey="name" valueKey="value" color="var(--chart-target-bar)" />}</section>
+        <section style={shell.panel}><h3 style={shell.panelTitle}><CalendarCheck size={16} /> Leave request status</h3><p style={shell.panelSub}>{period} · request counts, not leave days</p>{!leavePeriodReady ? <p>Loading selected month…</p> : loadStates.leaves !== 'ready' ? <p>Leave requests unavailable.</p> : <div className="hr-leave-status">{['Approved', 'Pending', 'Rejected'].map((value) => <div key={value}><span>{value}</span><strong>{visibleLeaves.filter((entry) => entry.status === value).length}</strong></div>)}</div>}</section>
+        {summary?.dataState?.employees === 'unavailable' || !overviewReady ? <section style={shell.panel}><h3 style={shell.panelTitle}>Upcoming Birthdays</h3><p>Birthday data unavailable.</p></section> : <InsightList title="Upcoming Birthdays" rows={summary?.quickInsights?.upcomingBirthdays || []} />}
+      </div>
 
-      {status ? <div style={{ ...shell.panel, borderColor: 'rgba(159, 23, 77, 0.3)', color: 'var(--color-primary-deep)', fontWeight: 700 }}>{status}</div> : null}
-      {busy ? <div style={shell.panelSub}>Loading HR dashboard data...</div> : null}
-
-      <section style={shell.panel}>
-        <h3 style={shell.panelTitle}><Activity size={16} /> Workforce Snapshot</h3>
-        <div style={shell.statGrid}>
-          <div style={shell.statCard}><p style={shell.statLabel}>Total Employees</p><p style={shell.statValue}>{cards.totalEmployees || 0}</p></div>
-          <div style={shell.statCard}><p style={shell.statLabel}>Technicians On Duty</p><p style={shell.statValue}>{cards.techniciansOnDutyToday || 0}</p></div>
-          <div style={shell.statCard}><p style={shell.statLabel}>Absent Today</p><p style={shell.statValue}>{cards.absentToday || 0}</p></div>
-          <div style={shell.statCard}><p style={shell.statLabel}>On Leave Today</p><p style={shell.statValue}>{cards.onLeaveToday || 0}</p></div>
-          <div style={shell.statCard}><p style={shell.statLabel}>Total Payroll (Month)</p><p style={shell.statValue}>₹{money(cards.totalPayrollCurrentMonth || 0)}</p></div>
-          <div style={shell.statCard}><p style={shell.statLabel}>Pending Salary</p><p style={shell.statValue}>₹{money(cards.pendingSalaryPayments || 0)}</p></div>
-        </div>
-      </section>
-
-      <section style={chartGridStyle}>
-        <div style={shell.panel}>
-          <h3 style={shell.panelTitle}><Users size={16} /> Department-wise Employee Count</h3>
-          <MiniBarChart rows={departmentChart} nameKey="name" valueKey="value" color="var(--color-primary)" />
-        </div>
-      </section>
-
-      <section style={chartGridStyle}>
-        <InsightList title="Upcoming Birthdays" rows={summary?.quickInsights?.upcomingBirthdays || []} />
-      </section>
-
-      <section style={chartGridStyle}>
+      {summary?.reviewRequired?.conflictingAttendanceEmployees > 0 ? <p role="status" className="hr-data-notice">Attendance figures unavailable: some same-day records have conflicting statuses. No attendance records were changed.</p> : null}
+      {summary?.reviewRequired?.unmatchedAttendanceRecords > 0 ? <p role="status" className="hr-data-notice">Attendance figures unavailable: some records do not match a current employee ID. No identity guesses were applied.</p> : null}
+      {summary?.reviewRequired?.unmatchedPayrollRecords > 0 ? <p role="status" className="hr-data-notice">Payroll totals unavailable: some stored records do not match a current employee ID. No name matching or historical changes were applied.</p> : null}
+      <section className="hr-leave-workspace" id="hr-leave-management">
+        <div className="hr-actions-grid">
         <div style={shell.panel}>
           <h3 style={shell.panelTitle}><CalendarCheck size={16} /> Leave Management</h3>
           <p style={shell.panelSub}>Approve/reject requests with leave balances visible per employee.</p>
+          {leavePeriodReady && loadStates.leaves === 'ready' ? <div className="hr-pending-list">
+            {visibleLeaves.filter((entry) => entry.status === 'Pending').length === 0 ? <p style={shell.panelSub}>No pending requests for this month.</p> : visibleLeaves.filter((entry) => entry.status === 'Pending').map((entry) => <article className="hr-pending-card" key={entry._id}>
+              <div><strong>{entry.employeeName || entry.employeeCode || 'Employee unavailable'}</strong><p>{entry.displayLeaveType || entry.leaveType} · {entry.fromDate} to {entry.toDate} · {entry.days} days</p></div>
+              <span style={shell.badge}>{entry.status}</span>
+              {role.canManage ? <div className="hr-pending-actions"><button type="button" style={shell.btnLight} onClick={() => decideLeave(entry._id, 'approved')}>Approve</button><button type="button" style={shell.btnLight} onClick={() => decideLeave(entry._id, 'rejected')}>Reject</button></div> : null}
+            </article>)}
+          </div> : null}
+          <details className="hr-leave-form-disclosure" id="hr-leave-form"><summary>Submit a leave request</summary>
           <div style={leaveFormGridStyle}>
             <div style={shell.field}>
               <p style={shell.label}>Employee</p>
@@ -675,9 +733,12 @@ export default function HRDashboard() {
             <div style={shell.field}><p style={shell.label}>To</p><input style={shell.input} type="date" value={leaveForm.toDate} onChange={(event) => setLeaveForm((prev) => ({ ...prev, toDate: event.target.value }))} /></div>
             <div style={shell.field}><p style={shell.label}>Days</p><input style={shell.input} type="number" min="0.5" step="0.5" value={leaveForm.days} onChange={(event) => setLeaveForm((prev) => ({ ...prev, days: Number(event.target.value) || 1 }))} /></div>
             <div style={shell.field}><p style={shell.label}>Reason</p><input style={shell.input} value={leaveForm.reason} onChange={(event) => setLeaveForm((prev) => ({ ...prev, reason: event.target.value }))} /></div>
-            <div style={{ ...shell.field, alignSelf: 'end' }}><button type="button" style={shell.btn} onClick={submitLeave}>Submit Leave</button></div>
+            <div style={{ ...shell.field, alignSelf: 'end' }}><button type="button" style={shell.btn} disabled={loadStates.employees !== 'ready' || !leaveForm.employeeId} onClick={submitLeave}>Submit Leave</button></div>
           </div>
 
+          </details>
+          {!leavePeriodReady ? <p role="status">Loading selected month…</p> : loadStates.leaves !== 'ready' ? <p role="status">Leave requests unavailable.</p> : visibleLeaves.length === 0 ? <p>No leave requests for this month.</p> : null}
+          <details className="hr-history-disclosure"><summary>Leave history · all statuses</summary>
           <div style={shell.tableWrap}>
             <table style={leaveTableStyle}>
               <colgroup>
@@ -717,10 +778,17 @@ export default function HRDashboard() {
             </table>
           </div>
 
+          </details>
+        </div>
+        <aside className="hr-shortcut-panel" style={shell.panel}><h3 style={shell.panelTitle}>HR shortcuts</h3>
+      <nav className="hr-shortcuts" aria-label="HR shortcuts"><Link to="/employees">Employee Master</Link><Link to="/attendance">View Attendance</Link><a href="#hr-leave-management">Review Leave Requests</a><Link to="/payroll">Open Payroll</Link><a href="#hr-leave-form" onClick={() => { const form = document.getElementById('hr-leave-form'); if (form) form.open = true; }}>Submit Leave</a><a href="#hr-entitlements">Leave Entitlements</a></nav>
+        </aside>
+        </div>
+        <div className="hr-alloc-grid">
           <div style={{ ...shell.panel, boxShadow: 'none', borderRadius: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
               <div>
-                <h4 style={{ ...shell.panelTitle, fontSize: '14px' }}>Leave Entitlements</h4>
+                <h4 id="hr-entitlements" style={{ ...shell.panelTitle, fontSize: '14px' }}>Leave Entitlements</h4>
                 <p style={shell.panelSub}>Calendar-year allocation for requestable casual and sick leave.</p>
               </div>
               {leaveEntitlementBusy ? <span style={shell.badge}>Saving...</span> : null}
@@ -758,9 +826,9 @@ export default function HRDashboard() {
                 </thead>
                 <tbody>
                   {entitlementLeaveTypes.map((leaveType) => {
-                    const row = leaveEntitlementRows.find((entry) => entry.leaveType === leaveType) || { leaveType, allocated: 0, used: 0, pending: 0, available: 0 };
+                    const row = leaveEntitlementRows.find((entry) => entry.leaveType === leaveType) || { leaveType, allocated: null, used: null, pending: null, available: null };
                     const isEditingEntitlement = editingLeaveEntitlementType === leaveType;
-                    const actionDisabled = !role.canManage || leaveEntitlementBusy;
+                    const actionDisabled = !role.canManage || leaveEntitlementBusy || entitlementState !== 'ready' || row.allocated == null;
                     return (
                       <tr key={leaveType}>
                         <td style={shell.td}>{leaveType}</td>
@@ -771,7 +839,7 @@ export default function HRDashboard() {
                             inputMode="numeric"
                             pattern="[0-9]{0,2}"
                             maxLength={2}
-                            value={normalizeLeaveEntitlementAllocationInput(row.allocated ?? 0)}
+                            value={normalizeLeaveEntitlementAllocationInput(row.allocated ?? '')}
                             onChange={(event) => setLeaveEntitlementRows((prev) => {
                               const nextValue = toLeaveEntitlementAllocation(event.target.value);
                               const existing = prev.find((entry) => entry.leaveType === leaveType);
@@ -780,12 +848,12 @@ export default function HRDashboard() {
                               }
                               return [...prev, { ...row, allocated: nextValue }];
                             })}
-                            disabled={!role.canManage || !isEditingEntitlement || leaveEntitlementBusy}
+                            disabled={!isEditingEntitlement || actionDisabled}
                           />
                         </td>
-                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.used ?? 0}</td>
-                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.pending ?? 0}</td>
-                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.available ?? 0}</td>
+                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.used ?? '—'}</td>
+                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.pending ?? '—'}</td>
+                        <td style={{ ...shell.td, textAlign: 'center' }}>{row.available ?? '—'}</td>
                         <td style={{ ...shell.td, textAlign: 'center' }}>
                           {isEditingEntitlement ? (
                             <div style={{ display: 'inline-flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -840,6 +908,8 @@ export default function HRDashboard() {
             </div>
           </div>
 
+          <section style={shell.panel}><h3 style={shell.panelTitle}>Employee leave balances</h3>
+          {!leavePeriodReady ? <p role="status">Loading selected month…</p> : loadStates.balances !== 'ready' ? <p role="status">Leave balances unavailable.</p> : visibleLeaveBalances.length === 0 ? <p>No leave balances available for this month.</p> : null}
           <div style={shell.tableWrap}>
             <table style={balanceTableStyle}>
               <colgroup>
@@ -857,18 +927,19 @@ export default function HRDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {leaveBalances.slice(0, 10).map((entry) => (
+                {visibleLeaveBalances.map((entry) => (
                   <tr key={entry.employeeId}>
                     <td style={bodyStyle(getBalanceColumnWidth, 'employee')}>{entry.employeeName}</td>
-                    <td style={bodyStyle(getBalanceColumnWidth, 'casual', 'center')}>{entry.paidLeave?.balance ?? 0}</td>
-                    <td style={bodyStyle(getBalanceColumnWidth, 'sick', 'center')}>{entry.sickLeave?.balance ?? 0}</td>
-                    <td style={bodyStyle(getBalanceColumnWidth, 'pending', 'center')}>{Number(entry.paidLeave?.pending || 0) + Number(entry.sickLeave?.pending || 0)}</td>
-                    <td style={bodyStyle(getBalanceColumnWidth, 'unpaid', 'center')}>{entry.unpaidLeave?.used ?? 0}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'casual', 'center')}>{entry.paidLeave?.balance ?? '—'}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'sick', 'center')}>{entry.sickLeave?.balance ?? '—'}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'pending', 'center')}>{entry.paidLeave?.pending != null && entry.sickLeave?.pending != null ? Number(entry.paidLeave.pending) + Number(entry.sickLeave.pending) : '—'}</td>
+                    <td style={bodyStyle(getBalanceColumnWidth, 'unpaid', 'center')}>{entry.unpaidLeave?.used ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          </section>
         </div>
       </section>
 

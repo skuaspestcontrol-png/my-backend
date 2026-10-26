@@ -1,3 +1,4 @@
+const { getHrBusinessDate } = require('./lib/hrPortalReaders');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 
@@ -753,9 +754,10 @@ function registerHrModule({
   readJsonFile,
   files,
   withMysqlConnection,
-  syncPortalSnapshots = null
+  syncPortalSnapshots = null,
+  dataProviders = {}
 }) {
-  const canUseMysql = typeof withMysqlConnection === 'function';
+  const canUseMysql = typeof dataProviders.canUseMysql === 'function' ? dataProviders.canUseMysql() : typeof withMysqlConnection === 'function';
   const scheduleSnapshot = () => {
     if (typeof syncPortalSnapshots === 'function') syncPortalSnapshots();
   };
@@ -808,8 +810,7 @@ function registerHrModule({
         return normalizeMysqlPayloadRows(rows);
       });
     } catch (error) {
-      console.error(`Failed to read ${tableName} from MySQL:`, error.message);
-      return fallbackRows;
+      throw new Error('HR data source unavailable');
     }
   };
 
@@ -840,11 +841,12 @@ function registerHrModule({
     }
   };
 
-  const getEmployees = () => readJsonFile(employeesFile, []);
-  const getAttendance = async () => readMysqlPayloadRows('attendance', readJsonFile(attendanceFile, []));
+  const getEmployees = async () => dataProviders.employees ? dataProviders.employees() : readJsonFile(employeesFile, []);
+  const getAttendance = async () => dataProviders.attendance ? dataProviders.attendance() : readMysqlPayloadRows('attendance', readJsonFile(attendanceFile, []));
   const getJobs = () => readJsonFile(jobsFile, []);
   const getInvoices = () => readJsonFile(invoicesFile, []);
   const getPayrollItems = async () => readMysqlPayloadRows('payroll_items', readJsonFile(payrollItemsFile, []));
+  const getDashboardPayrollItems = async () => dataProviders.payroll ? dataProviders.payroll() : getPayrollItems();
   const getSalaryStructures = () => readJsonFile(salaryStructuresFile, []);
   const getAdvances = () => readJsonFile(advancesFile, []);
   const getLeaves = async () => (await readMysqlPayloadRows('hr_leaves', readJsonFile(leavesFile, []))).map((entry) => normalizeLeave(entry));
@@ -868,8 +870,7 @@ function registerHrModule({
         })).filter((row) => row.employeeId && row.year && row.leaveType);
       });
     } catch (error) {
-      console.error('Failed to read employee leave entitlements from MySQL:', error.message);
-      return [];
+      throw new Error('Leave entitlement source unavailable');
     }
   };
 
@@ -940,7 +941,7 @@ function registerHrModule({
 
   const ensureWorkflowSeed = async () => {
     const build = async () => {
-      const employees = getEmployees();
+      const employees = await getEmployees();
       const current = await getWorkflow();
       const map = new Map(current.map((entry) => [entry.employeeId, entry]));
       let changed = false;
@@ -976,7 +977,7 @@ function registerHrModule({
 
   const ensurePerformanceSeed = async () => {
     const build = async () => {
-      const employees = getEmployees();
+      const employees = await getEmployees();
       const jobs = getJobs();
       const invoices = getInvoices();
       const current = await getPerformance();
@@ -1015,17 +1016,16 @@ function registerHrModule({
   };
 
   const buildDashboardPayload = async ({ month, year, department, role, location, status, search, date }) => {
-    const serverToday = toDateOnly(new Date());
-    const employees = getEmployees();
-    const attendance = await getAttendance();
+    const businessDate = getHrBusinessDate();
+    const serverToday = parseDateInput(businessDate);
+    const sourceNames = ['employees', 'attendance', 'payroll', 'leaves', 'workflow', 'performance'];
+    const sources = await Promise.allSettled([getEmployees(), getAttendance(), getDashboardPayrollItems(), getLeaves(), getWorkflow(), getPerformance()]);
+    const dataState = Object.fromEntries(sourceNames.map((name, index) => [name, sources[index].status === 'fulfilled' ? 'ready' : 'unavailable']));
+    const read = (index) => sources[index].status === 'fulfilled' ? sources[index].value : [];
+    const employees = read(0), attendance = read(1), payrollItems = read(2), leaves = read(3), workflow = read(4), performance = read(5);
     const jobs = getJobs();
-    const payrollItems = await getPayrollItems();
     const salaryStructures = getSalaryStructures();
-    const leaves = await getLeaves();
     const advances = getAdvances();
-
-    const workflow = await ensureWorkflowSeed();
-    const performance = await ensurePerformanceSeed();
     const workflowByEmployee = new Map(workflow.map((entry) => [entry.employeeId, entry]));
     const performanceByEmployee = new Map(performance.map((entry) => [entry.employeeId, entry]));
     const latestActivityByEmployee = getEmployeeActivityMap(jobs);
@@ -1040,7 +1040,7 @@ function registerHrModule({
       const roleName = normalizeLower(employee.role || '');
       const city = normalizeLower(employee.city || employee.location || '');
       const employeeWorkflow = workflowByEmployee.get(normalizeText(employee._id));
-      const state = normalizeLower(employeeWorkflow?.status || 'active employees');
+      const state = normalizeLower(employeeWorkflow?.status || '');
       const fullName = buildEmployeeName(employee).toLowerCase();
       const empCode = normalizeLower(employee.empCode || '');
 
@@ -1056,13 +1056,7 @@ function registerHrModule({
 
     const { month: safeMonth, year: safeYear, start, end } = monthRange(month, year);
     const explicitDate = parseDateInput(date);
-    const monthDates = attendance
-      .map((entry) => toDateOnly(entry.date))
-      .filter((entry) => entry && entry.getTime() >= start.getTime() && entry.getTime() <= end.getTime())
-      .sort((a, b) => b.getTime() - a.getTime());
-    const referenceDate = explicitDate
-      || monthDates[0]
-      || serverToday;
+    const referenceDate = explicitDate || serverToday;
     const monthPayroll = payrollItems.filter((entry) => {
       if (toNumber(entry.month, 0) !== safeMonth) return false;
       if (toNumber(entry.year, 0) !== safeYear) return false;
@@ -1191,7 +1185,7 @@ function registerHrModule({
       .map((employee) => {
         const dob = parseDateForMonth(employee.dateOfBirth);
         if (!dob) return null;
-        const now = new Date();
+        const now = serverToday;
         const next = new Date(now.getFullYear(), dob.getMonth(), dob.getDate());
         if (next.getTime() < now.getTime()) next.setFullYear(now.getFullYear() + 1);
         const days = Math.round((next.getTime() - now.getTime()) / 86400000);
@@ -1223,6 +1217,28 @@ function registerHrModule({
         return createdAt.getMonth() + 1 === safeMonth && createdAt.getFullYear() === safeYear;
       }).length
     };
+
+    const recordedToday = new Map(attendance.filter((entry) => normalizeText(entry.date) === toDateKey(referenceDate)).map((entry) => [normalizeText(entry.employeeId), entry]));
+    cards.presentToday = dataState.employees === 'ready' && dataState.attendance === 'ready'
+      ? filteredEmployees.filter((entry) => normalizeLower(recordedToday.get(normalizeText(entry._id))?.status) === 'present').length : null;
+    if (dataState.employees !== 'ready') { cards.totalEmployees = null; cards.activeEmployees = null; }
+    if (dataState.employees !== 'ready' || dataState.attendance !== 'ready') {
+      cards.techniciansOnDutyToday = null; cards.absentToday = null; cards.onLeaveToday = null;
+    } else if (dataState.leaves !== 'ready') { cards.absentToday = null; cards.onLeaveToday = null; }
+    const knownEmployeeIds = new Set(employees.map((entry) => normalizeText(entry._id)));
+    const unmatchedAttendanceRecords = dataState.employees === 'ready' && dataState.attendance === 'ready' ? attendance.filter((entry) => normalizeText(entry.date) === toDateKey(referenceDate) && !knownEmployeeIds.has(normalizeText(entry.employeeId))).length : null;
+    const recordedStatuses = new Map();
+    attendance.filter((entry) => normalizeText(entry.date) === toDateKey(referenceDate)).forEach((entry) => {
+      const id = normalizeText(entry.employeeId);
+      if (!recordedStatuses.has(id)) recordedStatuses.set(id, new Set());
+      recordedStatuses.get(id).add(normalizeLower(entry.status));
+    });
+    const conflictingAttendanceEmployees = dataState.attendance === 'ready' ? [...recordedStatuses.values()].filter((statuses) => statuses.size > 1).length : null;
+    if (unmatchedAttendanceRecords || conflictingAttendanceEmployees) { cards.presentToday = null; cards.onLeaveToday = null; }
+    const unmatchedPayrollRecords = dataState.employees === 'ready' && dataState.payroll === 'ready' ? payrollItems.filter((entry) => Number(entry.month) === safeMonth && Number(entry.year) === safeYear && !knownEmployeeIds.has(normalizeText(entry.employeeId))).length : null;
+    if (dataState.payroll !== 'ready' || dataState.employees !== 'ready' || unmatchedPayrollRecords) {
+      cards.totalPayrollCurrentMonth = null; cards.pendingSalaryPayments = null;
+    }
 
     const payrollQuick = {
       pendingEmployees: monthPayroll.filter((entry) => normalizeLower(entry.paymentStatus) !== 'paid').map((entry) => ({
@@ -1262,6 +1278,11 @@ function registerHrModule({
     return {
       month: safeMonth,
       year: safeYear,
+      dataState,
+      dataSources: { employees: !canUseMysql ? 'configured-json' : dataProviders.employees ? 'portal-employees' : 'employee-mirror', payroll: !canUseMysql ? 'configured-json' : dataProviders.payroll ? 'stored-payroll-records' : 'legacy-payroll-items' },
+      reportingTimeZone: 'Asia/Kolkata',
+      generatedAt: new Date().toISOString(),
+      reviewRequired: { absence: true, technicianDuty: true, approvedLeave: true, pendingSalaryBasis: true, unmatchedPayrollRecords, unmatchedAttendanceRecords, conflictingAttendanceEmployees },
       cards,
       charts: {
         attendanceTrend: buildTrendFromAttendance(monthAttendance, safeMonth, safeYear),
@@ -1302,7 +1323,13 @@ function registerHrModule({
     return rows.filter((entry) => normalizeText(idSelector(entry)) === normalizeText(scope.employeeId));
   };
 
+  app.get('/api/hr/employees/overview', async (req, res) => {
+    if (!require('./lib/security').isHr(req.portalUser)) return res.status(403).json({ error: 'HR access required' });
+    try { res.json((await getEmployees()).map(({ _id, empCode, firstName, lastName, role, department, city, employmentStatus }) => ({ _id, empCode, firstName, lastName, role, department, city, employmentStatus }))); } catch { res.status(503).json({ error: 'Employee source unavailable' }); }
+  });
+
   app.get('/api/hr/dashboard-summary', async (req, res) => {
+    if (!require('./lib/security').isHr(req.portalUser)) return res.status(403).json({ error: 'HR access required' });
     try {
       const payload = await buildDashboardPayload({
         month: req.query.month,
@@ -1324,7 +1351,7 @@ function registerHrModule({
   app.get('/api/hr/kanban', async (req, res) => {
     try {
       const scope = makeAccessScope(req);
-      const employees = getEmployees();
+      const employees = await getEmployees();
       const workflow = await ensureWorkflowSeed();
       const workflowByEmployee = new Map(workflow.map((entry) => [entry.employeeId, entry]));
       const attendance = await getAttendance();
@@ -1441,7 +1468,7 @@ function registerHrModule({
     const employeeId = normalizeText(req.query.employeeId || '');
     const department = normalizeLower(req.query.department || '');
 
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const employeesById = new Map(employees.map((entry) => [normalizeText(entry._id), entry]));
     const rows = (await getAttendance()).filter((entry) => {
       if (date && normalizeText(entry.date) !== date) return false;
@@ -1458,7 +1485,7 @@ function registerHrModule({
 
   app.get('/api/hr/attendance/today', async (req, res) => {
     const scope = makeAccessScope(req);
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const leaves = await getLeaves();
     const attendance = await getAttendance();
     const today = toDateOnly(new Date());
@@ -1475,7 +1502,7 @@ function registerHrModule({
     const date = normalizeText(req.body?.date);
     if (!employeeId || !date) return res.status(400).json({ error: 'employeeId and date are required' });
 
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const employee = employees.find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
@@ -1518,7 +1545,7 @@ function registerHrModule({
     const payload = Array.isArray(req.body?.records) ? req.body.records : [];
     if (payload.length === 0) return res.status(400).json({ error: 'records array is required' });
 
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const employeeById = new Map(employees.map((entry) => [normalizeText(entry._id), entry]));
     const records = await getAttendance();
     let upserted = 0;
@@ -1626,7 +1653,7 @@ function registerHrModule({
 
   app.get('/api/hr/leaves/balance', async (req, res) => {
     const scope = makeAccessScope(req);
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const year = normalizeEntitlementYear(req.query.year);
     if (!year) return res.status(400).json({ error: 'Valid year is required' });
     const rows = buildLeaveEntitlementBalances({
@@ -1651,7 +1678,7 @@ function registerHrModule({
       return res.status(403).json({ error: 'You can only view your own leave entitlements' });
     }
 
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const employee = employees.find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
@@ -1681,12 +1708,12 @@ function registerHrModule({
     if (allocated < 0) return res.status(400).json({ error: 'allocated cannot be negative' });
     if (allocated > 99) return res.status(400).json({ error: 'allocated must be 2 digits or less' });
 
-    const employee = getEmployees().find((entry) => normalizeText(entry._id) === employeeId);
+    const employee = (await getEmployees()).find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
     try {
       const currentRows = buildLeaveEntitlementBalances({
-        employees: getEmployees(),
+        employees: await getEmployees(),
         leaves: await getLeaves(),
         entitlements: await getLeaveEntitlements(),
         year,
@@ -1702,7 +1729,7 @@ function registerHrModule({
 
       await upsertLeaveEntitlement({ employeeId, year, leaveType, allocated });
       const rows = buildLeaveEntitlementBalances({
-        employees: getEmployees(),
+        employees: await getEmployees(),
         leaves: await getLeaves(),
         entitlements: await getLeaveEntitlements(),
         year,
@@ -1725,7 +1752,7 @@ function registerHrModule({
       return res.status(403).json({ error: 'You can only create your own leave request' });
     }
 
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const employee = employees.find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
@@ -1793,7 +1820,7 @@ function registerHrModule({
 
   app.get('/api/hr/performance', async (req, res) => {
     const scope = makeAccessScope(req);
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const jobs = getJobs();
     const invoices = getInvoices();
     const stored = await getPerformance();
@@ -1838,7 +1865,7 @@ function registerHrModule({
     const status = normalizeLower(req.query.status || '');
     const search = normalizeLower(req.query.search || '');
 
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const workflow = await ensureWorkflowSeed();
     const workflowByEmployee = new Map(workflow.map((entry) => [entry.employeeId, entry]));
     const filteredEmployeeIds = new Set(
@@ -1851,7 +1878,7 @@ function registerHrModule({
           const roleName = normalizeLower(employee.role || '');
           const city = normalizeLower(employee.city || employee.location || '');
           const employeeWorkflow = workflowByEmployee.get(id);
-          const state = normalizeLower(employeeWorkflow?.status || 'active employees');
+          const state = normalizeLower(employeeWorkflow?.status || '');
           const fullName = buildEmployeeName(employee).toLowerCase();
           const empCode = normalizeLower(employee.empCode || '');
 
@@ -1915,7 +1942,7 @@ function registerHrModule({
     const dynamic = [];
     const today = toDateOnly(new Date());
     const attendanceToday = computeAttendanceToday({
-      employees: getEmployees(),
+      employees: await getEmployees(),
       attendanceRows: await getAttendance(),
       leaves: await getLeaves(),
       today
@@ -1978,7 +2005,7 @@ function registerHrModule({
       return res.status(403).json({ error: 'You can only view your own profile' });
     }
 
-    const employees = getEmployees();
+    const employees = await getEmployees();
     const employee = employees.find((entry) => normalizeText(entry._id) === employeeId);
     if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
@@ -2081,8 +2108,8 @@ function registerHrModule({
     });
   });
 
-  app.get('/api/hr/filters', (req, res) => {
-    const employees = getEmployees();
+  app.get('/api/hr/filters', async (req, res) => {
+    const employees = await getEmployees();
     const departments = Array.from(new Set(employees.map((entry) => normalizeText(entry.department || entry.role || '')).filter(Boolean))).sort();
     const roles = Array.from(new Set(employees.map((entry) => normalizeText(entry.role || '')).filter(Boolean))).sort();
     const locations = Array.from(new Set(employees.map((entry) => normalizeText(entry.city || '')).filter(Boolean))).sort();

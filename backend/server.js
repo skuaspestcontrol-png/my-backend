@@ -42,6 +42,7 @@ const {
 } = require('./lib/portalAuth');
 const { registerPayrollModule } = require('./payrollModule');
 const { registerHrModule } = require('./hrModule');
+const { createHrPortalReaders } = require('./lib/hrPortalReaders');
 const { registerCustomerDedupModule } = require('./customerDedupModule');
 const { createWhatsAppRouter } = require('./routes/whatsapp.routes');
 const { createWhatsAppMarketingRouter } = require('./routes/whatsappMarketing.routes');
@@ -17043,6 +17044,7 @@ registerPayrollModule({
 });
 
 registerHrModule({
+  dataProviders: createHrPortalReaders({ canUseMysql, withMysqlConnection, readJsonFile, files: { employeesFile, payrollItemsFile, attendanceFile }, mapEmployee: (row) => sanitizeEmployeeForClient(parseMysqlEmployeeRow(row)) }),
   app,
   readJsonFile,
   withMysqlConnection,
