@@ -162,3 +162,84 @@ test('real selection fills address fields, honors billing copy, and preserves un
   assert.equal(form.shippingCity, 'Mumbai');
   assert.equal(form.billingCity, 'New Delhi');
 });
+
+test('coordinate lookup uses Google reverse geocoding only and retains Indian address components', async () => {
+  const expected = place();
+  const calls = [];
+  const result = await searchCustomerAddress({ lat: 28.561993, lng: 77.153099, apiKey: 'test', fetchImpl: async (url) => {
+    calls.push(url);const parsed = new URL(url);
+    assert.equal(parsed.hostname, 'maps.googleapis.com');
+    assert.equal(parsed.pathname, '/maps/api/geocode/json');
+    assert.equal(parsed.searchParams.get('latlng'), '28.561993,77.153099');
+    return response({ status: 'OK', results: [expected, place('US')] });
+  } });
+  assert.equal(calls.length, 1);assert.deepEqual(result.results, [expected]);
+});
+test('invalid or incomplete coordinates cannot reach a provider; zero coordinates are valid', async () => {
+  for (const [lat,lng] of [[91,77],[28,181],[NaN,77],['',77],[null,77],[28,undefined]]) {
+    const r = await searchCustomerAddress({ lat,lng,apiKey:'test',fetchImpl:()=>assert.fail('Invalid coordinates must not leave the server') });
+    assert.equal(r.status,400);assert.equal(r.code,'INVALID_COORDINATES');
+  }
+  const r = await searchCustomerAddress({lat:0,lng:0,apiKey:'test',fetchImpl:async url=>{
+    assert.equal(new URL(url).searchParams.get('latlng'),'0,0');return response({status:'ZERO_RESULTS',results:[]});
+  }});assert.deepEqual(r.results,[]);
+});
+test('coordinate lookup reports missing keys, denied access, timeout and empty results without leaking provider details or using fallback providers', async () => {
+  const missing = await searchCustomerAddress({lat:28,lng:77,fetchImpl:()=>assert.fail('Missing key must not make a request')});assert.equal(missing.code,'MAPS_KEY_MISSING');
+  for(const fetchImpl of [async()=>response({status:'REQUEST_DENIED',error_message:'test-secret denied'}),async()=>response({},false),async()=>{throw new Error('test-secret timed out')}]){
+    const r=await searchCustomerAddress({lat:28,lng:77,apiKey:'test-secret',fetchImpl});assert.equal(r.status,503);assert.ok(!JSON.stringify(r).includes('test-secret'));
+  }
+  const r=await searchCustomerAddress({lat:28,lng:77,apiKey:'test',fetchImpl:async()=>response({status:'OK',results:[place('US'),place('')]})});assert.deepEqual(r.results,[]);
+});
+
+const mapsSource = fs.readFileSync(path.join(__dirname,'../../frontend/src/utils/googleMaps.js'),'utf8')
+  .replace(/^import .*;$/gm,'').replace(/import\.meta\.env/g,'({})').replace(/export \{[\s\S]*?\};/g,'');
+const mapsHarness = (post = async()=>({status:200,data:{results:[]}})) => {
+  const context=vm.createContext({URL,URLSearchParams,axios:{post}});
+  vm.runInContext(mapsSource+'\nthis.maps={extractGoogleMapsCoordinates,isAllowedGoogleMapsUrl,resolveGoogleMapsPlaceText};',context);return context.maps;
+};
+test('actual pasted Google Maps URL and encoded/raw coordinate formats parse without opening the link', () => {
+  const maps=mapsHarness();
+  for(const text of ['https://maps.google.com/?q=28.561993,77.153099','maps.google.com/?q=28.561993%2C77.153099','28.561993,77.153099','https://www.google.com/maps/@28.561993,77.153099,17z']){
+    const coords=maps.extractGoogleMapsCoordinates(text);assert.equal(coords.latitude,28.561993);assert.equal(coords.longitude,77.153099);
+  }
+  for(const text of ['https://maps.google.com.evil.invalid/?q=28,77','https://evil.invalid/?q=28,77','javascript:alert(1)'])assert.equal(maps.isAllowedGoogleMapsUrl(text),false);
+});
+test('coordinate proxy uses the existing credentialled customer endpoint; ordinary text search remains unchanged', async () => {
+  const calls=[];const maps=mapsHarness(async(...args)=>{calls.push(args);return{status:200,data:{results:[place()]}}});
+  const r=await maps.resolveGoogleMapsPlaceText('28.561993,77.153099',{customerAddressSearch:true,latitude:28.561993,longitude:77.153099});assert.equal(r.success,true);
+  assert.equal(calls[0][0],'/api/maps/geocode');assert.equal(calls[0][1].lat,28.561993);assert.equal(calls[0][1].lng,77.153099);assert.equal(calls[0][1].customerAddressSearch,true);assert.equal(calls[0][2].withCredentials,true);
+  await maps.resolveGoogleMapsPlaceText('Delhi',{customerAddressSearch:true});assert.equal('lat' in calls[1][1],false);assert.equal(calls[1][1].address,'Delhi');
+});
+
+const coordinateHarness = (provider) => {
+  const states={billing:{},shipping:{}};const patches=[];
+  const context=vm.createContext({
+    addressSuggestionSeqRef:{current:{billing:1,shipping:1}},addressCoordinateRequestRef:{current:{}},
+    setSectionAddressSearchState:(s,p)=>Object.assign(states[s],p),resolveGoogleMapsPlaceText:provider,API_BASE_URL:'',
+    extractCustomerAddressFields:p=>({address:p.formatted_address,city:'Fixture city',state:'Fixture state',pincode:'110001'}),
+    getGoogleAddressLineText:p=>p.formatted_address,getGoogleFormattedAddressText:p=>p.formatted_address,
+    applyCustomerAddressPatch:(section,data)=>patches.push({section,data})
+  });
+  vm.runInContext([componentFunction('enrichCustomerAddressFromLatLng'),componentFunction('getCustomerAddressSearchError')].join('\n')+'\nthis.lookup=enrichCustomerAddressFromLatLng;',context);
+  return {context,states,patches};
+};
+test('coordinate lookup works without a browser Maps key, deduplicates paste events and preserves exact pin coordinates', async () => {
+  let finish,calls=0;const h=coordinateHarness(()=>{calls++;return new Promise(r=>finish=r)});
+  const a=h.context.lookup('billing',28.561993,77.153099,{preserveSearchAddress:true});const b=h.context.lookup('billing',28.561993,77.153099,{preserveSearchAddress:true});
+  assert.equal(calls,1);assert.equal(h.states.billing.fetching,true);finish({success:true,result:place()});await Promise.all([a,b]);
+  assert.equal(h.patches.length,1);assert.equal(h.patches[0].data.latitude,28.561993);assert.equal(h.patches[0].data.longitude,77.153099);assert.equal(h.patches[0].data.preserveSearchAddress,true);assert.equal(h.states.billing.fetching,false);
+});
+test('older coordinate responses and closing/clearing the form cannot overwrite newer input; billing and shipping stay independent', async () => {
+  const pending=[];const h=coordinateHarness(()=>new Promise(r=>pending.push(r)));
+  const old=h.context.lookup('billing',28,77);h.context.addressSuggestionSeqRef.current.billing++;
+  const current=h.context.lookup('billing',29,78);const shipping=h.context.lookup('shipping',28,77);
+  pending[0]({success:true,result:place()});await old;assert.equal(h.patches.length,0);assert.equal(h.states.billing.fetching,true);
+  pending[2]({success:true,result:place()});await shipping;assert.equal(h.patches[0].section,'shipping');
+  h.context.addressSuggestionSeqRef.current.billing++;pending[1]({success:true,result:place()});await current;assert.equal(h.patches.length,1);
+});
+test('failed/empty coordinate lookup leaves existing addresses untouched and shows a useful error', async () => {
+  for(const provider of [async()=>({success:false,code:'MAPS_KEY_MISSING'}),async()=>({success:true,results:[]}),async()=>{throw new Error('network')}]){
+    const h=coordinateHarness(provider);await h.context.lookup('billing',28,77);assert.equal(h.patches.length,0);assert.ok(h.states.billing.error);assert.equal(h.states.billing.fetching,false);
+  }
+});

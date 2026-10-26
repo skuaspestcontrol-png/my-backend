@@ -6247,7 +6247,7 @@ app.post('/api/maps/geocode', async (req, res) => {
 
   if (req.body?.customerAddressSearch === true) {
     const apiKey = String(process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_GEOCODING_API_KEY || '').trim();
-    const response = await searchCustomerAddress({ address, apiKey });
+    const response = await searchCustomerAddress({ address, lat: req.body?.lat, lng: req.body?.lng, apiKey });
     const { status, ...payload } = response;
     return res.status(status).json(payload);
   }

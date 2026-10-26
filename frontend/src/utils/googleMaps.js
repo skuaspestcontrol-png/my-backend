@@ -171,7 +171,7 @@ const normalizeGooglePlaceSearchResult = (result = {}, fallbackText = '') => {
   };
 };
 
-const resolveGoogleMapsPlaceText = async (text, { apiBaseUrl = '', customerAddressSearch = false } = {}) => {
+const resolveGoogleMapsPlaceText = async (text, { apiBaseUrl = '', customerAddressSearch = false, latitude, longitude } = {}) => {
   const address = String(text || '').trim();
   if (!address) {
     return { success: false, message: 'Address is required' };
@@ -179,7 +179,8 @@ const resolveGoogleMapsPlaceText = async (text, { apiBaseUrl = '', customerAddre
 
   const base = normalizeApiBaseUrl(apiBaseUrl || import.meta.env.VITE_API_BASE_URL || '');
   const endpoint = `${base}/api/maps/geocode`;
-  const response = await axios.post(endpoint, { address, ...(customerAddressSearch ? { customerAddressSearch: true } : {}) }, {
+  const response = await axios.post(endpoint, { address, ...(customerAddressSearch ? { customerAddressSearch: true } : {}),
+    ...(customerAddressSearch && (latitude !== undefined || longitude !== undefined) ? { lat: latitude, lng: longitude } : {}) }, {
     ...(customerAddressSearch ? { timeout: 20000 } : {}),
     withCredentials: true,
     validateStatus: () => true

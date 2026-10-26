@@ -6050,3 +6050,10 @@ html[data-branding="true"][data-theme] body :is(.app-layout, .crm-modal-surface,
   outline: 2px solid var(--table-header-text);
   outline-offset: 2px;
 }
+
+/* The login copyright belongs to the white form panel, not branded portal footers. */
+html[data-theme] body .login-page footer.login-footer {
+  background: transparent !important;
+  color: var(--login-muted) !important;
+  -webkit-text-fill-color: var(--login-muted) !important;
+}

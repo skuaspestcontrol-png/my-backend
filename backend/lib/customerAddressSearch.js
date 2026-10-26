@@ -1,8 +1,14 @@
-// Customer-only text search. Never send typing traffic to public Nominatim.
+// Customer-only address lookup. Never send customer searches to public Nominatim.
 const indiaResult = (place) => (place?.address_components || []).some((part) =>
   part.types?.includes('country') && String(part.short_name || '').toUpperCase() === 'IN');
 
-const searchCustomerAddress = async ({ address, apiKey, fetchImpl = fetch }) => {
+const searchCustomerAddress = async ({ address, lat, lng, apiKey, fetchImpl = fetch }) => {
+  const coordinatesProvided = lat !== undefined || lng !== undefined;
+  if (coordinatesProvided && (lat == null || lng == null || String(lat).trim() === '' || String(lng).trim() === '' ||
+      !Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) ||
+      Number(lat) < -90 || Number(lat) > 90 || Number(lng) < -180 || Number(lng) > 180)) {
+    return { status: 400, code: 'INVALID_COORDINATES', error: 'Please provide a valid latitude and longitude.' };
+  }
   if (!apiKey) return { status: 503, error: 'Address search is not configured. Please enter the address manually.', code: 'MAPS_KEY_MISSING' };
   const signal = AbortSignal.timeout(15000);
   const request = async (url, options = {}) => {
@@ -12,6 +18,14 @@ const searchCustomerAddress = async ({ address, apiKey, fetchImpl = fetch }) => 
   };
   const unavailable = { status: 503, code: 'MAPS_UNAVAILABLE', error: 'Address search is unavailable. Please enter the address manually or try again later.' };
   try {
+    if (coordinatesProvided) {
+      const params = new URLSearchParams({ latlng: `${Number(lat)},${Number(lng)}`, language: 'en', key: apiKey });
+      const reverse = await request(`https://maps.googleapis.com/maps/api/geocode/json?${params}`);
+      if (!reverse.ok || !['OK', 'ZERO_RESULTS'].includes(reverse.data.status)) return unavailable;
+      const results = (reverse.data.results || []).filter(indiaResult).filter((place) => place.formatted_address &&
+        Number.isFinite(place.geometry?.location?.lat) && Number.isFinite(place.geometry?.location?.lng));
+      return { status: 200, provider: 'google', results, result: results[0] || null };
+    }
     const params = new URLSearchParams({ query: address, region: 'in', language: 'en', location: '28.6139,77.2090', radius: '50000', key: apiKey });
     const legacy = await request(`https://maps.googleapis.com/maps/api/place/textsearch/json?${params}`);
     let results;

@@ -266,7 +266,7 @@ const shell = {
     border: '1px solid rgba(234,179,8,0.30)',
     background: 'rgba(234,179,8,0.14)'
   },
-  sectionTitle: { margin: 0, fontSize: '14px', color: 'var(--color-primary-dark)', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap' },
+  sectionTitle: { margin: 0, fontSize: '14px', color: 'var(--text-primary)', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap' },
   summaryLabel: { fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
   summaryValue: { fontSize: '24px', fontWeight: 800, color: '#0f172a', lineHeight: 1 },
   tableWrap: {

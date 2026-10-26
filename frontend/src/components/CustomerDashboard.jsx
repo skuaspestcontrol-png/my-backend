@@ -11,7 +11,6 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
 import {
-  loadGooglePlacesScript,
   formatGoogleAddressParts,
   getGoogleAddressLineText,
   getGoogleFormattedAddressText,
@@ -723,6 +722,7 @@ export default function CustomerDashboard() {
   const billingSearchInputRef = useRef(null);
   const shippingSearchInputRef = useRef(null);
   const addressSuggestionSeqRef = useRef({ billing: 0, shipping: 0 });
+  const addressCoordinateRequestRef = useRef({});
   const addressSearchTimerRef = useRef({});
   const addressSearchRequestRef = useRef({});
   const lastAutoDisplayNameRef = useRef('');
@@ -1562,42 +1562,51 @@ export default function CustomerDashboard() {
   };
 
   const enrichCustomerAddressFromLatLng = async (section, lat, lng, { preserveSearchAddress = false } = {}) => {
-    try {
-      await loadGooglePlacesScript();
-    } catch {
-      // Continue; geocoder may still already be available.
-    }
     if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng))) return null;
-    if (!window.google?.maps?.Geocoder) {
-      applyCustomerAddressPatch(section, { latitude: lat, longitude: lng, preserveSearchAddress });
-      return null;
-    }
-    try {
-      const geocoder = new window.google.maps.Geocoder();
-      const response = await geocoder.geocode({ location: { lat: Number(lat), lng: Number(lng) } });
-      const first = response?.results?.[0];
-      if (!first) return null;
+    const reqId = addressSuggestionSeqRef.current[section];
+    const key = `${Number(lat)},${Number(lng)}`;
+    const current = addressCoordinateRequestRef.current[section];
+    if (current?.key === key && current.reqId === reqId) return current.promise;
 
-      const extracted = extractCustomerAddressFields(first);
-      const formattedAddress = extracted.address || getGoogleAddressLineText(first) || getGoogleFormattedAddressText(first);
-      applyCustomerAddressPatch(section, {
-        address: formattedAddress,
-        areaName: extracted.areaName,
-        city: extracted.city || extracted.state,
-        state: extracted.state,
-        pincode: extracted.pincode,
-        latitude: lat,
-        longitude: lng,
-        preserveSearchAddress
-      });
-
-      return {
-        formattedAddress,
-        ...extracted
-      };
-    } catch {
-      return null;
-    }
+    const request = { key, reqId };
+    setSectionAddressSearchState(section, { fetching: true, error: '', suggestions: [], showSuggestions: false });
+    request.promise = (async () => {
+      try {
+        const response = await resolveGoogleMapsPlaceText(key, {
+          apiBaseUrl: API_BASE_URL, customerAddressSearch: true, latitude: Number(lat), longitude: Number(lng)
+        });
+        if (addressSuggestionSeqRef.current[section] !== reqId) return null;
+        if (!response.success) throw Object.assign(new Error(response.message), { code: response.code });
+        const first = response.result || response.results?.[0];
+        if (!first) {
+          setSectionAddressSearchState(section, { error: 'No address found for these coordinates. Please enter the address manually.' });
+          return null;
+        }
+        const extracted = extractCustomerAddressFields(first);
+        const formattedAddress = extracted.address || getGoogleAddressLineText(first) || getGoogleFormattedAddressText(first);
+        applyCustomerAddressPatch(section, {
+          address: formattedAddress,
+          areaName: extracted.areaName,
+          city: extracted.city || extracted.state,
+          state: extracted.state,
+          pincode: extracted.pincode,
+          latitude: lat,
+          longitude: lng,
+          preserveSearchAddress
+        });
+        return { formattedAddress, ...extracted };
+      } catch (error) {
+        if (addressSuggestionSeqRef.current[section] === reqId) {
+          setSectionAddressSearchState(section, { error: getCustomerAddressSearchError(error) });
+        }
+        return null;
+      } finally {
+        if (addressCoordinateRequestRef.current[section] === request) delete addressCoordinateRequestRef.current[section];
+        if (addressSuggestionSeqRef.current[section] === reqId) setSectionAddressSearchState(section, { fetching: false });
+      }
+    })();
+    addressCoordinateRequestRef.current[section] = request;
+    return request.promise;
   };
 
   const applyCustomerCoordinates = (section, rawText) => {
@@ -1642,12 +1651,18 @@ export default function CustomerDashboard() {
     const text = String(rawValue || '').trim();
     if (!text) return false;
 
-    if (applyCustomerCoordinates(section, text)) return true;
+    if (applyCustomerCoordinates(section, text)) {
+      const request = addressCoordinateRequestRef.current[section];
+      if (request?.reqId === addressSuggestionSeqRef.current[section]) await request.promise;
+      return true;
+    }
 
     if (!isAllowedGoogleMapsUrl(text) && !isGoogleMapsShortLink(text)) return false;
 
+    const reqId = addressSuggestionSeqRef.current[section];
     try {
       const resolvedLink = await resolveGoogleMapsUrl(text, { apiBaseUrl: API_BASE_URL });
+      if (addressSuggestionSeqRef.current[section] !== reqId) return true;
       if (!resolvedLink?.success || !Number.isFinite(Number(resolvedLink.latitude)) || !Number.isFinite(Number(resolvedLink.longitude))) {
         setSectionAddressSearchState(section, {
           error: 'Could not read this Google Maps short link. Please paste full Google Maps URL or coordinates.',
@@ -1669,9 +1684,10 @@ export default function CustomerDashboard() {
         longitude: resolvedLink.longitude,
         preserveSearchAddress
       });
-      void enrichCustomerAddressFromLatLng(section, resolvedLink.latitude, resolvedLink.longitude, { preserveSearchAddress });
+      await enrichCustomerAddressFromLatLng(section, resolvedLink.latitude, resolvedLink.longitude, { preserveSearchAddress });
       return true;
     } catch (error) {
+      if (addressSuggestionSeqRef.current[section] !== reqId) return true;
       setSectionAddressSearchState(section, {
         error: getCustomerSearchUnavailableMessage(error, { forShortLink: isGoogleMapsShortLink(text) }),
         suggestions: [],
@@ -1719,7 +1735,7 @@ export default function CustomerDashboard() {
 
     window.setTimeout(() => {
       const inputRef = section === 'shipping' ? shippingSearchInputRef : billingSearchInputRef;
-      const currentValue = inputRef.current?.value || normalized;
+      const currentValue = inputRef.current ? inputRef.current.value : normalized;
       void resolveCustomerAddressSearchInput(section, currentValue, { preserveSearchAddress: true });
     }, 0);
   };
