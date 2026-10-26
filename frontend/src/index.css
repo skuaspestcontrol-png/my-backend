@@ -5852,9 +5852,10 @@ html[data-branding="true"][data-theme] body :is(button, .btn):is(.secondary-btn,
   border-color: var(--brand-ink) !important;
 }
 html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item.active {
-  background: var(--brand-soft) !important;
+  background: transparent !important;
   color: var(--brand-ink) !important;
-  border-color: var(--color-primary) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item.active svg {
   color: inherit !important;
@@ -5919,7 +5920,7 @@ html[data-branding="true"][data-theme] body .app-layout .main-content [data-bran
 html[data-branding="true"][data-theme] body :is(button, .btn):is(
   [style*="background: var(--surface-card"], [style*="background: var(--surface-secondary)"],
   [style*="background: rgb(255, 255, 255)"], [style*="background: transparent"]
-):where(:not(.topbar button, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
+):where(:not(.topbar button, .sidebar button, .sidebar .btn, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
   [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"],
   [style*="color: rgb(185, 28, 28)"], [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"], [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])) {
   background: var(--brand-soft) !important;
@@ -5930,7 +5931,7 @@ html[data-branding="true"][data-theme] body :is(button, .btn):is(
 html[data-branding="true"][data-theme] body :is(button, .btn):is(
   [style*="background: var(--surface-card"], [style*="background: var(--surface-secondary)"],
   [style*="background: rgb(255, 255, 255)"], [style*="background: transparent"]
-):where(:not(.topbar button, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
+):where(:not(.topbar button, .sidebar button, .sidebar .btn, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
   [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"],
   [style*="color: rgb(185, 28, 28)"], [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"], [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])) :is(span, svg, strong, small) {
   color: inherit !important;
@@ -5953,3 +5954,61 @@ html[data-branding="true"][data-theme] body button:is(
   [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"],
   [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i]
 ) { -webkit-text-fill-color: currentColor !important; }
+
+
+/* Page title bars follow the selected surface theme, independently of branded chrome. */
+html[data-theme] body .app-layout .main-content [data-page-toolbar] {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+html[data-theme] body .app-layout .main-content [data-page-toolbar] :is(h1, h2, h3, h4) {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+html[data-theme] body .app-layout .main-content [data-page-toolbar] :is(p, label > span) {
+  color: var(--text-secondary) !important;
+  -webkit-text-fill-color: var(--text-secondary) !important;
+}
+
+/* Sidebar groups and active links stay flat; text weight/colour marks the current page. */
+html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item,
+html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item:hover {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+/* Box Save/Submit like Cancel on branded form footers, keeping danger actions distinct. */
+html[data-branding="true"][data-theme] body :is(.app-layout, .crm-modal-surface, [role="dialog"])
+  :is(button[type="submit"], input[type="submit"]):where(:not([data-variant="danger"], .btn-danger, .danger-btn, .danger,
+    [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"], [style*="color: rgb(185, 28, 28)"],
+    [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"],
+    [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])),
+html[data-branding="true"][data-theme] body
+  :is(footer, .crm-modal-footer, .crm-modal-surface-footer, .modal-footer, [data-brand-footer])
+  :is(button, .btn, input[type="submit"]):where(:not([data-variant="danger"], .btn-danger, .danger-btn, .danger,
+    [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"], [style*="color: rgb(185, 28, 28)"],
+    [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"],
+    [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])) {
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  -webkit-text-fill-color: var(--brand-ink) !important;
+  border: 1px solid var(--brand-outline) !important;
+  border-radius: var(--radius-md) !important;
+  min-height: 42px;
+  padding: 0 18px;
+}
+html[data-branding="true"][data-theme] body
+  :is(footer, .crm-modal-footer, .crm-modal-surface-footer, .modal-footer, [data-brand-footer])
+  :is(button, .btn) :is(span, svg, strong, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+/* A neutral transparency grid keeps white and dark uploaded logos visible without recolouring them. */
+html[data-theme] body .settings-page .settings-profile-preview {
+  background-color: #757575 !important;
+  background-image: conic-gradient(#858585 25%, #757575 0 50%, #858585 0 75%, #757575 0) !important;
+  background-size: 16px 16px !important;
+}

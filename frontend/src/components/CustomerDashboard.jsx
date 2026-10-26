@@ -2794,7 +2794,7 @@ export default function CustomerDashboard() {
 
   return (
     <section className="crm-page crm-section customer-dashboard-page" style={shell.page}>
-      <div data-brand-header="true" style={topbarStyle}>
+      <div data-page-toolbar="true" style={topbarStyle}>
         <div style={shell.titleWrap}>
           <h1 style={titleStyle}>Active Customers</h1>
         </div>

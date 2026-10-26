@@ -829,7 +829,7 @@ export default function ItemsDashboard() {
 
   return (
     <section className="crm-page crm-section items-dashboard-page" style={{ ...shell.page, gap: 0 }}>
-      <div data-brand-header="true" style={topbarStyle}>
+      <div data-page-toolbar="true" style={topbarStyle}>
         <div style={shell.titleWrap}>
           <div style={shell.titleLine}>
             <h1 style={titleStyle}>All Items</h1>

@@ -1419,7 +1419,7 @@ export default function Settings({ modalMode = false }) {
         }
       >
         <div style={shell.profileRow}>
-          <div style={shell.profilePreview}>
+          <div className="settings-profile-preview" style={shell.profilePreview}>
             {form[fieldKey] ? (
               <img src={form[fieldKey]} alt={title} style={shell.profileImg} />
             ) : null}
@@ -1461,7 +1461,7 @@ export default function Settings({ modalMode = false }) {
           <p style={shell.fieldLabel}>Profile Picture</p>
           <div style={shell.profileCard}>
             <div style={shell.profileRow}>
-              <div style={shell.profilePreview}>
+              <div className="settings-profile-preview" style={shell.profilePreview}>
                 {form.dashboardImageUrl ? (
                   <img src={form.dashboardImageUrl} alt="Profile" style={shell.profileImg} />
                 ) : null}
