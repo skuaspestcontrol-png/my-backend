@@ -378,3 +378,34 @@ html[data-theme="dark"] .service-calendar-modern .service-calendar-month-panel {
     gap: 2px !important;
   }
 }
+
+/* Selected-date services use native disclosure controls; calendar behaviour is unchanged. */
+.service-calendar-modern details.service-calendar-event-card {
+  display: block !important;
+  padding: 0 !important;
+}
+.service-calendar-modern .service-calendar-event-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--calendar-ink);
+}
+.service-calendar-modern .service-calendar-event-summary::-webkit-details-marker { display: none; }
+.service-calendar-modern .service-calendar-event-summary > svg { flex-shrink: 0; transition: transform .15s ease; }
+.service-calendar-modern details[open] > .service-calendar-event-summary > svg { transform: rotate(180deg); }
+.service-calendar-modern .service-calendar-event-summary:hover { background: var(--surface-muted); }
+.service-calendar-modern .service-calendar-event-summary:focus-visible {
+  outline: 2px solid var(--calendar-accent);
+  outline-offset: -3px;
+  border-radius: 8px;
+}
+.service-calendar-modern .service-calendar-event-details {
+  display: grid;
+  gap: 8px;
+  padding: 0 12px 12px;
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileText, Layers, RefreshCw, UserRound } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, Layers, RefreshCw, UserRound } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import './ServiceCalendar.css';
 
@@ -452,10 +452,14 @@ export default function ServiceCalendar() {
               ) : (
                 <div className="service-calendar-event-grid" style={eventGridStyle}>
                   {selectedDayEvents.map((event) => (
-                    <div key={event._id} className="service-calendar-event-card" style={eventCardStyle}>
-                      <div className="service-calendar-event-title" style={shell.eventTitle}>
-                        {event.itemName || 'Service Item'}
-                      </div>
+                    <details key={event._id} className="service-calendar-event-card" style={eventCardStyle}>
+                      <summary className="service-calendar-event-summary">
+                        <span className="service-calendar-event-title" style={shell.eventTitle}>
+                          {event.itemName || 'Service Item'}
+                        </span>
+                        <ChevronDown size={16} aria-hidden="true" />
+                      </summary>
+                      <div className="service-calendar-event-details">
                       <div className="service-calendar-event-row" style={shell.eventRow}>
                         <span className="service-calendar-event-pill" style={shell.eventPill}>
                           <Clock3 size={12} /> {event.serviceTime}
@@ -472,7 +476,8 @@ export default function ServiceCalendar() {
                       <div className="service-calendar-event-meta" style={shell.eventMeta}>
                         {event.itemDescription || 'No item description'}
                       </div>
-                    </div>
+                      </div>
+                    </details>
                   ))}
                 </div>
               )}
