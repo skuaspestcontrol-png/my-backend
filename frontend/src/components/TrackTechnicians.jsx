@@ -1,3 +1,4 @@
+import useAutoRefresh from '../hooks/useAutoRefresh';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import {
@@ -660,11 +661,8 @@ export default function TrackTechnicians() {
     return request;
   };
 
-  useEffect(() => {
-    loadLive();
-    const timer = window.setInterval(loadLive, 30000);
-    return () => window.clearInterval(timer);
-  }, []);
+  useEffect(() => { loadLive(); }, []);
+  useAutoRefresh(loadLive, { intervalMs: 30000, runOnFocus: false });
 
   useEffect(() => {
     if (!selectedTech?.id && !selectedTech?.employeeCode) {

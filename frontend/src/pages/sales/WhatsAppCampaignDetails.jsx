@@ -1,3 +1,4 @@
+import useAutoRefresh from '../../hooks/useAutoRefresh';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link, useParams } from 'react-router-dom';
@@ -24,7 +25,8 @@ export default function WhatsAppCampaignDetails() {
   const load = async () => {
     try { const response = await axios.get(`${API_BASE_URL}/api/whatsapp-marketing/campaigns/${encodeURIComponent(id)}`); setCampaign(response.data); } catch (error) { setMessage(error?.response?.data?.error || 'Could not load campaign.'); }
   };
-  useEffect(() => { load(); const timer = setInterval(load, 5000); return () => clearInterval(timer); }, [id]);
+  useEffect(() => { load(); }, [id]);
+  useAutoRefresh(load, { intervalMs: 5000, runOnFocus: false });
   const action = async (name) => {
     if (name === 'cancel' && !window.confirm('Cancel all pending recipients?')) return;
     if (name === 'retry_failed' && !window.confirm(`Retry ${campaign?.failed || 0} failed recipients?`)) return;

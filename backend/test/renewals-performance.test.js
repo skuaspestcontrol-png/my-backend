@@ -58,10 +58,12 @@ test('parallel renewal reads complete with a single database connection and neve
 function saveDependencies(data = { renewal: { renewalId: 'R1', renewalOutcome: 'WON' } }) {
   const events = [];
   return { events, dependencies: {
-    busy: false, existingLinks: { candidates: [{ key: 'K', invoiceId: 'I', invoiceVersion: 'V', invoiceNumber: 'INV-1', start: '2026-01-01', end: '2026-12-31' }] },
+    busy: false, existingLinks: { candidates: [{ key: 'K', eligible: true, invoiceId: 'I', invoiceVersion: 'V', invoiceNumber: 'INV-1', start: '2026-01-01', end: '2026-12-31' }] },
     form: { wonMode: 'new', existingCandidateKey: 'K', agreementDate: '2026-01-01', contractStartDate: '2026-01-01', contractEndDate: '2026-12-31', amount: 100 },
     modal: { row: { renewalId: 'R1' } }, filters: {}, API_BASE: '',
     window: { confirm: () => true }, formatDate: String, formatINR: String,
+    // Normal eligible-link fixture: the current handler still asks for review metadata.
+    existingReviewRequirements: () => [],
     axios: { post: async () => ({ data }) },
     setBusy: (value) => events.push(['busy', value]), setMessage: (value) => events.push(['message', value]),
     setExistingLinks: () => {}, applySavedRenewal: (row) => events.push(['saved', row]),

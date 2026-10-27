@@ -11987,7 +11987,7 @@ app.get('/api/invoices', async (req, res) => {
   res.json(readJsonFile(invoicesFile, []));
 });
 
-const ensureVendorFinanceTables = async (conn) => {
+const ensureVendorFinanceTables = onceAsync(async (conn) => {
   await conn.query(`
     CREATE TABLE IF NOT EXISTS vendors (
       id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -12092,7 +12092,7 @@ const ensureVendorFinanceTables = async (conn) => {
   await ensureColumnsIfMissing(conn, 'payment_received', [
     { name: 'deposit_to', definition: 'VARCHAR(120) NULL' }
   ]);
-};
+});
 
 const readMysqlPayload = (rawPayload) => parseMysqlJsonPayload(rawPayload) || {};
 

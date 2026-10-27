@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { reuseUnchangedSnapshot, sortContractRows } from '../utils/contractPerformance';
 import { subscribeContractsRefresh, triggerRenewalsRefresh, triggerSalesPerformanceRefresh } from '../pages/sales-performance/salesPerformanceApi';
 import useColumnResize from './table/useColumnResize';
 import SortChevronIcon from './ui/SortChevronIcon';
@@ -40,6 +41,7 @@ import RupeeSymbol from './ui/RupeeSymbol';
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const CONTRACT_PAGE_SIZE = 20;
 const CONTRACTS_DASHBOARD_CACHE_KEY = 'contracts_dashboard_cache_v1';
+const CONTRACT_READ_TIMEOUT_MS = 20000;
 const CONTRACTS_SORT_STORAGE_KEY = 'contracts_sort_direction_v1';
 
 const statusStyles = {
@@ -640,7 +642,10 @@ const mergeContractsDashboardCache = (patch) => {
 export default function ContractDashboard() {
   const navigate = useNavigate();
   const [cachedDashboard] = useState(() => readContractsDashboardCache());
-  const hasCachedDashboard = Boolean(cachedDashboard);
+  const hasCachedDashboard = Array.isArray(cachedDashboard?.invoices)
+    && Array.isArray(cachedDashboard?.customers) && Array.isArray(cachedDashboard?.serviceSchedules);
+  const hasLoadedContractsRef = useRef(hasCachedDashboard);
+  const [reportingDay, setReportingDay] = useState(() => toInputDate(new Date()));
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [contractSort, setContractSort] = useState(() => {
     try {
@@ -678,6 +683,8 @@ export default function ContractDashboard() {
   const [customers, setCustomers] = useState(() => Array.isArray(cachedDashboard?.customers) ? cachedDashboard.customers : []);
   const [serviceSchedules, setServiceSchedules] = useState(() => Array.isArray(cachedDashboard?.serviceSchedules) ? cachedDashboard.serviceSchedules : []);
   const [payments, setPayments] = useState(() => Array.isArray(cachedDashboard?.payments) ? cachedDashboard.payments : []);
+  const snapshotRef = useRef(null);
+  snapshotRef.current = { invoices, customers, serviceSchedules, payments };
   const [loading, setLoading] = useState(() => !cachedDashboard);
   const [loadError, setLoadError] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('');
@@ -707,6 +714,7 @@ export default function ContractDashboard() {
   const customizeButtonRef = useRef(null);
   const customerNameClickTimerRef = useRef(null);
   const contractsLoadPromiseRef = useRef(null);
+  const contractsAbortRef = useRef(null);
   const contractProfitRequestRef = useRef(0);
   const toastTimerRef = useRef(null);
 
@@ -838,19 +846,23 @@ export default function ContractDashboard() {
     });
   };
 
-  const loadLivePayments = async () => {
+  const loadLivePayments = useCallback(async (signal) => {
+    const startedAt = performance.now();
     try {
-      const res = await axios.get(`${API_BASE}/api/payment-received`);
+      const res = await axios.get(`${API_BASE}/api/payment-received`, { timeout: CONTRACT_READ_TIMEOUT_MS, signal });
       return Array.isArray(res.data) ? res.data : [];
     } catch (error) {
+      if (signal?.aborted) return [];
       try {
-        const legacy = await axios.get(`${API_BASE}/api/payments`);
+        const remainingMs = CONTRACT_READ_TIMEOUT_MS - Math.max(0, performance.now() - startedAt);
+        if (remainingMs <= 0) return [];
+        const legacy = await axios.get(`${API_BASE}/api/payments`, { timeout: remainingMs, signal });
         return Array.isArray(legacy.data) ? legacy.data : [];
       } catch (_fallbackError) {
         return [];
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     const onResize = () => setViewportWidth(window.innerWidth);
@@ -858,45 +870,52 @@ export default function ContractDashboard() {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const loadContractsData = async (options = {}) => {
-    if (contractsLoadPromiseRef.current) return contractsLoadPromiseRef.current;
+  const loadContractsData = useCallback(async (options = {}) => {
+    if (contractsLoadPromiseRef.current && !contractsAbortRef.current?.signal.aborted) return contractsLoadPromiseRef.current;
+    const controller = new AbortController();
+    contractsAbortRef.current = controller;
     const request = (async () => {
       if (!options.silent) setLoading(true);
       setLoadError('');
       try {
         const [invoiceRes, customerRes, schedulesRes, paymentsRes] = await Promise.all([
-          axios.get(`${API_BASE}/api/invoices`),
-          axios.get(`${API_BASE}/api/customers`),
-          axios.get(`${API_BASE}/api/service-schedules`),
-          loadLivePayments()
+          axios.get(`${API_BASE}/api/invoices`, { timeout: CONTRACT_READ_TIMEOUT_MS, signal: controller.signal }),
+          axios.get(`${API_BASE}/api/customers`, { timeout: CONTRACT_READ_TIMEOUT_MS, signal: controller.signal }),
+          axios.get(`${API_BASE}/api/service-schedules`, { timeout: CONTRACT_READ_TIMEOUT_MS, signal: controller.signal }),
+          loadLivePayments(controller.signal)
         ]);
 
+        if (controller.signal.aborted) return;
+        if (![invoiceRes, customerRes, schedulesRes].every((response) => Array.isArray(response?.data))) {
+          throw new Error('Invalid contracts snapshot response.');
+        }
         const nextInvoices = Array.isArray(invoiceRes.data) ? invoiceRes.data : [];
         const nextCustomers = Array.isArray(customerRes.data) ? customerRes.data : [];
         const nextSchedules = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
         const nextPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
-        setInvoices(nextInvoices);
-        setCustomers(nextCustomers);
-        setServiceSchedules(nextSchedules);
-        setPayments(nextPayments);
-        mergeContractsDashboardCache({
-          invoices: nextInvoices,
-          customers: nextCustomers,
-          serviceSchedules: nextSchedules,
-          payments: nextPayments,
-          visibleColumns
+        hasLoadedContractsRef.current = true;
+        setReportingDay(toInputDate(new Date()));
+        const { snapshot, changed } = reuseUnchangedSnapshot(snapshotRef.current, {
+          invoices: nextInvoices, customers: nextCustomers, serviceSchedules: nextSchedules, payments: nextPayments
         });
-      } catch (error) {
-        console.error('Failed to load contracts dashboard data', error);
-        if (!options.silent) {
-          setLoadError('Unable to fetch contracts right now. Please refresh once.');
-          setInvoices([]);
-          setCustomers([]);
-          setServiceSchedules([]);
-          setPayments([]);
+        if (changed) {
+          snapshotRef.current = snapshot;
+          setInvoices(snapshot.invoices);
+          setCustomers(snapshot.customers);
+          setServiceSchedules(snapshot.serviceSchedules);
+          setPayments(snapshot.payments);
+          mergeContractsDashboardCache({ ...snapshot, visibleColumns });
         }
-      } finally {
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        controller.abort(); // Cancel sibling reads after a failed snapshot.
         if (!options.silent) setLoading(false);
+        console.error('Failed to load contracts dashboard data', error);
+        setLoadError(hasLoadedContractsRef.current
+          ? 'Contracts could not refresh. Showing previously loaded records.'
+          : 'Unable to fetch contracts right now. Please retry.');
+      } finally {
+        if (!options.silent && contractsAbortRef.current === controller && !controller.signal.aborted) setLoading(false);
       }
     })();
     contractsLoadPromiseRef.current = request;
@@ -907,7 +926,7 @@ export default function ContractDashboard() {
         contractsLoadPromiseRef.current = null;
       }
     }
-  };
+  }, [loadLivePayments, visibleColumns]);
 
   const loadCustomerProfitSummary = async (row) => {
     const customerId = String(row?.customerId || '').trim();
@@ -940,6 +959,7 @@ export default function ContractDashboard() {
 
   useEffect(() => {
     loadContractsData({ silent: hasCachedDashboard });
+    return () => contractsAbortRef.current?.abort();
   }, [hasCachedDashboard]);
 
   useEffect(() => () => {
@@ -1076,7 +1096,7 @@ export default function ContractDashboard() {
     });
 
     return { byInvoiceId, byInvoiceNumber };
-  }, [serviceSchedules]);
+  }, [serviceSchedules, reportingDay]);
 
   const resolveInvoiceBalanceDue = (invoice, total = Number(invoice?.total ?? invoice?.amount ?? 0)) => {
     const normalizedStatus = String(invoice?.status || '').trim().toUpperCase();
@@ -1175,7 +1195,7 @@ export default function ContractDashboard() {
         due
       };
     });
-  }, [customerIndex.byId, customerIndex.byName, invoices, scheduleIndex.byInvoiceId, scheduleIndex.byInvoiceNumber]);
+  }, [customerIndex.byId, customerIndex.byName, invoices, scheduleIndex.byInvoiceId, scheduleIndex.byInvoiceNumber, reportingDay]);
 
   useEffect(() => {
     if (!selectedContractId && allContracts.length > 0) {
@@ -1226,50 +1246,10 @@ export default function ContractDashboard() {
     });
   }, [allContracts, filters, quickFilter]);
 
-  const sortedContracts = useMemo(() => {
-    const statusOrder = { Active: 0, Upcoming: 1, 'Expiring Soon': 2, Expired: 3, Renewed: 4, Draft: 5, Proforma: 6, Cancelled: 7, Void: 8 };
-    const list = [...filteredContracts];
-    list.sort((leftRow, rightRow) => {
-      const leftValue = (() => {
-        switch (contractSort.key) {
-          case 'contractNo': return String(leftRow.contractNo || '');
-          case 'customer': return String(leftRow.customer || '');
-          case 'property': return String(leftRow.property || '');
-          case 'duration': return parseDateOnly(leftRow.endDate)?.getTime() || 0;
-          case 'type': return parseDateOnly(leftRow.invoiceDate)?.getTime() || 0;
-          case 'services': return Number(leftRow.services || 0);
-          case 'status': return Number(statusOrder[leftRow.status] ?? 99);
-          case 'total': return Number(leftRow.total || 0);
-          case 'paid': return Number(leftRow.paid || 0);
-          case 'due': return Number(leftRow.due || 0);
-          default: return String(leftRow[contractSort.key] || '');
-        }
-      })();
-      const rightValue = (() => {
-        switch (contractSort.key) {
-          case 'contractNo': return String(rightRow.contractNo || '');
-          case 'customer': return String(rightRow.customer || '');
-          case 'property': return String(rightRow.property || '');
-          case 'duration': return parseDateOnly(rightRow.endDate)?.getTime() || 0;
-          case 'type': return parseDateOnly(rightRow.invoiceDate)?.getTime() || 0;
-          case 'services': return Number(rightRow.services || 0);
-          case 'status': return Number(statusOrder[rightRow.status] ?? 99);
-          case 'total': return Number(rightRow.total || 0);
-          case 'paid': return Number(rightRow.paid || 0);
-          case 'due': return Number(rightRow.due || 0);
-          default: return String(rightRow[contractSort.key] || '');
-        }
-      })();
-
-      if (typeof leftValue === 'number' && typeof rightValue === 'number') {
-        return contractSort.direction === 'asc' ? leftValue - rightValue : rightValue - leftValue;
-      }
-
-      const comparison = String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
-      return contractSort.direction === 'asc' ? comparison : -comparison;
-    });
-    return list;
-  }, [filteredContracts, contractSort]);
+  const sortedContracts = useMemo(
+    () => sortContractRows(filteredContracts, contractSort, parseDateOnly),
+    [filteredContracts, contractSort]
+  );
   const totalPages = Math.max(1, Math.ceil(sortedContracts.length / CONTRACT_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paginatedContracts = useMemo(() => {
@@ -1714,11 +1694,11 @@ export default function ContractDashboard() {
   };
 
   const renderBody = () => {
-    if (loading) {
+    if (loading && !hasLoadedContractsRef.current) {
       return <div style={shell.loading}>Loading contracts...</div>;
     }
-    if (loadError) {
-      return <div style={shell.empty}>{loadError}</div>;
+    if (loadError && !hasLoadedContractsRef.current) {
+      return <div style={shell.empty} role="alert">{loadError} <button type="button" style={shell.pageBtn} onClick={() => loadContractsData()}>Retry</button></div>;
     }
     if (sortedContracts.length === 0) {
       return <div style={shell.empty}>No contracts match your current filters.</div>;
@@ -1918,7 +1898,7 @@ export default function ContractDashboard() {
                   ...(isMobile ? { fontSize: card.compact ? '16px' : '18px' } : {})
                 }}
               >
-                {card.value}
+                {hasLoadedContractsRef.current ? card.value : '—'}
               </p>
             </div>
           ))}
@@ -2083,6 +2063,12 @@ export default function ContractDashboard() {
           </div>
         </div>
 
+        {loadError && hasLoadedContractsRef.current ? (
+          <div role="alert" style={{ padding: '10px 14px', color: 'var(--text-primary)', fontSize: '12px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            {loadError} <button type="button" style={shell.pageBtn} onClick={() => loadContractsData()}>Retry</button>
+          </div>
+        ) : null}
+        {loading && hasLoadedContractsRef.current ? <div role="status" style={shell.loading}>Refreshing contracts...</div> : null}
         <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped">{renderBody()}</div>
 
         <div style={footerStyle}>

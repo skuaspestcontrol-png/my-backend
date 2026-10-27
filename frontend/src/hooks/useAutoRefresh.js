@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
+import { shouldAutoRefresh } from './autoRefreshPolicy';
 
 export default function useAutoRefresh(callback, options = {}) {
   const {
     enabled = true,
     intervalMs = 60000,
     runOnFocus = true,
-    runOnVisible = true
+    runOnVisible = true,
+    minGapMs = 1000
   } = options;
   const callbackRef = useRef(callback);
   const runningRef = useRef(false);
+  const lastStartedRef = useRef(null);
 
   useEffect(() => {
     callbackRef.current = callback;
@@ -18,7 +21,9 @@ export default function useAutoRefresh(callback, options = {}) {
     if (!enabled) return undefined;
 
     const run = async () => {
-      if (runningRef.current) return;
+      const now = Date.now();
+      if (!shouldAutoRefresh({ visibilityState: document.visibilityState, running: runningRef.current, lastStartedAt: lastStartedRef.current, now, minGapMs })) return;
+      lastStartedRef.current = now;
       runningRef.current = true;
       try {
         await callbackRef.current?.();
@@ -43,5 +48,5 @@ export default function useAutoRefresh(callback, options = {}) {
       if (runOnFocus) window.removeEventListener('focus', onFocus);
       if (runOnVisible) document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [enabled, intervalMs, runOnFocus, runOnVisible]);
+  }, [enabled, intervalMs, runOnFocus, runOnVisible, minGapMs]);
 }

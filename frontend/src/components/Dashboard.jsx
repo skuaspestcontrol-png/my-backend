@@ -1,3 +1,4 @@
+import { shouldAutoRefresh } from '../hooks/autoRefreshPolicy';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ArrowUpRight, Users, ContactRound, BriefcaseBusiness, Receipt, Target, CircleCheck, Clock3, TrendingUp, Wallet, CalendarDays } from 'lucide-react';
@@ -234,10 +235,17 @@ export default function Dashboard() {
 
     loadDashboardRef.current = load;
     load();
-    const timer = window.setInterval(load, 15000);
-    const onFocus = () => load();
+    let lastPassiveRefresh = Date.now();
+    const passiveRefresh = () => {
+      const now = Date.now();
+      if (!shouldAutoRefresh({ visibilityState: document.visibilityState, running: dashboardLoadingRef.current, lastStartedAt: lastPassiveRefresh, now })) return;
+      lastPassiveRefresh = now;
+      load();
+    };
+    const timer = window.setInterval(passiveRefresh, 15000);
+    const onFocus = passiveRefresh;
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') load();
+      if (document.visibilityState === 'visible') passiveRefresh();
     };
 
     window.addEventListener('focus', onFocus);

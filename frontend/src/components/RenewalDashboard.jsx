@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { groupRenewalCandidates } from '../utils/renewalCandidateGroups';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
@@ -460,6 +461,7 @@ export default function RenewalDashboard() {
   const [modal, setModal] = useState({ type: '', row: null });
   const [form, setForm] = useState({});
   const [existingLinks, setExistingLinks] = useState({ loading: false, error: '', candidates: [], search: '' });
+  const [existingInvoiceId, setExistingInvoiceId] = useState('');
   const [existingLinksReload, setExistingLinksReload] = useState(0);
   const [toastMessage, setToastMessage] = useState('');
   const [pdfPreview, setPdfPreview] = useState({ open: false, title: '', pdfUrl: '', downloadFileName: '', publicShareUrl: '', renewalId: '', shareContext: null });
@@ -1081,6 +1083,7 @@ export default function RenewalDashboard() {
     const previousAmount = row?.previousContractAmount || row?.previousAmount || row?.contractAmount || row?.proposedAmount || '';
     const startDate = agreementDate;
     setModal({ type, row });
+    setExistingInvoiceId('');
     setExistingLinks({ loading: false, error: '', candidates: [], search: '' });
     setForm({
       wonMode: 'existing',
@@ -1882,7 +1885,11 @@ export default function RenewalDashboard() {
     const row = modal.row;
     const displayRenewalId = row.renewalDisplayId || row.renewal_display_id || row.renewalId || row.renewal_id || '';
     const selectedExisting = existingLinks.candidates.find((item) => item.key === form.existingCandidateKey);
-    const matchingExisting = existingLinks.candidates.filter((item) => `${item.invoiceNumber} ${item.customerName} ${item.serviceType} ${item.premiseLabel} ${item.start} ${item.end} ${item.contractStatusLabel || ''}`.toLowerCase().includes(existingLinks.search.toLowerCase()) || item.key === form.existingCandidateKey);
+    const existingInvoiceGroups = groupRenewalCandidates(existingLinks.candidates, {
+      search: existingLinks.search, selectedKey: form.existingCandidateKey, selectedInvoiceId: existingInvoiceId
+    });
+    const selectedInvoiceId = String(selectedExisting?.invoiceId || existingInvoiceId || '');
+    const selectedInvoiceGroup = existingInvoiceGroups.find((group) => group.id === selectedInvoiceId);
     const titleMap = {
       view: 'Renewal Details',
       edit: 'Edit Renewal',
@@ -2023,7 +2030,7 @@ export default function RenewalDashboard() {
             {modal.type === 'convert' && (
               <>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button type="button" style={form.wonMode === 'existing' ? shell.primaryBtn : shell.ghostBtn} disabled={busy} onClick={() => setForm((prev) => ({ ...prev, wonMode: 'existing', existingCandidateKey: '', agreementDate: '' }))}>Already renewed — Link existing records</button>
+                  <button type="button" style={form.wonMode === 'existing' ? shell.primaryBtn : shell.ghostBtn} disabled={busy} onClick={() => { setExistingInvoiceId(''); setForm((prev) => ({ ...prev, wonMode: 'existing', existingCandidateKey: '', agreementDate: '' })); }}>Already renewed — Link existing records</button>
                   {!form.correctExistingLink ? <button type="button" style={form.wonMode === 'new' ? shell.primaryBtn : shell.ghostBtn} disabled={busy} onClick={() => setForm((prev) => ({ ...prev, wonMode: 'new', agreementDate: todayInput() }))}>New renewal — Create contract</button> : null}
                 </div>
                 {form.wonMode === 'existing' ? (
@@ -2032,15 +2039,33 @@ export default function RenewalDashboard() {
                     <span>Previous contract: {row.invoiceNumber || row.contractId} · {formatDate(row.previousContractStart)} – {formatDate(row.previousContractEnd)}</span>
                     <p style={{ margin: 0 }}>Select the renewed contract / invoice that already exists. Saving marks this renewal Won without creating another contract or invoice.</p>
                     <label style={shell.field}><span style={shell.label}>Search existing invoices — Active & Expired</span><input style={shell.input} value={existingLinks.search} onChange={(event) => setExistingLinks((prev) => ({ ...prev, search: event.target.value }))} placeholder="Invoice number, service, premises or period" /></label>
-                    <button type="button" style={shell.ghostBtn} disabled={existingLinks.loading || busy} onClick={() => { setForm((prev) => ({ ...prev, existingCandidateKey: '', agreementDate: '' })); setExistingLinksReload((prev) => prev + 1); }}>Refresh records</button>
+                    <button type="button" style={shell.ghostBtn} disabled={existingLinks.loading || busy} onClick={() => { setExistingInvoiceId(''); setForm((prev) => ({ ...prev, existingCandidateKey: '', agreementDate: '' })); setExistingLinksReload((prev) => prev + 1); }}>Refresh records</button>
                     {existingLinks.loading ? <span>Loading customer invoice history…</span> : null}
                     {existingLinks.error ? <p role="alert" style={{ color: 'var(--color-danger)', margin: 0 }}>{existingLinks.error}</p> : null}
                     {!existingLinks.loading && !existingLinks.error && existingLinks.candidates.length === 0 ? <p>No invoice records were found for this customer. Refresh records to check again.</p> : null}
-                    {!existingLinks.loading && !existingLinks.error && existingLinks.candidates.length > 0 && matchingExisting.length === 0 ? <p role="status">No invoice numbers match this search. Try the complete invoice number or clear the search to see all active and expired records.</p> : null}
-                    <label style={shell.field}><span style={shell.label}>Existing contract / invoice</span><select style={shell.input} value={form.existingCandidateKey || ''} disabled={existingLinks.loading || busy} onChange={(event) => { const candidate = existingLinks.candidates.find((item) => item.key === event.target.value); setForm((prev) => ({ ...prev, existingCandidateKey: event.target.value, agreementDate: candidate?.agreementDate || '', note: '', reviewPremises: false, reviewPeriod: false, reviewService: false, reviewClassification: false })); }}>
-                      <option value="">Select a record</option>
-                      {matchingExisting.map((item) => <option key={item.key} value={item.key}>{item.invoiceNumber} · {item.contractStatusLabel || 'Contract'} · {item.serviceType} · {formatDate(item.start)} – {formatDate(item.end)} · {formatOptionalINR(item.amount)}{item.reviewAllowed ? ' · Consent required' : item.eligible === false ? ' · Correction required' : ''}</option>)}
-                    </select></label>
+                    {!existingLinks.loading && !existingLinks.error && existingLinks.candidates.length > 0 && existingInvoiceGroups.length === 0 ? <p role="status">No invoice numbers match this search. Try the complete invoice number or clear the search to see all active and expired records.</p> : null}
+                    <label style={shell.field}>
+                      <span style={shell.label}>Existing contract / invoice</span>
+                      <select aria-label="Existing contract / invoice" style={shell.input} value={selectedInvoiceId} disabled={existingLinks.loading || busy} onChange={(event) => {
+                        const group = existingInvoiceGroups.find((item) => item.id === event.target.value);
+                        const candidate = group?.candidates.length === 1 ? group.candidates[0] : null;
+                        setExistingInvoiceId(event.target.value);
+                        setForm((prev) => ({ ...prev, existingCandidateKey: candidate?.key || '', agreementDate: candidate?.agreementDate || '', note: '', reviewPremises: false, reviewPeriod: false, reviewService: false, reviewClassification: false }));
+                      }}>
+                        <option value="">Select a contract / invoice</option>
+                        {existingInvoiceGroups.map((group) => <option key={group.id} value={group.id}>{group.invoiceNumber}{group.recordSuffix} · {group.statusLabel} · {group.candidates.length} service/period option{group.candidates.length === 1 ? '' : 's'}</option>)}
+                      </select>
+                    </label>
+                    {selectedInvoiceGroup?.candidates.length > 1 ? (
+                      <label style={shell.field}>
+                        <span style={shell.label}>Service / period to link</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>This invoice has separate service/period options. Choose the one to link; the amount below is allocated to that option.</span>
+                        <select aria-label="Service / period to link" style={shell.input} value={form.existingCandidateKey || ''} disabled={existingLinks.loading || busy} onChange={(event) => { const candidate = existingLinks.candidates.find((item) => item.key === event.target.value); setForm((prev) => ({ ...prev, existingCandidateKey: event.target.value, agreementDate: candidate?.agreementDate || '', note: '', reviewPremises: false, reviewPeriod: false, reviewService: false, reviewClassification: false })); }}>
+                          <option value="">Select a service / period</option>
+                          {selectedInvoiceGroup.candidates.map((item) => <option key={item.key} value={item.key}>{item.serviceType} · {item.contractStatusLabel || 'Contract'} · {formatDate(item.start)} – {formatDate(item.end)} · {formatOptionalINR(item.amount)}{item.reviewAllowed ? ' · Consent required' : item.eligible === false ? ' · Correction required' : ''}</option>)}
+                        </select>
+                      </label>
+                    ) : null}
                     {selectedExisting ? <div style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 8, display: 'grid', gap: 6 }}>
                       <strong>{selectedExisting.invoiceNumber} · {selectedExisting.contractStatusLabel || 'Contract'}</strong>
                       <span>{selectedExisting.customerName}</span>

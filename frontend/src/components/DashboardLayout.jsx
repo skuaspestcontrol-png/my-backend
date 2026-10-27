@@ -345,6 +345,7 @@ export default function DashboardLayout({ children }) {
       fetchLeadNotifications({ silent: Boolean(cachedNotificationData) });
     }, 2200);
     const interval = window.setInterval(() => {
+      if (document.visibilityState === 'hidden') return;
       fetchLeadNotifications({ silent: true });
     }, 60000);
     return () => {
