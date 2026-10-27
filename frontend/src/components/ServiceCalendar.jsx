@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, FileText, RefreshCw, UserRound } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileText, Layers, RefreshCw, UserRound } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import './ServiceCalendar.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -322,26 +323,27 @@ export default function ServiceCalendar() {
       };
 
   const summaryItems = [
-    { label: 'Completed Services', value: summary.completed, tone: '#16a34a' },
-    { label: 'Pending Services', value: summary.pending, tone: '#f59e0b' },
-    { label: 'Upcoming Services', value: summary.upcoming, tone: '#2563eb' },
-    { label: 'Total Number of Services', value: summary.total, tone: 'var(--color-primary)' }
+    { label: 'Completed Services', value: summary.completed, tone: '#16a34a', icon: CheckCircle2, kind: 'completed' },
+    { label: 'Pending Services', value: summary.pending, tone: '#f59e0b', icon: Clock3, kind: 'pending' },
+    { label: 'Upcoming Services', value: summary.upcoming, tone: '#2563eb', icon: CalendarDays, kind: 'upcoming' },
+    { label: 'Total Number of Services', value: summary.total, tone: 'var(--color-primary)', icon: Layers, kind: 'total' }
   ];
 
   return (
-    <section className="service-calendar-page" style={shell.page}>
+    <section className="service-calendar-page service-calendar-modern" style={shell.page}>
       <div className="service-calendar-card" style={shell.card}>
         <div className="service-calendar-head" style={shell.head}>
-          <div>
-            <div style={shell.titleWrap}>
-              <CalendarDays size={20} color="var(--color-primary-dark)" />
+          <div className="service-calendar-title" style={shell.titleWrap}>
+            <span className="service-calendar-title-icon"><CalendarDays size={28} /></span>
+            <div>
               <h1 style={shell.title}>Service Calendar</h1>
+              <p style={shell.subtitle}>
+                Calendar view of scheduled services synced from invoice service plans.
+              </p>
             </div>
-            <p style={shell.subtitle}>
-              Calendar view of scheduled services synced from invoice service plans.
-            </p>
           </div>
-          <div style={shell.controls}>
+          <div className="service-calendar-controls" style={shell.controls}>
+            <div className="service-calendar-month-controls">
             <button
               type="button"
               style={controlBtnStyle}
@@ -356,7 +358,7 @@ export default function ServiceCalendar() {
             >
               <ChevronLeft size={16} />
             </button>
-            <div style={shell.monthText}>{monthLabel(currentMonth)}</div>
+            <div className="service-calendar-month-label" style={shell.monthText}>{monthLabel(currentMonth)}</div>
             <button
               type="button"
               style={controlBtnStyle}
@@ -371,7 +373,8 @@ export default function ServiceCalendar() {
             >
               <ChevronRight size={16} />
             </button>
-            <button type="button" style={refreshBtnStyle} onClick={loadSchedules}>
+            </div>
+            <button className="service-calendar-refresh" type="button" style={refreshBtnStyle} onClick={loadSchedules}>
               <RefreshCw size={14} />
               {loading ? 'Loading...' : 'Refresh'}
             </button>
@@ -383,17 +386,22 @@ export default function ServiceCalendar() {
 
           <div className="service-calendar-summary-grid" style={summaryGridStyle}>
             {summaryItems.map((item) => (
-              <div key={item.label} className="service-calendar-summary-card" style={summaryCardStyle}>
+              <div key={item.label} className={`service-calendar-summary-card service-calendar-summary-${item.kind}`} style={summaryCardStyle}>
+                <span className="service-calendar-summary-icon"><item.icon size={26} /></span>
+                <div className="service-calendar-summary-copy">
                 <div className="service-calendar-summary-label" style={{ fontSize: isMobile ? '9px' : '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.15 }}>
                   {item.label}
                 </div>
                 <div className="service-calendar-summary-value" style={{ fontSize: isMobile ? '20px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
                   {item.value}
                 </div>
+                </div>
               </div>
             ))}
           </div>
 
+          <div className="service-calendar-workspace">
+          <div className="service-calendar-month-panel">
           <div className="service-calendar-week-row" style={shell.weekRow}>
             {weekDays.map((day) => (
               <div key={day} className="service-calendar-week-cell" style={shell.weekCell}>{day}</div>
@@ -413,12 +421,14 @@ export default function ServiceCalendar() {
                     ...(cell.inCurrentMonth ? null : shell.dayBtnMuted),
                     ...(isSelected ? shell.dayBtnSelected : null)
                   }}
+                  aria-label={`${displayDate(cell.dateKey)}, ${cell.events.length} service${cell.events.length === 1 ? '' : 's'}`}
+                  aria-pressed={isSelected}
                   onClick={() => setSelectedDate(cell.dateKey)}
                 >
                   <span className="service-calendar-day-number" style={dayNumberStyle}>{cell.date.getDate()}</span>
                   {cell.events.length > 0 ? (
                     <span className="service-calendar-day-badge" style={dayBadgeStyle} title={`${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}>
-                      {isMobile ? `${cell.events.length} svc` : `${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}
+                      <span>{cell.events.length}</span><span className="service-calendar-count-unit">{isMobile ? ' svc' : ` service${cell.events.length > 1 ? 's' : ''}`}</span>
                     </span>
                   ) : null}
                 </button>
@@ -426,11 +436,19 @@ export default function ServiceCalendar() {
             })}
           </div>
 
+          </div>
           <div className="service-calendar-selected-card" style={shell.selectedCard}>
             <div className="service-calendar-selected-head" style={shell.selectedHead}>Services on {displayDate(selectedDate)}</div>
             <div className="service-calendar-selected-body" style={shell.selectedBody}>
+              <div className="service-calendar-date-banner">
+                <span className="service-calendar-title-icon"><CalendarDays size={26} /></span>
+                <div>
+                  <strong>{parseDateOnly(selectedDate)?.getDate()}</strong>
+                  <p>{parseDateOnly(selectedDate)?.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', year: 'numeric' })}</p>
+                </div>
+              </div>
               {selectedDayEvents.length === 0 ? (
-                <div className="service-calendar-empty" style={shell.empty}>No services scheduled for this date.</div>
+                <div className="service-calendar-empty" style={shell.empty}><span className="service-calendar-empty-icon"><CalendarDays size={44} /></span><span>No services scheduled for this date.</span></div>
               ) : (
                 <div className="service-calendar-event-grid" style={eventGridStyle}>
                   {selectedDayEvents.map((event) => (
@@ -459,6 +477,7 @@ export default function ServiceCalendar() {
                 </div>
               )}
             </div>
+          </div>
           </div>
         </div>
       </div>
