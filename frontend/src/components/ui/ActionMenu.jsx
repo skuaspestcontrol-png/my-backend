@@ -136,6 +136,7 @@ export default function ActionMenu({ items = [], triggerLabel = 'Action', trigge
       </button>
       {open && menuPosition ? createPortal(
         <div
+          className="crm-action-menu-panel"
           data-action-menu="true"
           style={{
             position: 'fixed',

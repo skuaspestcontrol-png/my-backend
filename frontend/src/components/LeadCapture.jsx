@@ -2565,11 +2565,11 @@ export default function LeadCapture() {
                 <MoreHorizontal size={14} />
               </button>
               {showMoreMenu ? (
-                <div ref={moreMenuRef} style={s.menu}>
+                <div ref={moreMenuRef} className="crm-action-menu-panel" style={s.menu}>
                   <button type="button" style={s.menuButton} onClick={openEditSelectedLead}>
                     Edit Lead
                   </button>
-                  <button type="button" style={s.menuButton} onClick={deleteSelectedLeads}>
+                  <button type="button" data-danger="true" style={s.menuButton} onClick={deleteSelectedLeads}>
                     Delete
                   </button>
                   <button type="button" style={s.menuButton} onClick={exportData}>
@@ -2841,6 +2841,7 @@ export default function LeadCapture() {
                               <button
                                 type="button"
                                 className="crm-action-menu-item"
+                                data-danger="true"
                                 style={{ ...s.rowActionMenuBtn, color: '#dc2626' }}
                                 onClick={() => {
                                   deleteLead(lead._id);

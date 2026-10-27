@@ -853,7 +853,7 @@ export default function ItemsDashboard() {
               <MoreHorizontal size={14} />
             </button>
             {showMoreMenu ? (
-              <div ref={moreMenuRef} style={shell.menu}>
+              <div ref={moreMenuRef} className="crm-action-menu-panel" style={shell.menu}>
                 <button type="button" style={shell.menuButton} onClick={loadItems}>Refresh Items</button>
                 <button
                   type="button"
@@ -862,7 +862,7 @@ export default function ItemsDashboard() {
                 >
                   Edit Selected
                 </button>
-                <button type="button" style={shell.menuButton} onClick={deleteSelected}>
+                <button type="button" data-danger="true" style={shell.menuButton} onClick={deleteSelected}>
                   Delete Selected ({selectedIds.length})
                 </button>
               </div>

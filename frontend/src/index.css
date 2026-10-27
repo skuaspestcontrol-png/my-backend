@@ -5922,7 +5922,7 @@ html[data-branding="true"][data-theme] body .app-layout .main-content [data-bran
 html[data-branding="true"][data-theme] body :is(button, .btn):is(
   [style*="background: var(--surface-card"], [style*="background: var(--surface-secondary)"],
   [style*="background: rgb(255, 255, 255)"], [style*="background: transparent"]
-):where(:not(.topbar button, .sidebar button, .sidebar .btn, thead button, thead .btn, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
+):where(:not(.crm-action-menu-item, .crm-action-menu-panel > button, [data-action-menu="true"] > button, .topbar button, .sidebar button, .sidebar .btn, thead button, thead .btn, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
   [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"],
   [style*="color: rgb(185, 28, 28)"], [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"], [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])) {
   background: var(--brand-soft) !important;
@@ -5933,7 +5933,7 @@ html[data-branding="true"][data-theme] body :is(button, .btn):is(
 html[data-branding="true"][data-theme] body :is(button, .btn):is(
   [style*="background: var(--surface-card"], [style*="background: var(--surface-secondary)"],
   [style*="background: rgb(255, 255, 255)"], [style*="background: transparent"]
-):where(:not(.topbar button, .sidebar button, .sidebar .btn, thead button, thead .btn, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
+):where(:not(.crm-action-menu-item, .crm-action-menu-panel > button, [data-action-menu="true"] > button, .topbar button, .sidebar button, .sidebar .btn, thead button, thead .btn, [data-variant="danger"], .btn-danger, .danger-btn, .danger,
   [style*="color: var(--color-danger)"], [style*="color: rgb(220, 38, 38)"],
   [style*="color: rgb(185, 28, 28)"], [style*="color: rgb(239, 68, 68)"], [style*="color: rgb(153, 27, 27)"], [style*="#b91c1c" i], [style*="#dc2626" i], [style*="#ef4444" i], [style*="#991b1b" i])) :is(span, svg, strong, small) {
   color: inherit !important;
@@ -6056,4 +6056,76 @@ html[data-theme] body .login-page footer.login-footer {
   background: transparent !important;
   color: var(--login-muted) !important;
   -webkit-text-fill-color: var(--login-muted) !important;
+}
+
+/* Shared action menus: plain surface at rest, brand highlight only on interaction.
+   Menus may be portalled to body, so these rules do not depend on page ancestors. */
+html[data-theme] body :is(.crm-action-menu-panel, [data-action-menu="true"]) {
+  --menu-danger-ink: #b91c1c;
+  --menu-danger-highlight: rgba(220, 38, 38, 0.10);
+  background: var(--surface-card-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-soft) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14) !important;
+}
+html[data-theme] body :is(.crm-action-menu-panel, [data-action-menu="true"]) > :is(button, .crm-action-menu-item) {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: currentColor !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+html[data-theme] body :is(.crm-action-menu-panel, [data-action-menu="true"]) > :is(button, .crm-action-menu-item):is(:hover, :focus-visible, :active, [aria-selected="true"], [aria-current="page"]):not(:disabled) {
+  background: var(--brand-soft, var(--selected-bg)) !important;
+  color: var(--brand-ink, var(--text-primary)) !important;
+}
+html[data-theme] body :is(.crm-action-menu-panel, [data-action-menu="true"]) > :is(button, .crm-action-menu-item):focus-visible {
+  outline: 2px solid var(--brand-ink, var(--text-primary)) !important;
+  outline-offset: -2px;
+}
+html[data-theme] body :is(.crm-action-menu-panel, [data-action-menu="true"]) > :is(button, .crm-action-menu-item)[data-danger="true"] {
+  color: var(--menu-danger-ink) !important;
+}
+html[data-theme] body :is(.crm-action-menu-panel, [data-action-menu="true"]) > :is(button, .crm-action-menu-item)[data-danger="true"]:is(:hover, :focus-visible, :active):not(:disabled) {
+  background: var(--menu-danger-highlight) !important;
+  color: var(--menu-danger-ink) !important;
+}
+html[data-theme] body :is(.crm-action-menu-panel, [data-action-menu="true"]) > :is(button, .crm-action-menu-item):disabled {
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  cursor: not-allowed;
+}
+html[data-theme] body :is(.crm-action-menu-panel, [data-action-menu="true"]) > :is(button, .crm-action-menu-item) :is(span, svg, strong, small) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html[data-theme="dark"] body :is(.crm-action-menu-panel, [data-action-menu="true"]) {
+  --menu-danger-ink: #fca5a5;
+  --menu-danger-highlight: rgba(248, 113, 113, 0.14);
+  box-shadow: 0 16px 36px rgba(2, 6, 23, 0.40) !important;
+}
+/* Keep the current-page highlight; show the brand tint on other labels on hover/focus. */
+html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item:not(.active):is(:hover, :focus-visible) {
+  background: var(--brand-soft) !important;
+  color: var(--brand-ink) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item:not(.active):is(:hover, :focus-visible) :is(span, svg) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item:focus-visible {
+  outline: 2px solid var(--brand-ink) !important;
+  outline-offset: -2px;
+}
+
+html[data-theme="dark"] body :is(.crm-action-menu-panel, [data-action-menu="true"]) > :is(button, .crm-action-menu-item):is(:hover, :focus-visible, :active, [aria-selected="true"], [aria-current="page"]):not(:disabled):not([data-danger="true"]) {
+  color: var(--text-primary) !important;
+}
+html[data-branding="true"][data-theme="dark"] body .sidebar .sidebar-nav-item:not(.active):is(:hover, :focus-visible) {
+  color: var(--text-primary) !important;
 }

@@ -2894,6 +2894,7 @@ export default function CustomerDashboard() {
           {showMoreMenu && moreMenuPosition ? (
             <div
               ref={moreMenuRef}
+              className="crm-action-menu-panel"
               style={{
                 ...shell.menu,
                 left: `${moreMenuPosition.left}px`,
@@ -2902,6 +2903,7 @@ export default function CustomerDashboard() {
             >
                 <button
                   type="button"
+                  data-danger="true"
                   style={getMoreMenuButtonStyle('delete-selected')}
                   onMouseEnter={() => setHoveredMoreMenuItem('delete-selected')}
                   onMouseLeave={() => setHoveredMoreMenuItem('')}

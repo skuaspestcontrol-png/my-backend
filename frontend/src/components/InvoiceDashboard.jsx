@@ -4102,7 +4102,7 @@ export default function InvoiceDashboard() {
       </div>
 
       {showMoreMenu ? (
-        <div ref={menuRef} style={shell.menu}>
+        <div ref={menuRef} className="crm-action-menu-panel" style={shell.menu}>
           <button type="button" style={shell.menuButton} onClick={loadInvoices}>Refresh Invoices</button>
           <button type="button" style={shell.menuButton} onClick={exportData}>Export Data</button>
           <button
@@ -4112,7 +4112,7 @@ export default function InvoiceDashboard() {
           >
             Edit Selected
           </button>
-          <button type="button" style={shell.menuButton} onClick={deleteSelected}>
+          <button type="button" data-danger="true" style={shell.menuButton} onClick={deleteSelected}>
             Delete Selected ({selectedIds.length})
           </button>
         </div>

@@ -2209,6 +2209,7 @@ export default function ContractDashboard() {
           <button
             type="button"
             className="crm-action-menu-item"
+            data-danger="true"
             style={{ ...shell.actionMenuItem, ...shell.actionMenuDanger }}
             onClick={() => deleteContract(actionMenu.row)}
           >
