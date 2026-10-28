@@ -1,10 +1,10 @@
 import { shouldAutoRefresh } from '../hooks/autoRefreshPolicy';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { ArrowUpRight, Users, ContactRound, BriefcaseBusiness, Receipt, Target, CircleCheck, Clock3, TrendingUp, Wallet, CalendarDays } from 'lucide-react';
+import { ArrowUpRight, Users, ContactRound, BriefcaseBusiness, Receipt, Target, CircleCheck, Clock3, TrendingUp, Wallet, CalendarDays, ChartNoAxesColumnIncreasing, Megaphone, FileText } from 'lucide-react';
 import './Dashboard.css';
 import { useNavigate } from 'react-router-dom';
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, Funnel, FunnelChart, LabelList, Trapezoid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
   ChartSurface,
   getBarChartProps,
@@ -764,8 +764,6 @@ export default function Dashboard() {
   const metricValueStyle = { margin: '14px 0 6px', color: 'var(--text-primary)', fontSize: 'clamp(24px, 2.3vw, 32px)', fontWeight: 800, letterSpacing: '-.035em', overflowWrap: 'anywhere' };
   const metricSubStyle = { margin: 0, color: 'var(--text-secondary)', fontSize: 12 };
   const sourceBodyStyle = { display: 'grid', gap: 24, alignItems: 'center', padding: 24, flex: 1 };
-  const sourceLegendStyle = { display: 'grid', gap: 14, width: '100%', minWidth: 0 };
-  const sourceLegendItemStyle = { display: 'grid', gridTemplateColumns: '10px minmax(0, 1fr) auto', gap: 10, alignItems: 'center', color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.4 };
   const salesChartSectionStyle = { minWidth: 0 };
   const salesChartCardHeaderStyle = { ...shell.sourceHeader, flexWrap: 'wrap' };
   const salesChartTitleStyle = shell.sourceHeaderTitle;
@@ -791,7 +789,8 @@ export default function Dashboard() {
     { label: 'Interested', value: leadPipeline.interested, color: '#12abc4' },
     { label: 'Converted', value: leadPipeline.converted, color: '#18b985' }
   ];
-  const maxLeadFunnel = Math.max(...leadFunnelRows.map((row) => row.value), 1);
+  // Row height only: wrap every existing source label without dropping categories.
+  const sourceChartRowHeight = Math.max(52, ...leadPipeline.sourceSeries.map((entry) => Math.ceil(mapLeadSourceDisplayLabel(entry.name).length / (isMobile ? 12 : 16)) * 16 + 12));
   // Adapt the existing monthly series for rendering; accounting totals stay above.
   const incomeExpenseChartData = selectedYearAnalytics.months.map((month, index) => ({
     label: month.label,
@@ -997,7 +996,7 @@ export default function Dashboard() {
       <section className="dashboard-chart-grid">
         <article className="dashboard-panel">
           <div className="dashboard-panel-header" style={shell.sourceHeader}>
-            <h2 style={shell.sourceHeaderTitle}>Lead Pipeline</h2>
+            <h2 style={shell.sourceHeaderTitle}><span className="dashboard-icon dashboard-icon-blue"><Users size={22} /></span>Lead Pipeline</h2>
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
@@ -1010,53 +1009,28 @@ export default function Dashboard() {
             </select>
           </div>
           <div className="dashboard-pipeline-body" style={{ padding: '18px 18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
-            <div className="dashboard-pipeline-rows" style={{ display: 'grid', gap: '14px' }}>
-            {leadFunnelRows.map((row) => (
-              <button
-                className="dashboard-pipeline-row"
-                key={row.label}
-                type="button"
-                onClick={() => navigate('/leads')}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  padding: 0,
-                  cursor: 'pointer',
-                  display: 'grid',
-                  gridTemplateColumns: isMobile ? '92px minmax(0, 1fr) 44px' : '110px minmax(0, 1fr) 48px',
-                  alignItems: 'center',
-                  gap: isMobile ? '10px' : '10px',
-                  width: '100%',
-                  textAlign: 'left',
-                  minHeight: '48px'
-                }}
-              >
-                <span className="dashboard-pipeline-label" style={{ color: isDarkTheme ? darkDashboardText : '#42526a', fontWeight: 800, fontSize: isMobile ? '13px' : '13px', textAlign: 'left', justifySelf: 'start' }}>{row.label}</span>
-                <span style={{ display: 'block', width: '100%', minWidth: 0, background: 'var(--surface-muted)', borderRadius: 7 }}>
-                  <span
-                    className="dashboard-pipeline-fill"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      height: isMobile ? '42px' : '42px',
-                      width: `${Math.max(row.value > 0 ? 12 : 0, (row.value / maxLeadFunnel) * 100)}%`,
-                      minWidth: row.value > 0 ? (isMobile ? '36px' : '70px') : '0',
-                      borderRadius: '7px',
-                      background: row.color,
-                      color: '#fff',
-                      padding: row.value > 0 ? '0 12px' : 0,
-                      boxSizing: 'border-box',
-                      overflow: 'hidden'
-                    }}
-                  >
-                    <strong style={{ fontSize: isMobile ? '16px' : '16px', lineHeight: 1 }}>{row.value}</strong>
-                  </span>
-                </span>
-                <span style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700, fontSize: isMobile ? '13px' : '13px', textAlign: 'left' }}>
-                  {`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`}
-                </span>
-              </button>
-            ))}
+            <div className="dashboard-funnel-layout">
+              <div className="dashboard-funnel-chart" aria-label="Lead pipeline funnel">
+                {leadFunnelRows.some((row) => row.value > 0) ? (
+                  <ResponsiveContainer width="100%" height={210}>
+                    <FunnelChart margin={{ top: 8, right: 4, bottom: 8, left: 4 }}>
+                      <Funnel data={leadFunnelRows} dataKey="value" nameKey="label" isAnimationActive={false} onClick={() => navigate('/leads')}
+                        shape={(props) => <Trapezoid {...props} height={Math.max(0, props.height - 6)} lowerWidth={props.name === 'Converted' ? props.upperWidth * .65 : props.lowerWidth} stroke={props.fill} strokeWidth={2} strokeLinejoin="round" />}>
+                        {leadFunnelRows.map((row) => <Cell key={row.label} fill={row.color} />)}
+                        <LabelList dataKey="value" position="center" content={({ viewBox, value }) => viewBox?.width > 40 ? <text x={viewBox.x + viewBox.width / 2} y={viewBox.y + viewBox.height / 2} textAnchor="middle" dominantBaseline="middle" fill="#fff" fontSize={18} fontWeight={700}>{value}</text> : null} />
+                      </Funnel>
+                    </FunnelChart>
+                  </ResponsiveContainer>
+                ) : null}
+              </div>
+              <div className="dashboard-funnel-labels">
+                {leadFunnelRows.map((row) => (
+                  <button className="dashboard-funnel-label" key={row.label} type="button" onClick={() => navigate('/leads')}>
+                    <i style={{ background: row.color }} />
+                    <span>{row.label}<strong style={{ color: row.color }}>{row.value} ({`${leadPipeline.totalLeads > 0 ? Math.round((row.value / leadPipeline.totalLeads) * 100) : 0}%`})</strong></span>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="dashboard-pipeline-summary" style={{ ...shell.legendRow, marginTop: '14px', justifyContent: 'space-between' }}>
               <span style={{ ...shell.legendItem, display: 'grid', gap: '4px' }}>
@@ -1077,7 +1051,7 @@ export default function Dashboard() {
 
         <article className="dashboard-panel">
           <div className="dashboard-panel-header" style={shell.sourceHeader}>
-            <h2 style={shell.sourceHeaderTitle}>Income and Expense</h2>
+            <h2 style={shell.sourceHeaderTitle}><span className="dashboard-icon dashboard-icon-green"><ChartNoAxesColumnIncreasing size={22} /></span>Income and Expense</h2>
             <select
               value={selectedContractYear}
               onChange={(event) => setSelectedContractYear(event.target.value)}
@@ -1126,37 +1100,26 @@ export default function Dashboard() {
 
         <article className="dashboard-panel">
           <div className="dashboard-panel-header" style={shell.sourceHeader}>
-            <h2 style={shell.sourceHeaderTitle}>Lead Sources</h2>
+            <h2 style={shell.sourceHeaderTitle}><span className="dashboard-icon dashboard-icon-blue"><Megaphone size={22} /></span>Lead Sources</h2>
             <span style={shell.sourceHeaderBadge}>{leadPipeline.sourceTotal} total</span>
           </div>
-          <div className="dashboard-source-body" style={sourceBodyStyle}>
-            {renderRoundedDonut(
-              leadPipeline.sourceSeries,
-              leadPipeline.sourceTotal,
-              leadPipeline.sourceSeries.map((entry) => leadSourcePalette[entry.name] || leadSourcePalette.Other),
-              isMobile ? 148 : 220,
-              isMobile ? 16 : 22,
-              'Lead Sources',
-              leadPipeline.sourceTotal,
-              isMobile ? '11px' : '13px',
-              isMobile ? '20px' : '22px'
-            )}
+          <div className="dashboard-source-body dashboard-horizontal-sources" style={sourceBodyStyle}>
             {leadPipeline.sourceSeries.length === 0 ? (
               <div style={{ color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800, fontSize: '13px' }}>No lead source data available.</div>
             ) : (
-              <div className="dashboard-source-legend" style={sourceLegendStyle}>
-                {leadPipeline.sourceSeries.map((entry) => (
-                  <span key={entry.name} style={sourceLegendItemStyle}>
-                    <span
-                      style={{
-                        ...shell.sourceLegendDot,
-                        background: leadSourcePalette[entry.name] || leadSourcePalette.Other
-                      }}
-                    />
-                    <span>{mapLeadSourceDisplayLabel(entry.name)}</span>
-                    <span style={{ color: isDarkTheme ? darkDashboardText : '#0f172a', fontWeight: 900 }}>{entry.count}</span>
-                  </span>
-                ))}
+              <div className="dashboard-source-bars">
+                <ResponsiveContainer width="100%" height={Math.max(180, leadPipeline.sourceSeries.length * sourceChartRowHeight + 32)}>
+                  <BarChart data={leadPipeline.sourceSeries} layout="vertical" margin={{ top: 4, right: 32, bottom: 4, left: 0 }} barCategoryGap="30%">
+                    <CartesianGrid stroke={salesChartTheme.gridStroke} horizontal={false} />
+                    <XAxis type="number" allowDecimals={false} {...getChartAxisProps({ mobile: isMobile })} />
+                    <YAxis type="category" dataKey="name" width={isMobile ? 88 : 110} axisLine={false} tickLine={false} interval={0}
+                      tick={({ x, y, payload }) => <foreignObject x={0} y={y - sourceChartRowHeight / 2} width={Math.max(0, x - 6)} height={sourceChartRowHeight}><div className="dashboard-source-category" title={payload.value}>{mapLeadSourceDisplayLabel(payload.value)}</div></foreignObject>} />
+                    <Bar dataKey="count" name="Leads" radius={[0, 5, 5, 0]} maxBarSize={24} isAnimationActive={false}>
+                      {leadPipeline.sourceSeries.map((entry) => <Cell key={entry.name} fill={leadSourcePalette[entry.name] || leadSourcePalette.Other} />)}
+                      <LabelList dataKey="count" position="right" fill="var(--text-primary)" fontSize={12} fontWeight={700} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             )}
           </div>
@@ -1164,7 +1127,7 @@ export default function Dashboard() {
 
         <article className="dashboard-panel">
           <div className="dashboard-panel-header" style={shell.sourceHeader}>
-            <h2 style={shell.sourceHeaderTitle}>Top Expenses</h2>
+            <h2 style={shell.sourceHeaderTitle}><span className="dashboard-icon dashboard-icon-purple"><FileText size={22} /></span>Top Expenses</h2>
             <select value={selectedContractYear} onChange={(event) => setSelectedContractYear(event.target.value)} aria-label="Select expense year" style={compactHeaderSelectStyle}>
               {dashboardYearOptions.map((year) => <option key={year} value={String(year)}>{year}</option>)}
             </select>
@@ -1202,9 +1165,9 @@ export default function Dashboard() {
 
       <section style={salesChartSectionStyle}>
         <div className="dashboard-panel dashboard-sales-panel">
-          <div className="dashboard-panel-header" style={salesChartCardHeaderStyle}>
+          <div className="dashboard-panel-header dashboard-sales-header" style={salesChartCardHeaderStyle}>
             <div>
-              <h2 style={salesChartTitleStyle}>Sales Team Performance</h2>
+              <h2 style={salesChartTitleStyle}><span className="dashboard-icon dashboard-icon-blue"><ChartNoAxesColumnIncreasing size={22} /></span>Sales Team Performance</h2>
               <p style={isMobile ? { ...salesChartSubtitleStyle, display: 'none' } : salesChartSubtitleStyle}>Month-wise target vs achievement for the selected year and salesperson.</p>
             </div>
             <div className="dashboard-sales-controls" style={salesChartHeaderControlsStyle}>
