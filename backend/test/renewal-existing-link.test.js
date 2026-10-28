@@ -186,7 +186,8 @@ function setup(extraRows = [], invoices = [source, target]) {
   const candidate = candidates(invoices)[0];
   const request = { renewalId: 'R1', body: { candidateKey: candidate.key, invoiceId: candidate.invoiceId, invoiceVersion: candidate.invoiceVersion, agreementDate: '2025-12-20' }, actor: 'Manager', authorize: () => {} };
   // Hydration mirrors the stable raw columns present in both list and save queries.
-  const selected = buildExistingCandidates({ renewal, sourceInvoice: source, invoices: invoices.map((row) => ({ ...row, external_id: row._id })), deriveWindow, classifySource, itemTotals })[0];
+  const selected = buildExistingCandidates({ renewal, sourceInvoice: source, invoices: invoices.map((row) => ({ ...row, external_id: row._id })), deriveWindow, classifySource, itemTotals, wholeContract: true })[0];
+  request.body.candidateKey = selected.key;
   request.body.invoiceVersion = selected.invoiceVersion;
   return { state, service, request };
 }
@@ -264,6 +265,62 @@ test('reviewed multi-service invoice retains separate service candidates and amo
   assert.equal(history[0].reviewAllowed, true);
 });
 
+test('whole-contract discovery and save include every service and the full discounted invoice total', async () => {
+  const invoice = { ...target, total: 300, items: [...target.items,
+    { ...target.items[0], itemName: 'Termite control', amount: 200 }] };
+  const { state, service, request } = setup([], [source, invoice]);
+  const before = clone(state.invoices);
+  const choices = await service.list({ renewalId: 'R1', authorize: () => {}, canReview: true });
+  assert.equal(choices.length, 1);
+  const candidate = choices[0];
+  assert.equal(candidate.linkScope, 'CONTRACT');
+  assert.equal(candidate.amount, 300);
+  assert.equal(candidate.invoiceTotal, 300);
+  assert.deepEqual(candidate.servicePeriods.map((item) => item.serviceType), ['Pest control', 'Termite control']);
+  assert.equal(candidate.eligible, true);
+  assert.match(candidate.amountBasis, /Full existing contract/);
+  await service.link(request);
+  const saved = JSON.parse(state.rows[0].payload).existingRenewalLink;
+  assert.equal(state.rows[0].finalRenewalAmount, 300);
+  assert.equal(saved.linkScope, 'CONTRACT');
+  assert.deepEqual(saved.servicePeriods, candidate.servicePeriods);
+  assert.deepEqual(state.invoices, before);
+});
+
+test('whole-contract period review checks every service even when the overall end is valid', async () => {
+  const invoice = { ...target, total: 236, items: [...target.items,
+    { ...target.items[0], itemName: 'Termite control', contractStartDate: '2025-01-01', contractEndDate: '2025-12-31' }] };
+  const { state, service, request } = setup();
+  state.invoices[1] = invoice;
+  const [candidate] = await service.list({ renewalId: 'R1', authorize: () => {}, canReview: true });
+  assert.equal(candidate.amount, 236);
+  assert.equal(candidate.periodReviewRequired, true);
+  assert.equal(candidate.reviewAllowed, true);
+  assert.equal(candidate.start, '2025-01-01');
+  assert.equal(candidate.end, '2026-12-31');
+  await assert.rejects(service.link(request), /no longer matches/);
+});
+
+test('a legacy service-level selection cannot silently become a full-contract link', async () => {
+  const invoice = { ...target, total: 236, items: [...target.items, { ...target.items[0], itemName: 'Other service' }] };
+  const { state, service, request } = setup([], [source, invoice]);
+  request.body.candidateKey = candidates([invoice])[0].key;
+  await assert.rejects(service.link(request), /no longer matches/);
+  assert.equal(state.commits, 0);
+});
+
+test('full-contract duplicate detection includes a non-first service and its individual period', async () => {
+  const invoice = { ...target, total: 236, items: [...target.items,
+    { ...target.items[0], itemName: 'Termite control', contractStartDate: '2027-01-01', contractEndDate: '2027-12-31' }] };
+  const otherTarget = { ...target, _id: 'SECOND', invoiceNumber: 'INV-2', items: [invoice.items[1]] };
+  const other = { ...renewal, renewalId: 'R2', serviceType: 'Termite control', convertedContractId: 'SECOND',
+    newContractStartDate: '2027-01-01', newContractEndDate: '2027-12-31' };
+  const { state, service, request } = setup([other], [source, invoice, otherTarget]);
+  assert.equal((await service.list({ renewalId: 'R1', authorize: () => {} })).some((item) => item.invoiceId === 'NEW'), false);
+  await assert.rejects(service.link(request), /already linked/);
+  assert.equal(state.commits, 0);
+});
+
 test('link only updates renewal and audit; historical agreement date and recording time stay separate', async () => {
   const { state, service, request } = setup(); const beforeInvoices = clone(state.invoices);
   await service.link(request);
@@ -283,13 +340,13 @@ test('concurrent double submit is idempotent and produces only one outcome audit
   assert.equal(state.audit.length, 1); assert.equal(state.releases, 2);
 });
 
-test('another renewal cannot claim the same service and period; separate services remain possible', async () => {
+test('whole-contract linking rejects any existing claim on the invoice, including another service', async () => {
   const other = { ...renewal, renewalId: 'R2', convertedContractId: 'NEW', serviceType: 'Pest control' };
   const first = setup([other]);
   await assert.rejects(first.service.link(first.request), /already linked to another renewal/);
   assert.equal(first.state.commits, 0);
   const second = setup([{ ...other, serviceType: 'Other service' }]);
-  await second.service.link(second.request); assert.equal(second.state.commits, 1);
+  await assert.rejects(second.service.link(second.request), /already linked/); assert.equal(second.state.commits, 0);
 });
 
 test('same period on different invoices is blocked only for the same premises', async () => {
@@ -327,9 +384,9 @@ test('picker hides contracts already linked to another renewal through either li
   }
 });
 
-test('picker retains unused services on shared invoices and contracts with their own pending letters', async () => {
+test('picker hides partially claimed contracts but retains contracts with their own pending letters', async () => {
   const first = setup([{ ...renewal, renewalId: 'R2', serviceType: 'Another service', convertedContractId: 'NEW', renewalOutcome: 'WON' }]);
-  assert.equal((await first.service.list({ renewalId: 'R1', authorize: () => {} })).some((item) => item.invoiceId === 'NEW'), true);
+  assert.equal((await first.service.list({ renewalId: 'R1', authorize: () => {} })).some((item) => item.invoiceId === 'NEW'), false);
   const second = setup([{ ...renewal, renewalId: 'R2', contractId: 'NEW', previousContractId: 'NEW', renewalLetterUrl: '/next-cycle.pdf' }]);
   assert.equal((await second.service.list({ renewalId: 'R1', authorize: () => {} })).some((item) => item.invoiceId === 'NEW'), true);
 });

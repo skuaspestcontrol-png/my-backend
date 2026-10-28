@@ -1889,7 +1889,6 @@ export default function RenewalDashboard() {
       search: existingLinks.search, selectedKey: form.existingCandidateKey, selectedInvoiceId: existingInvoiceId
     });
     const selectedInvoiceId = String(selectedExisting?.invoiceId || existingInvoiceId || '');
-    const selectedInvoiceGroup = existingInvoiceGroups.find((group) => group.id === selectedInvoiceId);
     const titleMap = {
       view: 'Renewal Details',
       edit: 'Edit Renewal',
@@ -2037,7 +2036,7 @@ export default function RenewalDashboard() {
                   <>
                     <strong>{row.customerName} · {row.serviceType}</strong>
                     <span>Previous contract: {row.invoiceNumber || row.contractId} · {formatDate(row.previousContractStart)} – {formatDate(row.previousContractEnd)}</span>
-                    <p style={{ margin: 0 }}>Select the renewed contract / invoice that already exists. Saving marks this renewal Won without creating another contract or invoice.</p>
+                    <p style={{ margin: 0 }}>Select the renewed contract / invoice that already exists. All its services and the full invoice amount will be linked to this renewal. Saving marks this renewal Won without creating another contract or invoice.</p>
                     <label style={shell.field}><span style={shell.label}>Search existing invoices — Active & Expired</span><input style={shell.input} value={existingLinks.search} onChange={(event) => setExistingLinks((prev) => ({ ...prev, search: event.target.value }))} placeholder="Invoice number, service, premises or period" /></label>
                     <button type="button" style={shell.ghostBtn} disabled={existingLinks.loading || busy} onClick={() => { setExistingInvoiceId(''); setForm((prev) => ({ ...prev, existingCandidateKey: '', agreementDate: '' })); setExistingLinksReload((prev) => prev + 1); }}>Refresh records</button>
                     {existingLinks.loading ? <span>Loading customer invoice history…</span> : null}
@@ -2053,19 +2052,9 @@ export default function RenewalDashboard() {
                         setForm((prev) => ({ ...prev, existingCandidateKey: candidate?.key || '', agreementDate: candidate?.agreementDate || '', note: '', reviewPremises: false, reviewPeriod: false, reviewService: false, reviewClassification: false }));
                       }}>
                         <option value="">Select a contract / invoice</option>
-                        {existingInvoiceGroups.map((group) => <option key={group.id} value={group.id}>{group.invoiceNumber}{group.recordSuffix} · {group.statusLabel} · {group.candidates.length} service/period option{group.candidates.length === 1 ? '' : 's'}</option>)}
+                        {existingInvoiceGroups.map((group) => <option key={group.id} value={group.id}>{group.invoiceNumber}{group.recordSuffix} · {group.statusLabel} · {group.candidates[0]?.linkScope === 'CONTRACT' ? `All services · ${formatOptionalINR(group.candidates[0].amount)}` : 'Invoice record'}</option>)}
                       </select>
                     </label>
-                    {selectedInvoiceGroup?.candidates.length > 1 ? (
-                      <label style={shell.field}>
-                        <span style={shell.label}>Service / period to link</span>
-                        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>This invoice has separate service/period options. Choose the one to link; the amount below is allocated to that option.</span>
-                        <select aria-label="Service / period to link" style={shell.input} value={form.existingCandidateKey || ''} disabled={existingLinks.loading || busy} onChange={(event) => { const candidate = existingLinks.candidates.find((item) => item.key === event.target.value); setForm((prev) => ({ ...prev, existingCandidateKey: event.target.value, agreementDate: candidate?.agreementDate || '', note: '', reviewPremises: false, reviewPeriod: false, reviewService: false, reviewClassification: false })); }}>
-                          <option value="">Select a service / period</option>
-                          {selectedInvoiceGroup.candidates.map((item) => <option key={item.key} value={item.key}>{item.serviceType} · {item.contractStatusLabel || 'Contract'} · {formatDate(item.start)} – {formatDate(item.end)} · {formatOptionalINR(item.amount)}{item.reviewAllowed ? ' · Consent required' : item.eligible === false ? ' · Correction required' : ''}</option>)}
-                        </select>
-                      </label>
-                    ) : null}
                     {selectedExisting ? <div style={{ padding: 12, border: '1px solid var(--color-border)', borderRadius: 8, display: 'grid', gap: 6 }}>
                       <strong>{selectedExisting.invoiceNumber} · {selectedExisting.contractStatusLabel || 'Contract'}</strong>
                       <span>{selectedExisting.customerName}</span>
@@ -2091,8 +2080,12 @@ export default function RenewalDashboard() {
                         </div>
                       ) : null}
                       <span>{selectedExisting.serviceType} · {selectedExisting.premiseLabel}</span>
+                      {selectedExisting.linkScope === 'CONTRACT' ? <div style={{ display: 'grid', gap: 4 }}>
+                        <strong>All services included in this contract</strong>
+                        {selectedExisting.servicePeriods.map((service, index) => <span key={index}>{service.serviceType} · {formatDate(service.start)} – {formatDate(service.end)}</span>)}
+                      </div> : null}
                       <span>Renewed period: {formatDate(selectedExisting.start)} – {formatDate(selectedExisting.end)}</span>
-                      <span>{selectedExisting.eligible === false ? 'Invoice amount' : 'Renewal amount'}: {formatOptionalINR(selectedExisting.amount)}</span>
+                      <span>{selectedExisting.linkScope === 'CONTRACT' ? 'Full contract amount' : 'Invoice amount'}: {formatOptionalINR(selectedExisting.amount)}</span>
                       <span>{selectedExisting.amountBasis}. Invoice total: {formatOptionalINR(selectedExisting.invoiceTotal)}.</span>
                       <a href={`/sales/contracts?openInvoiceId=${encodeURIComponent(selectedExisting.invoiceId)}&fromContract=1&viewContract=1`} target="_blank" rel="noreferrer">Review existing contract / invoice</a>
                       {selectedExisting.reviewAllowed && canManageRenewals ? (

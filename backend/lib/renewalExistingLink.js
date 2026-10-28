@@ -28,8 +28,8 @@ const samePremise = (source, target) => {
   return Boolean(firstAddress && firstAddress === serviceKey(target?.premiseAddress || target?.shippingAddressText));
 };
 
-// Contract records are invoice-backed. A candidate identifies a service and period,
-// not just an invoice, so separate services on a shared invoice can be linked safely.
+// Contract records are invoice-backed. Production linking uses wholeContract so
+// every included service is claimed together with the full invoice total.
 const fixedContractPeriods = new Set(['monthly', 'quarterly', 'bi_monthly', 'three_months', 'half_yearly', 'annual', 'two_years', 'three_years', 'five_years', 'ten_years']);
 function isExistingContract(invoice, classifySource) {
   if (classifySource(invoice).relationshipType === 'CONTRACT') return true;
@@ -45,7 +45,7 @@ function withSourceContractDates(renewal, sourceInvoice, deriveWindow) {
     previousContractEnd: dateOnly(window.contractEndDate) || renewal.previousContractEnd
   };
 }
-function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, allowPremiseReview = false, allowPeriodReview = false, allowServiceReview = false, allowClassificationReview = false }) {
+function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, wholeContract = false, allowPremiseReview = false, allowPeriodReview = false, allowServiceReview = false, allowClassificationReview = false }) {
   renewal = withSourceContractDates(renewal, sourceInvoice, deriveWindow);
   const customerId = text(sourceInvoice?.customerId);
   const expectedCustomer = text(renewal.customerExternalId);
@@ -78,6 +78,19 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
       group.lines.push(line); groups.set(key, group);
     }
     if (incomplete || !groups.size) continue;
+    if (wholeContract) {
+      const services = [...groups.values()];
+      groups.clear();
+      groups.set('contract', {
+        serviceType: [...new Set(services.map((group) => group.serviceType))].join(', '),
+        serviceKeys: [...new Set(services.map((group) => serviceKey(group.serviceType)))],
+        servicePeriods: services.map(({ serviceType, start, end }) => ({ serviceType, start, end })),
+        start: services.map((group) => group.start).sort()[0],
+        end: services.map((group) => group.end).sort().at(-1),
+        periodReviewRequired: services.some((group) => group.start < previousEnd || group.end <= previousEnd),
+        lines
+      });
+    }
     const total = money(invoice.total ?? invoice.amount);
     if (total === null) continue;
     const gross = itemTotals(lines, invoice.invoiceType).total;
@@ -91,8 +104,8 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
     for (let index = 0; index < remainder; index += 1) allocations[fractions[index % fractions.length].index] += 1;
     ordered.forEach((group, index) => {
       const amountCents = allocations[index];
-      const serviceReviewRequired = serviceKey(group.serviceType) !== wantedService;
-      const periodReviewRequired = group.start < previousEnd || group.end <= previousEnd;
+      const serviceReviewRequired = wholeContract ? !group.serviceKeys.includes(wantedService) : serviceKey(group.serviceType) !== wantedService;
+      const periodReviewRequired = group.periodReviewRequired || group.start < previousEnd || group.end <= previousEnd;
       const classificationReviewRequired = !isExistingContract({ ...invoice, items: group.lines }, classifySource);
       if ((serviceReviewRequired && !allowServiceReview) || (periodReviewRequired && !allowPeriodReview) ||
           (classificationReviewRequired && !allowClassificationReview)) return;
@@ -102,7 +115,7 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
         ...(serviceReviewRequired ? [{ code: 'SERVICE_MISMATCH', message: 'The service name differs from this renewal. Confirm the selected service fulfils this renewal.' }] : []),
         ...(classificationReviewRequired ? [{ code: 'CONTRACT_CLASSIFICATION', message: 'This issued record is not classified as a contract. Confirm it represents the renewal contract.' }] : [])
       ];
-      const identity = JSON.stringify(serviceReviewRequired
+      const identity = JSON.stringify(wholeContract ? ['CONTRACT', text(invoice._id), group.serviceKeys, group.servicePeriods] : serviceReviewRequired
         ? [text(invoice._id), wantedService, serviceKey(group.serviceType), group.start, group.end]
         : [text(invoice._id), wantedService, group.start, group.end]);
       candidates.push({
@@ -126,10 +139,11 @@ function buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindo
         address: text(invoice.premiseAddress || invoice.shippingAddressText || invoice.billingAddressText),
         premiseLabel: text(invoice.premiseLabel || invoice.premiseAddress || invoice.shippingAddressText),
         serviceType: group.serviceType, serviceKey: serviceKey(group.serviceType), start: group.start, end: group.end,
+        ...(wholeContract ? { linkScope: 'CONTRACT', serviceKeys: group.serviceKeys, servicePeriods: group.servicePeriods } : {}),
         classification: classificationReviewRequired ? 'Not classified as contract' : 'Contract',
         expectedStart: new Date(Date.parse(`${previousEnd}T00:00:00Z`) + 86400000).toISOString().slice(0, 10),
         amount: amountCents / 100, invoiceTotal: total,
-        amountBasis: groups.size === 1 ? 'Existing invoice total' : 'Invoice total allocated by service value, including tax and discounts',
+        amountBasis: wholeContract ? 'Full existing contract / invoice total, including all services' : groups.size === 1 ? 'Existing invoice total' : 'Invoice total allocated by service value, including tax and discounts',
         agreementDate: dateOnly(invoice.agreementDate || invoice.date),
         invoiceVersion: crypto.createHash('sha256').update(JSON.stringify(invoice)).digest('hex')
       });
@@ -199,7 +213,7 @@ function buildExistingHistory(options) {
 }
 
 function createExistingLinkService({ getConnection, toRenewal, toInvoice, deriveWindow, classifySource, itemTotals, deriveTiming, priceDelta, audit }) {
-  const build = (renewal, sourceInvoice, invoices, approvals = {}) => buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, ...approvals });
+  const build = (renewal, sourceInvoice, invoices, approvals = {}) => buildExistingCandidates({ renewal, sourceInvoice, invoices, deriveWindow, classifySource, itemTotals, wholeContract: true, ...approvals });
   const loadRenewal = async (conn, id, lock = false) => {
     const [rows] = await conn.query(`SELECT * FROM renewals WHERE renewal_id = ? LIMIT 1${lock ? ' FOR UPDATE' : ''}`, [id]);
     if (!rows[0]) fail(404, 'Renewal not found.');
@@ -215,12 +229,23 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
     const other = toRenewal(raw);
     if (other.renewalId === renewal.renewalId) return false;
     const otherLink = jsonObject(raw.payload).existingRenewalLink;
-    const sameService = serviceKey(otherLink?.serviceType || other.serviceType) === (candidate.serviceKey || serviceKey(candidate.serviceType));
+    const otherInvoice = invoices.find((invoice) => [other.convertedContractId, other.newContractId].includes(text(invoice._id)));
+    const otherLines = !otherLink && Array.isArray(otherInvoice?.items) ? otherInvoice.items : [];
+    const candidateServices = candidate.serviceKeys || [candidate.serviceKey || serviceKey(candidate.serviceType)];
+    const otherServices = otherLink?.serviceKeys || (otherLines.length ? otherLines.map((line) => serviceKey(line.itemName || line.name)) : [serviceKey(otherLink?.serviceType || other.serviceType)]);
+    const sameService = otherServices.some((key) => candidateServices.includes(key));
     const otherStart = dateOnly(otherLink?.start || other.newContractStartDate);
     const otherEnd = dateOnly(otherLink?.end || other.newContractEndDate);
-    const samePeriod = otherStart === candidate.start && otherEnd === candidate.end;
+    const candidatePeriods = candidate.servicePeriods || [{ serviceType: candidate.serviceType, start: candidate.start, end: candidate.end }];
+    const otherPeriods = otherLink?.servicePeriods || (otherLines.length ? otherLines.map((line) => ({
+      serviceType: line.itemName || line.name,
+      start: dateOnly(line.contractStartDate || line.serviceStartDate) || otherStart,
+      end: dateOnly(line.contractEndDate || line.serviceEndDate || line.renewalDate) || otherEnd
+    })) : [{ serviceType: otherLink?.serviceType || other.serviceType, start: otherStart, end: otherEnd }]);
+    const samePeriod = candidatePeriods.some((first) => otherPeriods.some((second) =>
+      serviceKey(first.serviceType) === serviceKey(second.serviceType) && first.start === second.start && first.end === second.end));
     const sameInvoice = [other.convertedContractId, other.newContractId].includes(candidate.invoiceId);
-    const otherInvoice = invoices.find((invoice) => [other.convertedContractId, other.newContractId].includes(text(invoice._id)));
+    if (sameInvoice && (candidate.linkScope === 'CONTRACT' || otherLink?.linkScope === 'CONTRACT')) return true;
     // With unverified premises, conservatively block an already-claimed service
     // period for this customer even if it appears on a different invoice.
     return sameService && ((sameInvoice && (!otherStart || !otherEnd || samePeriod)) || (samePeriod && (samePremise(source, otherInvoice) || candidate.premiseReviewRequired)));
@@ -235,7 +260,7 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
       const ids = invoices.map((invoice) => text(invoice._id)).filter(Boolean);
       if (!ids.length) return [];
       const [linkedRows] = await conn.query('SELECT * FROM renewals WHERE converted_contract_id IN (?) OR new_contract_id IN (?) OR contract_id IN (?)', [ids, ids, ids]);
-      return buildExistingHistory({ renewal, sourceInvoice: source, invoices, deriveWindow, classifySource, itemTotals, canReview })
+      return buildExistingHistory({ renewal, sourceInvoice: source, invoices, deriveWindow, classifySource, itemTotals, canReview, wholeContract: true })
         .filter((candidate) => candidate.invoiceId !== text(source._id))
         .filter((candidate) => !conflictsWithLink(candidate, renewal, source, invoices, linkedRows))
         .filter((candidate) => candidate.eligible !== false || !linkedRows.some((raw) => {
@@ -285,7 +310,7 @@ function createExistingLinkService({ getConnection, toRenewal, toInvoice, derive
       if (candidate.reviewWarnings.length && candidate.sourceInvoiceVersion !== body.sourceInvoiceVersion) fail(409, 'The previous invoice changed after comparison. Refresh and review both records again.');
       const [linkedRows] = await conn.query('SELECT * FROM renewals WHERE converted_contract_id = ? OR new_contract_id = ? OR contract_id IN (?) FOR UPDATE', [candidate.invoiceId, candidate.invoiceId, invoiceRows.map((row) => row.external_id)]);
       if (conflictsWithLink(candidate, renewal, source, invoiceRows.map(toInvoice), linkedRows)) {
-        fail(409, 'This service and renewed period are already linked to another renewal. Review that renewal instead.');
+        fail(409, 'This contract or an included service period is already linked to another renewal. Review that renewal instead.');
       }
       const edges = new Map();
       for (const row of linkedRows) {
