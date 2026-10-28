@@ -4,6 +4,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPinned, Users } fro
 import useColumnResize from './table/useColumnResize';
 import { buildPortalAuthHeaders } from '../utils/portalAuth';
 import { formatDurationHours } from '../utils/duration';
+import './Attendance.css';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const ATTENDANCE_CACHE_KEY = 'attendance_dashboard_cache_v1';
@@ -202,11 +203,11 @@ const shell = {
     flexWrap: 'wrap'
   },
   titleWrap: { display: 'grid', gap: '4px' },
-  title: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: '#0f172a', fontWeight: 800 },
-  subtitle: { margin: 0, fontSize: '13px', color: '#475569', fontWeight: 600 },
+  title: { margin: 0, fontSize: '30px', letterSpacing: '-0.02em', color: 'var(--text-primary)', fontWeight: 800 },
+  subtitle: { margin: 0, fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 },
   topbarActions: { display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
   dateControls: { display: 'grid', justifyItems: 'end', gap: '4px' },
-  weekdayLabel: { color: '#475569', fontSize: '12px', fontWeight: 800, letterSpacing: '0.04em' },
+  weekdayLabel: { color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 800, letterSpacing: '0.04em' },
   dateStepper: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -217,8 +218,8 @@ const shell = {
     width: '34px',
     minWidth: '34px',
     borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.28)',
-    background: '#fff',
+    border: '1px solid var(--att-border)',
+    background: 'var(--panel)',
     color: 'var(--color-primary-dark)',
     display: 'inline-flex',
     alignItems: 'center',
@@ -228,12 +229,12 @@ const shell = {
   dateInput: {
     minHeight: '34px',
     borderRadius: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.28)',
-    background: '#fff',
+    border: '1px solid var(--att-border)',
+    background: 'var(--panel)',
     padding: '0 12px',
     fontSize: '13px',
     fontWeight: 700,
-    color: '#0f172a'
+    color: 'var(--text-primary)'
   },
   summaryGrid: {
     display: 'grid',
@@ -267,22 +268,22 @@ const shell = {
     background: 'rgba(234,179,8,0.14)'
   },
   sectionTitle: { margin: 0, fontSize: '14px', color: 'var(--text-primary)', fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase', whiteSpace: 'nowrap' },
-  summaryLabel: { fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  summaryValue: { fontSize: '24px', fontWeight: 800, color: '#0f172a', lineHeight: 1 },
+  summaryLabel: { fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  summaryValue: { fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 },
   tableWrap: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)',
-    borderRadius: '16px',
-    border: '1px solid rgba(148, 163, 184, 0.18)',
+    background: 'var(--table-bg)',
+    borderRadius: '8px',
+    border: '1px solid var(--att-border)',
     overflowX: 'auto',
     boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)',
     backgroundClip: 'padding-box'
   },
   table: { width: '100%', minWidth: '1200px', borderCollapse: 'collapse', tableLayout: 'auto' },
-  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#475569', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'normal', lineHeight: 1.3, minHeight: '42px', height: 'auto', overflow: 'visible', textOverflow: 'clip' },
-  td: { padding: '10px', borderBottom: '1px solid #eef2f7', fontSize: '13px', color: '#0f172a', verticalAlign: 'middle', wordBreak: 'break-word' },
+  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: 'var(--text-secondary)', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'normal', lineHeight: 1.3, minHeight: '42px', height: 'auto', overflow: 'visible', textOverflow: 'clip' },
+  td: { padding: '10px', borderBottom: '1px solid var(--att-border)', fontSize: '13px', color: 'var(--text-primary)', verticalAlign: 'middle', wordBreak: 'break-word' },
   nameCell: { display: 'grid', gap: '2px' },
-  empName: { fontWeight: 700, color: '#0f172a' },
-  empCode: { fontSize: '11px', color: '#64748b', fontWeight: 700 },
+  empName: { fontWeight: 700, color: 'var(--text-primary)' },
+  empCode: { fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 },
   statusBtns: {
     display: 'flex',
     alignItems: 'center',
@@ -298,9 +299,9 @@ const shell = {
     width: '30px',
     minWidth: '30px',
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    color: '#334155',
+    border: '1px solid var(--att-border)',
+    background: 'var(--panel)',
+    color: 'var(--text-secondary)',
     cursor: 'pointer',
     fontSize: '10px',
     fontWeight: 800,
@@ -318,11 +319,11 @@ const shell = {
     height: '30px',
     width: '100%',
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
+    border: '1px solid var(--att-border)',
+    background: 'var(--panel)',
     padding: '0 10px',
     fontSize: '12px',
-    color: '#0f172a'
+    color: 'var(--text-primary)'
   },
   timeInput: {
     position: 'absolute',
@@ -331,11 +332,11 @@ const shell = {
     height: '30px',
     width: '34px',
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
+    border: '1px solid var(--att-border)',
+    background: 'var(--panel)',
     padding: 0,
     fontSize: '12px',
-    color: '#0f172a',
+    color: 'var(--text-primary)',
     lineHeight: 1,
     boxSizing: 'border-box',
     opacity: 0,
@@ -349,7 +350,7 @@ const shell = {
     border: 'none',
     outline: 'none',
     background: 'transparent',
-    color: '#0f172a',
+    color: 'var(--text-primary)',
     fontSize: '13px',
     fontWeight: 700,
     lineHeight: 1,
@@ -363,8 +364,8 @@ const shell = {
     height: '30px',
     width: '100%',
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
+    border: '1px solid var(--att-border)',
+    background: 'var(--panel)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -375,7 +376,7 @@ const shell = {
   },
   timeIcon: {
     flex: '0 0 auto',
-    color: '#0f172a',
+    color: 'var(--text-primary)',
     pointerEvents: 'none'
   },
   hoursBadge: {
@@ -428,14 +429,14 @@ const shell = {
   overtimeBadgeNeutral: {
     borderColor: 'rgba(148,163,184,0.28)',
     background: 'rgba(148,163,184,0.12)',
-    color: '#475569'
+    color: 'var(--text-secondary)'
   },
   mapBtn: {
     minHeight: '30px',
     height: '30px',
     borderRadius: '7px',
-    border: '1px solid rgba(159, 23, 77, 0.24)',
-    background: '#fff',
+    border: '1px solid var(--att-border)',
+    background: 'var(--panel)',
     color: 'var(--color-primary-dark)',
     padding: '0 7px',
     fontSize: '10px',
@@ -452,9 +453,9 @@ const shell = {
     minHeight: '30px',
     height: '30px',
     borderRadius: '8px',
-    border: '1px solid #D1D5DB',
-    background: '#fff',
-    color: '#334155',
+    border: '1px solid var(--att-border)',
+    background: 'var(--panel)',
+    color: 'var(--text-secondary)',
     cursor: 'pointer',
     fontSize: '11px',
     fontWeight: 800,
@@ -462,11 +463,11 @@ const shell = {
     whiteSpace: 'nowrap'
   },
   modalBg: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.42)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 80 },
-  modal: { width: 'min(720px, 100%)', maxHeight: '80vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid rgba(159, 23, 77, 0.2)', background: '#fff', boxShadow: 'var(--shadow-soft)', padding: '16px', display: 'grid', gap: '12px' },
-  modalTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a' },
-  auditCard: { border: '1px solid rgba(159, 23, 77, 0.14)', borderRadius: '12px', padding: '12px', background: '#fff', display: 'grid', gap: '6px' },
-  auditMeta: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 700 },
-  footerNote: { margin: 0, fontSize: '12px', color: '#64748b', fontWeight: 600 }
+  modal: { width: 'min(720px, 100%)', maxHeight: '80vh', overflowY: 'auto', borderRadius: '16px', border: '1px solid var(--att-border)', background: 'var(--panel)', boxShadow: 'var(--shadow-soft)', padding: '16px', display: 'grid', gap: '12px' },
+  modalTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' },
+  auditCard: { border: '1px solid var(--att-border)', borderRadius: '12px', padding: '12px', background: 'var(--panel)', display: 'grid', gap: '6px' },
+  auditMeta: { margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 },
+  footerNote: { margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }
 };
 
 const getEmployeeName = (employee = {}) => [employee.firstName, employee.lastName].filter(Boolean).join(' ').trim() || employee.empCode || 'Employee';
@@ -675,10 +676,19 @@ export default function Attendance() {
   const [records, setRecords] = useState(() => cachedAttendanceData?.records || {});
   const [monthRecords, setMonthRecords] = useState(() => cachedAttendanceData?.monthRecords || []);
   const [statusMessage, setStatusMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState('Calendar View');
+  const [search, setSearch] = useState('');
+  const [department, setDepartment] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [rangeStart, setRangeStart] = useState('');
+  const [rangeEnd, setRangeEnd] = useState('');
+  const selectionRef = useRef(date);
+  selectionRef.current = date;
   const [editingTimeKey, setEditingTimeKey] = useState('');
   const [auditModal, setAuditModal] = useState({ open: false, loading: false, employeeName: '', items: [] });
   const [locationModal, setLocationModal] = useState({ open: false, title: '', address: '', timestamp: '', latitude: null, longitude: null, mapUrl: '' });
-  const loadRequestRef = useRef(null);
+  const loadRequestRef = useRef(0);
   const {
     getColumnWidth,
     startResize,
@@ -693,8 +703,8 @@ export default function Attendance() {
   });
 
   const loadData = async ({ silent = false } = {}) => {
-    if (loadRequestRef.current) return loadRequestRef.current;
-
+    const requestId = ++loadRequestRef.current;
+    if (!silent) setLoading(true);
     const request = (async () => {
       const attendanceDate = date;
       const attendanceMonth = monthFromDate(attendanceDate) || month;
@@ -709,6 +719,7 @@ export default function Attendance() {
           attendanceMonth ? axios.get(`${API_BASE}/api/attendance`) : Promise.resolve({ data: [] })
         ]);
 
+        if (requestId !== loadRequestRef.current || selectionRef.current !== attendanceDate) return;
         const employeeList = employeesRes.status === 'fulfilled' && Array.isArray(employeesRes.value.data)
           ? employeesRes.value.data
           : [];
@@ -749,6 +760,10 @@ export default function Attendance() {
           const normalizedCheckOut = normalizedStatus === 'present' ? (realCheckOut || (isSelfServiceSource ? '' : '17:30')) : '';
           recordMap[key] = {
             _id: entry._id,
+            recorded: true,
+            actualStatus: entry.status || '',
+            actualCheckIn: realCheckIn,
+            actualCheckOut: realCheckOut,
             employeeId: key,
             date: attendanceDate,
             status: normalizedStatus,
@@ -789,7 +804,9 @@ export default function Attendance() {
           };
         });
 
-        const nextStatusMessage = attendanceRes.status === 'rejected'
+        const nextStatusMessage = employeesRes.status === 'rejected'
+          ? 'Employee data is unavailable. Please retry.'
+          : attendanceRes.status === 'rejected'
           ? 'Attendance history is unavailable right now. You can still mark employee attendance.'
           : monthAttendanceRes.status === 'rejected'
             ? 'Month-wise summary is temporarily unavailable.'
@@ -817,17 +834,15 @@ export default function Attendance() {
       }
     })();
 
-    loadRequestRef.current = request;
     request.finally(() => {
-      if (loadRequestRef.current === request) {
-        loadRequestRef.current = null;
-      }
+      if (loadRequestRef.current === requestId) setLoading(false);
     });
     return request;
   };
 
   useEffect(() => {
     loadData();
+    return () => { loadRequestRef.current += 1; };
   }, [cachedAttendanceData, date, month]);
 
   const employeeRows = useMemo(
@@ -944,6 +959,55 @@ export default function Attendance() {
     };
   }, [monthRecords]);
 
+  const statusLabels = { present: 'Present', absent: 'Absent', leave: 'On Leave', 'half-day': 'Half Day', 'weekly-off': 'Weekly Off', unmarked: 'Unmarked' };
+  const displayStatus = (record) => !record.recorded ? 'unmarked'
+    : record.leaveType === 'Half Day Leave' ? 'half-day' : (record.actualStatus || record.status || 'unmarked');
+  const departmentName = (employee) => employee.department || employee.role || 'Unassigned';
+  const departments = [...new Set(employees.map(departmentName))].sort();
+  const filteredRows = employeeRows.filter(({ employee, record }) =>
+    (!search || `${getEmployeeName(employee)} ${employee.empCode || ''}`.toLowerCase().includes(search.toLowerCase())) &&
+    (!department || departmentName(employee) === department) &&
+    (!statusFilter || displayStatus(record) === statusFilter)
+  );
+  const dayCounts = employeeRows.reduce((counts, { record }) => {
+    const status = displayStatus(record);
+    counts[status] = (counts[status] || 0) + 1;
+    return counts;
+  }, {});
+  const totalEmployees = employeeRows.length;
+  const percentage = (count) => totalEmployees ? Math.round(count * 100 / totalEmployees) : 0;
+  const statusOrder = ['present', 'absent', 'leave', 'half-day', 'weekly-off', 'unmarked'];
+  let ringOffset = 0;
+  const ringStops = statusOrder.map((status) => {
+    const start = ringOffset;
+    ringOffset += totalEmployees ? (dayCounts[status] || 0) * 100 / totalEmployees : 0;
+    return `var(--att-${status}) ${start}% ${ringOffset}%`;
+  });
+  const selectedDateLabel = new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const [calendarYear, calendarMonth] = month.split('-').map(Number);
+  const monthStart = new Date(calendarYear, calendarMonth - 1, 1).getDay();
+  const monthDays = new Date(calendarYear, calendarMonth, 0).getDate();
+  const calendarRows = new Map();
+  // Latest record per employee/date; never infer activity for missing dates.
+  [...monthRecords].sort((a, b) => String(a.updatedAt || '').localeCompare(String(b.updatedAt || ''))).forEach((record) => {
+    if (department && !employees.some((employee) => String(employee._id) === String(record.employeeId) && departmentName(employee) === department)) return;
+    calendarRows.set(`${record.date}:${record.employeeId}`, record);
+  });
+  const calendarStatuses = (key) => [...new Set([...calendarRows.values()].filter((record) => record.date === key).map((record) => record.leaveType === 'Half Day Leave' ? 'half-day' : record.status))];
+  const shiftMonth = (delta) => {
+    const next = new Date(calendarYear, calendarMonth - 1 + delta, 1);
+    handleMonthChange(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
+  };
+  const renderTimeline = (rows) => <div className="att-timeline-list">
+    {rows.map(({ employee, employeeId, record }) => <button type="button" className="att-person" key={employeeId} onClick={() => openAudit({ employeeId, employee, record })}>
+      <span className="att-avatar" data-status={displayStatus(record)}>{getEmployeeName(employee).split(' ').map((word) => word[0]).slice(0, 2).join('')}</span>
+      <span className="att-person-name"><strong>{getEmployeeName(employee)}</strong><small>{employee.empCode || 'No Code'} · {departmentName(employee)}</small></span>
+      <span className="att-status" data-status={displayStatus(record)}>{statusLabels[displayStatus(record)] || record.status}</span>
+      <span className="att-person-time"><span>{record.actualCheckIn || record.actualCheckOut ? `${formatAttendanceDisplayTime(record.actualCheckIn)} – ${formatAttendanceDisplayTime(record.actualCheckOut)}` : 'No punch times'}</span><small>{record.recorded ? formatDurationHours(computeAttendanceMetrics({ ...record, checkIn: record.actualCheckIn, checkOut: record.actualCheckOut }).workingHours) : 'Not recorded'} · {formatAttendanceSourceLabel(record.source)}</small></span>
+    </button>)}
+    {!rows.length && <p className="att-empty">No employees match these filters.</p>}
+  </div>;
+
   const updateRecordField = (employeeId, key, value) => {
     setRecords((prev) => ({
       ...prev,
@@ -1015,12 +1079,17 @@ export default function Attendance() {
       }, {
         headers: buildPortalAuthHeaders()
       });
+      if (selectionRef.current !== date) return;
       const saved = res.data || {};
       setRecords((prev) => ({
         ...prev,
         [employeeId]: {
           ...(prev[employeeId] || {}),
           _id: saved._id || row._id,
+          recorded: true,
+          actualStatus: saved.status || row.status,
+          actualCheckIn: saved.checkIn || '',
+          actualCheckOut: saved.checkOut || '',
           employeeId,
           date,
           status: saved.status || row.status,
@@ -1076,6 +1145,7 @@ export default function Attendance() {
   };
 
   const handleDateChange = (nextDate) => {
+    if (nextDate !== date) setLoading(true);
     setDate(nextDate);
     const nextMonth = monthFromDate(nextDate);
     if (nextMonth && nextMonth !== month) {
@@ -1084,6 +1154,7 @@ export default function Attendance() {
   };
 
   const handleMonthChange = (nextMonth) => {
+    if (nextMonth !== month) setLoading(true);
     setMonth(nextMonth);
     if (nextMonth && !String(date).startsWith(nextMonth)) {
       setDate(`${nextMonth}-01`);
@@ -1133,19 +1204,23 @@ export default function Attendance() {
       <div data-page-toolbar="true" style={shell.topbar}>
         <div style={shell.titleWrap}>
           <h2 style={shell.title}>Attendance</h2>
-          <p style={shell.subtitle}>Maintain daily attendance, leave records, and working hours in one clean view.</p>
+          <p style={shell.subtitle}>Manage daily attendance, working hours, leaves and employee timelines.</p>
         </div>
         <div style={shell.dateControls}>
-          <div style={shell.topbarActions}>
+          <div className="att-date-actions" style={shell.topbarActions}>
+        <button type="button" className="att-today" onClick={() => handleDateChange(todayDate())}>Today</button>
+
           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0f172a', fontSize: '13px' }}>
             <input
               type="month"
+              aria-label="Attendance month"
+              required
               value={month}
-              onChange={(event) => handleMonthChange(event.target.value)}
+              onChange={(event) => event.target.value && handleMonthChange(event.target.value)}
               style={shell.dateInput}
             />
           </label>
-          <div style={shell.dateStepper}>
+          <div className="att-date-stepper" style={shell.dateStepper}>
             <button
               type="button"
               onClick={() => shiftSelectedDate(-1)}
@@ -1157,8 +1232,10 @@ export default function Attendance() {
             </button>
             <input
               type="date"
+              aria-label="Selected attendance date"
+              required
               value={date}
-              onChange={(event) => handleDateChange(event.target.value)}
+              onChange={(event) => event.target.value && handleDateChange(event.target.value)}
               style={shell.dateInput}
             />
             <button
@@ -1176,7 +1253,61 @@ export default function Attendance() {
       </div>
       </div>
 
-      <h3 style={shell.sectionTitle}>Month Wise Summary ({monthHeading(month)})</h3>
+      <nav className="att-tabs" aria-label="Attendance views">
+        {['Calendar View', 'Daily View', 'Team View', 'Location View'].map((label) => <button type="button" key={label} aria-pressed={view === label} className={view === label ? 'active' : ''} onClick={() => setView(label)}>{label}</button>)}
+      </nav>
+      <div className="att-metrics" aria-label="Selected date attendance totals">
+        {[['total', 'Total Employees', totalEmployees, Users], ['present', 'Present', dayCounts.present || 0, Users], ['absent', 'Absent', dayCounts.absent || 0, Users], ['leave', 'On Leave', dayCounts.leave || 0, CalendarDays], ['half-day', 'Half Day', dayCounts['half-day'] || 0, Clock3], ['weekly-off', 'Weekly Off', dayCounts['weekly-off'] || 0, Clock3]].map(([status, label, count, Icon]) => <div className="att-metric" key={status} data-status={status}><span className="att-metric-icon"><Icon size={25} /></span><div><span>{label}</span><strong>{loading ? '—' : count}</strong><small>{status === 'total' ? 'Selected date' : `${percentage(count)}% of employees`}</small></div></div>)}
+      </div>
+      <section className="att-panel att-filters" aria-label="Attendance filters">
+        <label className="att-search">Search employees<input type="search" placeholder="Search employee name or code…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+        <label>Department<select aria-label="Department" value={department} onChange={(event) => setDepartment(event.target.value)}><option value="">All Departments</option>{departments.map((name) => <option key={name}>{name}</option>)}</select></label>
+        <label>Status<select aria-label="Status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">All Statuses</option>{statusOrder.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}</select></label>
+        <button type="button" onClick={() => { setSearch(''); setDepartment(''); setStatusFilter(''); setRangeStart(''); setRangeEnd(''); }}>Clear filters</button>
+      </section>
+      {loading && <p className="att-notice" role="status">Loading attendance for {date}…</p>}
+      {statusMessage && <div className="att-notice" role="status">{statusMessage} <button type="button" onClick={() => loadData()}>Refresh attendance</button></div>}
+      <div className={`att-overview ${view === 'Calendar View' ? '' : 'att-overview-wide'}`} aria-busy={loading}>
+        {view === 'Calendar View' && <section className="att-panel att-calendar">
+          <div className="att-panel-heading"><h3><CalendarDays size={18} /> Attendance Calendar</h3><div className="att-calendar-nav"><button type="button" aria-label="Previous month" onClick={() => shiftMonth(-1)}><ChevronLeft size={16} /></button><strong>{monthHeading(month)}</strong><button type="button" aria-label="Next month" onClick={() => shiftMonth(1)}><ChevronRight size={16} /></button></div></div>
+          <div className="att-weekdays">{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => <span key={day}>{day}</span>)}</div>
+          <div className="att-calendar-grid">
+            {Array.from({ length: Math.ceil((monthStart + monthDays) / 7) * 7 }, (_, index) => {
+              const day = index - monthStart + 1;
+              if (day < 1 || day > monthDays) return <span className="att-calendar-blank" key={index} />;
+              const key = `${month}-${String(day).padStart(2, '0')}`;
+              const statuses = calendarStatuses(key);
+              const outsideRange = (rangeStart && key < rangeStart) || (rangeEnd && key > rangeEnd);
+              return <button type="button" key={key} disabled={Boolean(outsideRange)} aria-label={`${key}: ${statuses.map((status) => statusLabels[status] || status).join(', ') || 'No recorded attendance'}`} aria-pressed={date === key} className={date === key ? 'selected' : ''} onClick={() => handleDateChange(key)}><span>{day}</span><span className="att-dots">{statuses.map((status) => <i key={status} data-status={status} />)}</span></button>;
+            })}
+          </div>
+          <div className="att-legend">{statusOrder.slice(0, 5).map((status) => <span key={status}><i data-status={status} />{statusLabels[status]}</span>)}</div>
+          <details className="att-range"><summary>Filter calendar dates</summary><div><label>From<input type="date" aria-label="Calendar range start" value={rangeStart} max={rangeEnd || undefined} onChange={(event) => setRangeStart(event.target.value)} /></label><label>To<input type="date" aria-label="Calendar range end" value={rangeEnd} min={rangeStart || undefined} onChange={(event) => setRangeEnd(event.target.value)} /></label></div></details>
+          <p className="att-caption">Indicators show saved records{department ? ` · ${department}` : ''}. Blank dates have no recorded activity.</p>
+        </section>}
+        <section className="att-panel att-day-summary">
+          <div className="att-panel-heading"><h3><CalendarDays size={18} /> Selected Day Summary</h3></div>
+          <h4>{selectedDateLabel}</h4>
+          <div className="att-summary-content"><div className="att-ring" role="img" aria-label={`${percentage(dayCounts.present || 0)}% present, ${dayCounts.unmarked || 0} unmarked`} style={{ background: totalEmployees ? `conic-gradient(${ringStops.join(',')})` : 'var(--att-unmarked)' }}><div><strong>{totalEmployees}</strong><span>Employees</span></div></div>
+          <div className="att-summary-legend">{statusOrder.map((status) => <div key={status}><span><i data-status={status} />{statusLabels[status]}</span><strong>{dayCounts[status] || 0} <small>({percentage(dayCounts[status] || 0)}%)</small></strong></div>)}</div></div>
+          <div className="att-attendance-rate"><span>Attendance Percentage</span><strong>{percentage(dayCounts.present || 0)}%</strong></div>
+          <p className="att-caption">Present ÷ total employees. Unmarked means no saved record. Totals include all employees returned for this date.</p>
+        </section>
+        <section className="att-panel att-timeline">
+          <div className="att-panel-heading"><h3><Users size={18} /> {view === 'Team View' ? 'Team Attendance' : view === 'Location View' ? 'Punch Locations' : 'Employee Timeline'}</h3><span>{date}</span></div>
+          {view === 'Team View' ? <div className="att-teams">{[...new Set(filteredRows.map(({ employee }) => departmentName(employee)))].map((name) => {
+            const rows = filteredRows.filter(({ employee }) => departmentName(employee) === name);
+            return <details key={name} open><summary>{name} · {rows.length} employees · {rows.filter(({ record }) => displayStatus(record) === 'present').length} present</summary>{renderTimeline(rows)}</details>;
+          })}{!filteredRows.length && <p className="att-empty">No teams match these filters.</p>}</div>
+          : view === 'Location View' ? <div className="att-locations">{filteredRows.map(({ employee, employeeId, record }) => <article key={employeeId}><strong>{getEmployeeName(employee)}</strong><small>{employee.empCode || 'No Code'} · {formatAttendanceSourceLabel(record.source)}</small><div>{['in', 'out'].map((type) => {
+            const prefix = type === 'in' ? 'punchIn' : 'punchOut';
+            const captured = record[`${prefix}MapUrl`] || (record[`${prefix}Latitude`] != null && record[`${prefix}Longitude`] != null);
+            return captured ? <button key={type} type="button" onClick={() => openLocationModal(record, type, getEmployeeName(employee))}><MapPinned size={14} />{type === 'in' ? 'Check In' : 'Check Out'} location</button> : <span key={type}>{type === 'in' ? 'In' : 'Out'}: Not captured</span>;
+          })}</div></article>)}{!filteredRows.length && <p className="att-empty">No employees match these filters.</p>}</div>
+          : renderTimeline(filteredRows)}
+        </section>
+      </div>
+      <details className="att-month-summary"><summary>Month Wise Summary · {monthHeading(month)}</summary>      <h3 style={shell.sectionTitle}>Month Wise Summary ({monthHeading(month)})</h3>
       <div style={shell.summaryGrid}>
         <div className="attendance-summary-card" style={shell.summaryCard}>
           <span style={shell.summaryLabel}><Users size={13} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Employees Marked</span>
@@ -1204,6 +1335,11 @@ export default function Attendance() {
         </div>
       </div>
 
+      </details>
+      <section className="att-panel att-records">
+        <div className="att-panel-heading"><h3><CalendarDays size={18} /> Attendance Records · {date}</h3><span>{filteredRows.length} of {totalEmployees} employees · Auto-save enabled</span></div>
+        <p className="att-table-hint">Scroll horizontally to edit all attendance fields. Select Present to enable time editing.</p>
+      <fieldset className="att-editors" disabled={loading}>
       <div style={shell.tableWrap}>
         <table
           style={{
@@ -1263,7 +1399,7 @@ export default function Attendance() {
             </tr>
           </thead>
           <tbody>
-            {employeeRows.map(({ employee, employeeId, record, workingHours, attendanceMetrics }) => {
+            {filteredRows.map(({ employee, employeeId, record, workingHours, attendanceMetrics }) => {
               const status = record.status || 'absent';
               const timeDisabled = status !== 'present';
               const checkInPickerValue = normalizeManualTimeInput(record.checkIn) || '';
@@ -1271,11 +1407,11 @@ export default function Attendance() {
               const checkInEditKey = `${employeeId}:checkIn`;
               const checkOutEditKey = `${employeeId}:checkOut`;
               return (
-                <tr key={employeeId}>
+                <tr key={employeeId} data-employee-id={employeeId}>
                   <td style={shell.td}>
                     <div style={shell.nameCell}>
                       <span style={shell.empName}>{getEmployeeName(employee)}</span>
-                      <span style={shell.empCode}>{employee.empCode || 'No Code'} • {employee.role || 'Employee'}</span>
+                      <span style={shell.empCode}>{employee.empCode || 'No Code'} • {departmentName(employee)}{!record.recorded ? ' · Unmarked' : ''}</span>
                     </div>
                   </td>
                   <td style={shell.td}>
@@ -1283,13 +1419,19 @@ export default function Attendance() {
                       <button
                         type="button"
                         style={{ ...shell.statusBtn, ...(status === 'present' ? statusTheme.present : {}) }}
+                        data-status="present"
+                        aria-label="Present"
+                        aria-pressed={Boolean(record.recorded && status === 'present')}
                         onClick={() => setStatus(employeeId, 'present')}
                       >
                         P
                       </button>
                       <button
                         type="button"
-                        style={{ ...shell.statusBtn, ...(status === 'absent' ? statusTheme.absent : {}) }}
+                        style={{ ...shell.statusBtn, ...(record.recorded && status === 'absent' ? statusTheme.absent : {}) }}
+                        data-status="absent"
+                        aria-label="Absent"
+                        aria-pressed={Boolean(record.recorded && status === 'absent')}
                         onClick={() => setStatus(employeeId, 'absent')}
                       >
                         A
@@ -1297,13 +1439,19 @@ export default function Attendance() {
                       <button
                         type="button"
                         style={{ ...shell.statusBtn, ...(status === 'leave' || status === 'half-day' ? statusTheme.leave : {}) }}
+                        data-status="leave"
+                        aria-label="Leave"
+                        aria-pressed={Boolean(record.recorded && status === 'leave')}
                         onClick={() => setStatus(employeeId, 'leave')}
                       >
                         L
                       </button>
                       <button
                         type="button"
-                        style={{ ...shell.statusBtn, ...(status === 'weekly-off' ? statusTheme['weekly-off'] : {}) }}
+                        style={{ ...shell.statusBtn, ...(record.recorded && status === 'weekly-off' ? statusTheme['weekly-off'] : {}) }}
+                        data-status="weekly-off"
+                        aria-label="Weekly Off"
+                        aria-pressed={Boolean(record.recorded && status === 'weekly-off')}
                         onClick={() => setStatus(employeeId, 'weekly-off')}
                       >
                         WO
@@ -1317,7 +1465,7 @@ export default function Attendance() {
                         inputMode="numeric"
                         value={editingTimeKey === checkInEditKey ? sanitizeManualTimeInput(record.checkIn) : getEditableTimeValue(record.checkIn)}
                         disabled={timeDisabled}
-                        placeholder="09:30 AM"
+                        placeholder="--:--"
                         aria-label="Check in time"
                         style={{ ...shell.timeTextInput, cursor: timeDisabled ? 'default' : 'text' }}
                         onFocus={() => handleManualTimeFocus(employeeId, 'checkIn')}
@@ -1343,7 +1491,7 @@ export default function Attendance() {
                         inputMode="numeric"
                         value={editingTimeKey === checkOutEditKey ? sanitizeManualTimeInput(record.checkOut) : getEditableTimeValue(record.checkOut)}
                         disabled={timeDisabled}
-                        placeholder="05:30 PM"
+                        placeholder="--:--"
                         aria-label="Check out time"
                         style={{ ...shell.timeTextInput, cursor: timeDisabled ? 'default' : 'text' }}
                         onFocus={() => handleManualTimeFocus(employeeId, 'checkOut')}
@@ -1386,11 +1534,13 @@ export default function Attendance() {
                   <td style={shell.td}>
                     <select
                       value={record.leaveType || ''}
+                      aria-label={`Leave type for ${getEmployeeName(employee)}`}
                       style={shell.input}
                       onChange={(event) => {
                         setLeaveType(employeeId, event.target.value);
                       }}
                     >
+                      {record.leaveType && !leaveTypes.some((entry) => entry.value === record.leaveType) ? <option value={record.leaveType}>{record.leaveType} (saved)</option> : null}
                       {leaveTypes.map((entry) => (
                         <option key={entry.value || 'none'} value={entry.value}>{entry.label}</option>
                       ))}
@@ -1402,7 +1552,7 @@ export default function Attendance() {
                         <button
                           type="button"
                           style={shell.mapBtn}
-                          onClick={() => openLocationModal(record, 'in', employee.fullName || employee.name)}
+                          onClick={() => openLocationModal(record, 'in', getEmployeeName(employee))}
                         >
                           <MapPinned size={12} /> In
                         </button>
@@ -1411,7 +1561,7 @@ export default function Attendance() {
                         <button
                           type="button"
                           style={shell.mapBtn}
-                          onClick={() => openLocationModal(record, 'out', employee.fullName || employee.name)}
+                          onClick={() => openLocationModal(record, 'out', getEmployeeName(employee))}
                         >
                           <MapPinned size={12} /> Out
                         </button>
@@ -1426,15 +1576,17 @@ export default function Attendance() {
                 </tr>
               );
             })}
-            {employeeRows.length === 0 ? (
+            {filteredRows.length === 0 ? (
               <tr>
-                <td style={shell.td} colSpan={9}>No employees found. Add employees in Employee Master to begin attendance.</td>
+                <td style={shell.td} colSpan={9}>{loading ? 'Loading attendance…' : employees.length ? 'No employees match these filters.' : 'No employees found. Add employees in Employee Master to begin attendance.'}</td>
               </tr>
             ) : null}
           </tbody>
         </table>
       </div>
-      <p style={shell.footerNote}>{statusMessage || 'Tip: Attendance auto-saves when you change status, leave, or move out of time fields. Overtime follows the 9:30 AM - 5:30 PM shift, and Sunday work is paid normally.'}</p>
+      </fieldset>
+      </section>
+      <p role="status" aria-live="polite" style={shell.footerNote}>{statusMessage || 'Tip: Attendance auto-saves when you change status, leave, or move out of time fields. Overtime follows the 9:30 AM - 5:30 PM shift, and Sunday work is paid normally.'}</p>
 
       {auditModal.open ? (
         <div style={shell.modalBg}>
