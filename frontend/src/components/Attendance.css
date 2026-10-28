@@ -662,3 +662,134 @@ html[data-theme] body .app-layout .main-content .attendance-page .att-tabs butto
     flex:1 0 100%;
   }
 }
+
+/* Fit the Attendance records to their own panel, including with an expanded sidebar. */
+.att-records {
+  container: attendance-records / inline-size;
+}
+.attendance-page .att-table-fit {
+  width: 100%;
+  min-width: 0;
+  overflow: visible !important;
+}
+.attendance-page .att-records-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  table-layout: fixed;
+}
+.attendance-page .att-records-table :is(th, td) {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none;
+  padding: 10px 6px;
+  overflow-wrap: anywhere;
+}
+.attendance-page .att-records-table th {
+  font-size: 10px !important;
+}
+.attendance-page .att-status-controls {
+  min-width: 0 !important;
+  gap: 4px !important;
+  flex-wrap: wrap !important;
+}
+.attendance-page .att-status-controls button {
+  width: 27px !important;
+  min-width: 27px !important;
+}
+.attendance-page .att-time-control {
+  min-width: 0;
+  padding: 0 6px !important;
+  gap: 4px !important;
+}
+.attendance-page .att-time-control input[type="text"] {
+  font-size: 12px !important;
+}
+.attendance-page .att-records-table select {
+  min-width: 0 !important;
+  max-width: 100%;
+  padding-inline: 6px;
+  font-size: 11px !important;
+}
+.attendance-page .att-records-table td[data-label="Working Hours"] span {
+  min-width: 0 !important;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+.attendance-page .att-location-controls {
+  flex-wrap: wrap !important;
+  white-space: normal !important;
+}
+.attendance-page .att-audit-action {
+  width: 100%;
+  height: auto !important;
+  min-height: 30px;
+  padding: 5px 4px !important;
+  white-space: normal !important;
+  font-size: 11px !important;
+}
+@container attendance-records (max-width: 1000px) {
+  .attendance-page .att-records-table,
+  .attendance-page .att-records-table tbody {
+    display: block;
+  }
+  .attendance-page .att-records-table colgroup {
+    display: none;
+  }
+  .attendance-page .att-records-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .attendance-page .att-records-table tbody {
+    display: grid;
+    gap: 12px;
+  }
+  .attendance-page .att-records-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--att-border);
+    border-radius: 8px;
+    background: var(--table-row-bg);
+  }
+  .attendance-page .att-records-table tbody td {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+    padding: 0;
+    border: 0;
+    text-align: left !important;
+  }
+  .attendance-page .att-records-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .attendance-page .att-records-table td:is([data-label="Employee"], [data-label="Status"], [data-label="Actions"], [colspan]) {
+    grid-column: 1 / -1;
+  }
+  .attendance-page .att-status-controls,
+  .attendance-page .att-location-controls {
+    justify-content: flex-start !important;
+  }
+  .attendance-page .att-status-controls button {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+  }
+  .attendance-page .att-audit-action {
+    width: fit-content;
+    min-width: 96px;
+  }
+}
+@container attendance-records (max-width: 300px) {
+  .attendance-page .att-records-table tbody tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

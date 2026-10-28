@@ -1338,25 +1338,12 @@ export default function Attendance() {
       </details>
       <section className="att-panel att-records">
         <div className="att-panel-heading"><h3><CalendarDays size={18} /> Attendance Records · {date}</h3><span>{filteredRows.length} of {totalEmployees} employees · Auto-save enabled</span></div>
-        <p className="att-table-hint">Scroll horizontally to edit all attendance fields. Select Present to enable time editing.</p>
+        <p className="att-table-hint">Select Present to enable time editing. Changes auto-save.</p>
       <fieldset className="att-editors" disabled={loading}>
-      <div style={shell.tableWrap}>
-        <table
-          style={{
-            ...shell.table,
-            minWidth: `${getColumnWidth('employee') + getColumnWidth('status') + getColumnWidth('checkIn') + getColumnWidth('checkOut') + getColumnWidth('workingHours') + getColumnWidth('leaveType') + getColumnWidth('location') + getColumnWidth('source') + getColumnWidth('actions')}px`
-          }}
-        >
+      <div className="att-table-fit" style={shell.tableWrap}>
+        <table className="att-records-table" style={{ ...shell.table, minWidth: 0, tableLayout: 'fixed' }}>
           <colgroup>
-            <col style={{ width: `${getColumnWidth('employee')}px` }} />
-            <col style={{ width: `${getColumnWidth('status')}px` }} />
-            <col style={{ width: `${getColumnWidth('checkIn')}px` }} />
-            <col style={{ width: `${getColumnWidth('checkOut')}px` }} />
-            <col style={{ width: `${getColumnWidth('workingHours')}px` }} />
-            <col style={{ width: `${getColumnWidth('leaveType')}px` }} />
-            <col style={{ width: `${getColumnWidth('location')}px` }} />
-            <col style={{ width: `${getColumnWidth('source')}px` }} />
-            <col style={{ width: `${getColumnWidth('actions')}px` }} />
+            {[18, 13, 11, 11, 10, 13, 9, 7, 8].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}
           </colgroup>
           <thead>
             <tr>
@@ -1408,14 +1395,14 @@ export default function Attendance() {
               const checkOutEditKey = `${employeeId}:checkOut`;
               return (
                 <tr key={employeeId} data-employee-id={employeeId}>
-                  <td style={shell.td}>
+                  <td data-label="Employee" style={shell.td}>
                     <div style={shell.nameCell}>
                       <span style={shell.empName}>{getEmployeeName(employee)}</span>
                       <span style={shell.empCode}>{employee.empCode || 'No Code'} • {departmentName(employee)}{!record.recorded ? ' · Unmarked' : ''}</span>
                     </div>
                   </td>
-                  <td style={shell.td}>
-                    <div style={shell.statusBtns}>
+                  <td data-label="Status" style={shell.td}>
+                    <div className="att-status-controls" style={shell.statusBtns}>
                       <button
                         type="button"
                         style={{ ...shell.statusBtn, ...(status === 'present' ? statusTheme.present : {}) }}
@@ -1458,8 +1445,8 @@ export default function Attendance() {
                       </button>
                     </div>
                   </td>
-                  <td style={shell.td}>
-                    <div style={shell.timePickerShell}>
+                  <td data-label="Check In" style={shell.td}>
+                    <div className="att-time-control" style={shell.timePickerShell}>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -1484,8 +1471,8 @@ export default function Attendance() {
                       />
                     </div>
                   </td>
-                  <td style={shell.td}>
-                    <div style={shell.timePickerShell}>
+                  <td data-label="Check Out" style={shell.td}>
+                    <div className="att-time-control" style={shell.timePickerShell}>
                       <input
                         type="text"
                         inputMode="numeric"
@@ -1510,7 +1497,7 @@ export default function Attendance() {
                       />
                     </div>
                   </td>
-                  <td style={shell.td}>
+                  <td data-label="Working Hours" style={shell.td}>
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
                       <div style={shell.hoursBadgeStack}>
                         <span className="attendance-hours-badge" style={shell.hoursBadge}>{formatDurationHours(workingHours)}</span>
@@ -1531,7 +1518,7 @@ export default function Attendance() {
                       </div>
                     </div>
                   </td>
-                  <td style={shell.td}>
+                  <td data-label="Leave Type" style={shell.td}>
                     <select
                       value={record.leaveType || ''}
                       aria-label={`Leave type for ${getEmployeeName(employee)}`}
@@ -1546,8 +1533,8 @@ export default function Attendance() {
                       ))}
                     </select>
                   </td>
-                  <td style={shell.td}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'nowrap', whiteSpace: 'nowrap', width: '100%' }}>
+                  <td data-label="Location" style={shell.td}>
+                    <div className="att-location-controls" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'nowrap', whiteSpace: 'nowrap', width: '100%' }}>
                       {record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) ? (
                         <button
                           type="button"
@@ -1569,9 +1556,9 @@ export default function Attendance() {
                       {!(record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) || record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude)) ? '-' : null}
                     </div>
                   </td>
-                  <td style={{ ...shell.td, textAlign: 'center' }}>{formatAttendanceSourceLabel(record.source)}</td>
-                  <td style={shell.td}>
-                    <button type="button" style={shell.actionBtn} onClick={() => openAudit({ employeeId, employee, record })}>View Audit</button>
+                  <td data-label="Source" style={{ ...shell.td, textAlign: 'center' }}>{formatAttendanceSourceLabel(record.source)}</td>
+                  <td data-label="Actions" style={shell.td}>
+                    <button type="button" className="att-audit-action" style={shell.actionBtn} onClick={() => openAudit({ employeeId, employee, record })}>View Audit</button>
                   </td>
                 </tr>
               );
