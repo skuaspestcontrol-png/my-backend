@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPinned, Users } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, History, MapPinned, Search, Users } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
 import { buildPortalAuthHeaders } from '../utils/portalAuth';
 import { formatDurationHours } from '../utils/duration';
@@ -1337,13 +1337,26 @@ export default function Attendance() {
 
       </details>
       <section className="att-panel att-records">
-        <div className="att-panel-heading"><h3><CalendarDays size={18} /> Attendance Records · {date}</h3><span>{filteredRows.length} of {totalEmployees} employees · Auto-save enabled</span></div>
-        <p className="att-table-hint">Select Present to enable time editing. Changes auto-save.</p>
+        <div className="att-records-header">
+          <div className="att-records-copy">
+            <h3><CalendarDays size={23} /> Attendance Records · {new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
+            <p>Manage daily attendance, working hours, leave types and locations. Changes auto-save.</p>
+            <small>Select Present to enable time editing.</small>
+          </div>
+          <div className="att-records-tools">
+            <div className="att-records-toolbar" role="group" aria-label="Attendance records filters">
+              <label className="att-records-search"><Search size={15} aria-hidden="true" /><input type="search" aria-label="Search attendance records" placeholder="Search employee (name or code)…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+              <select aria-label="Attendance records department" value={department} onChange={(event) => setDepartment(event.target.value)}><option value="">All Departments</option>{departments.map((name) => <option key={name}>{name}</option>)}</select>
+              <select aria-label="Attendance records status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">All Statuses</option>{statusOrder.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}</select>
+            </div>
+            <span className="att-records-autosave"><i aria-hidden="true" />{filteredRows.length} of {totalEmployees} employees · Auto-save enabled</span>
+          </div>
+        </div>
       <fieldset className="att-editors" disabled={loading}>
       <div className="att-table-fit" style={shell.tableWrap}>
         <table className="att-records-table" style={{ ...shell.table, minWidth: 0, tableLayout: 'fixed' }}>
           <colgroup>
-            {[18, 13, 11, 11, 10, 13, 9, 7, 8].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}
+            {[16, 13, 11, 11, 9, 11, 10, 9, 10].map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}
           </colgroup>
           <thead>
             <tr>
@@ -1396,9 +1409,12 @@ export default function Attendance() {
               return (
                 <tr key={employeeId} data-employee-id={employeeId}>
                   <td data-label="Employee" style={shell.td}>
-                    <div style={shell.nameCell}>
-                      <span style={shell.empName}>{getEmployeeName(employee)}</span>
-                      <span style={shell.empCode}>{employee.empCode || 'No Code'} • {departmentName(employee)}{!record.recorded ? ' · Unmarked' : ''}</span>
+                    <div className="att-record-employee">
+                      <span className="att-record-avatar" aria-hidden="true">{getEmployeeName(employee).split(/\s+/).map((word) => word[0]).slice(0, 2).join('')}</span>
+                      <div style={shell.nameCell}>
+                        <span style={shell.empName}>{getEmployeeName(employee)}</span>
+                        <span style={shell.empCode}>{employee.empCode || 'No Code'} · {employee.role || employee.roleName || departmentName(employee)}{!record.recorded ? ' · Unmarked' : ''}</span>
+                      </div>
                     </div>
                   </td>
                   <td data-label="Status" style={shell.td}>
@@ -1499,10 +1515,12 @@ export default function Attendance() {
                   </td>
                   <td data-label="Working Hours" style={shell.td}>
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                      <div style={shell.hoursBadgeStack}>
+                      <div className="att-record-hours" style={shell.hoursBadgeStack}>
                         <span className="attendance-hours-badge" style={shell.hoursBadge}>{formatDurationHours(workingHours)}</span>
                         {attendanceMetrics.overtimeLabel ? (
                           <span
+                            className="att-record-overtime"
+                            data-tone={attendanceMetrics.overtimeTone}
                             style={{
                               ...shell.overtimeBadge,
                               ...(attendanceMetrics.overtimeTone === 'positive' ? shell.overtimeBadgePositive : {}),
@@ -1538,27 +1556,35 @@ export default function Attendance() {
                       {record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) ? (
                         <button
                           type="button"
+                          className="att-record-location"
+                          data-punch="in"
+                          aria-label={`View check-in location for ${getEmployeeName(employee)}`}
+                          title={record.punchInAddress || 'View check-in location'}
                           style={shell.mapBtn}
                           onClick={() => openLocationModal(record, 'in', getEmployeeName(employee))}
                         >
-                          <MapPinned size={12} /> In
+                          <MapPinned size={12} aria-hidden="true" /><span>In</span>{record.actualCheckIn ? <small>{formatAttendanceDisplayTime(record.actualCheckIn)}</small> : null}
                         </button>
                       ) : null}
                       {record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude) ? (
                         <button
                           type="button"
+                          className="att-record-location"
+                          data-punch="out"
+                          aria-label={`View check-out location for ${getEmployeeName(employee)}`}
+                          title={record.punchOutAddress || 'View check-out location'}
                           style={shell.mapBtn}
                           onClick={() => openLocationModal(record, 'out', getEmployeeName(employee))}
                         >
-                          <MapPinned size={12} /> Out
+                          <MapPinned size={12} aria-hidden="true" /><span>Out</span>{record.actualCheckOut ? <small>{formatAttendanceDisplayTime(record.actualCheckOut)}</small> : null}
                         </button>
                       ) : null}
                       {!(record.punchInMapUrl || (record.punchInLatitude && record.punchInLongitude) || record.punchOutMapUrl || (record.punchOutLatitude && record.punchOutLongitude)) ? '-' : null}
                     </div>
                   </td>
-                  <td data-label="Source" style={{ ...shell.td, textAlign: 'center' }}>{formatAttendanceSourceLabel(record.source)}</td>
+                  <td data-label="Source" style={{ ...shell.td, textAlign: 'center' }}><span className="att-record-source">{formatAttendanceSourceLabel(record.source)}</span></td>
                   <td data-label="Actions" style={shell.td}>
-                    <button type="button" className="att-audit-action" style={shell.actionBtn} onClick={() => openAudit({ employeeId, employee, record })}>View Audit</button>
+                    <button type="button" className="att-audit-action" style={shell.actionBtn} onClick={() => openAudit({ employeeId, employee, record })}><History size={13} aria-hidden="true" /><span>View Audit</span></button>
                   </td>
                 </tr>
               );
