@@ -1,0 +1,130 @@
+/* Customer pilot only. Other forms opt in after owner review. */
+html[data-theme] body .crm-modal-surface.skuas-form-modal {
+  --form-header: var(--ui-navy, #1b2342);
+  --form-body: var(--ui-card, #fff);
+  --form-border: var(--ui-border, #e2e8f0);
+  --form-text: var(--ui-text, #172033);
+  --form-muted: var(--ui-muted, #64748b);
+  width: min(1040px, 100%) !important;
+  max-width: 100% !important;
+  max-height: min(940px, calc(100dvh - 40px)) !important;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--form-body) !important;
+  border-color: var(--form-border) !important;
+  color: var(--form-text) !important;
+  box-sizing: border-box;
+}
+html[data-theme="dark"] body .crm-modal-surface.skuas-form-modal { --form-header: var(--ui-navy-deep, #111b34); }
+html[data-theme][data-branding] body .crm-modal-surface.skuas-form-modal .skuas-modal-header {
+  flex: 0 0 auto;
+  height: auto !important;
+  min-height: 80px !important;
+  padding: 16px 24px !important;
+  gap: 16px !important;
+  background: var(--form-header) !important;
+  color: #fff !important;
+  overflow: visible;
+}
+html[data-theme] body .skuas-form-modal .skuas-modal-header h3 { color: #fff !important; -webkit-text-fill-color: #fff !important; font-size: 22px !important; line-height: 1.3 !important; }
+html[data-theme] body .skuas-form-modal .skuas-modal-header p { margin: 4px 0 0 !important; color: #d6e1f3 !important; -webkit-text-fill-color: #d6e1f3 !important; font-size: 13px !important; font-weight: 400 !important; line-height: 1.4 !important; }
+html[data-theme][data-branding] body .crm-modal-surface.skuas-form-modal .skuas-modal-header .skuas-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 40px;
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border: 1px solid rgb(255 255 255 / 25%) !important;
+  border-radius: 12px !important;
+  background: rgb(255 255 255 / 8%) !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  box-shadow: none !important;
+  cursor: pointer;
+  transition: background-color 250ms ease, border-color 250ms ease, transform 250ms ease;
+}
+html[data-theme][data-branding] body .skuas-form-modal .skuas-modal-header .skuas-modal-close svg {
+  width: 22px !important;
+  height: 22px !important;
+  color: #fff !important;
+  stroke: currentColor !important;
+  transition: transform 250ms ease;
+}
+html[data-theme][data-branding] body .skuas-form-modal .skuas-modal-header .skuas-modal-close:hover:not(:disabled) { background: rgb(255 255 255 / 18%) !important; border-color: rgb(255 255 255 / 45%) !important; transform: scale(1.06); }
+html[data-theme][data-branding] body .skuas-form-modal .skuas-modal-header .skuas-modal-close:hover:not(:disabled) svg { transform: rotate(90deg); }
+html[data-theme][data-branding] body .skuas-form-modal .skuas-modal-header .skuas-modal-close:active:not(:disabled) { transform: scale(.96); }
+html[data-theme][data-branding] body .skuas-form-modal .skuas-modal-header .skuas-modal-close:focus-visible { outline: 3px solid #93c5fd !important; outline-offset: 3px; }
+.skuas-form-modal .skuas-modal-close:disabled { opacity: .55; cursor: not-allowed; }
+html[data-theme] body .crm-modal-surface.skuas-form-modal .skuas-modal-body {
+  display: grid;
+  gap: 24px;
+  padding: 24px !important;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  background: var(--form-body) !important;
+  color: var(--form-text) !important;
+}
+html[data-theme] body .skuas-form-modal .skuas-form-section { min-width: 0; background: transparent !important; }
+html[data-theme] body .skuas-form-modal .skuas-form-section > h4 { margin: 0 0 16px; color: var(--form-text) !important; font-size: 16px; font-weight: 700; line-height: 1.4; }
+.skuas-form-modal .skuas-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 24px; min-width: 0; }
+.skuas-form-modal .skuas-form-field { display: grid; align-content: start; gap: 8px; min-width: 0; }
+html[data-theme] body .skuas-form-modal :is(.skuas-form-field > label, .customer-modal-address-card label, .skuas-address-search > label) { color: var(--form-text) !important; font-size: 13px; font-weight: 600; line-height: 1.4; text-transform: none; letter-spacing: 0; }
+.skuas-form-modal .skuas-form-field > [role="group"], .skuas-form-modal .skuas-form-field > [role="group"] > div { min-width: 0; }
+html[data-theme] body .skuas-form-modal :is(input, select, textarea):not([type="radio"], [type="checkbox"]) {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 42px;
+  border: 1px solid var(--form-border) !important;
+  border-radius: 9px !important;
+  background: var(--input-bg) !important;
+  color: var(--form-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-size: 14px;
+}
+.skuas-form-modal :is(input,select,textarea):disabled { opacity: .65; }
+html[data-theme] body .skuas-form-modal :is(input,select,textarea,button):focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.skuas-form-modal .skuas-form-wide { grid-column: 1 / -1; min-width: 0; }
+.skuas-form-modal .skuas-address-search { display: grid; gap: 8px; margin-bottom: 18px; min-width: 0; }
+.skuas-form-modal .skuas-address-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 16px !important; min-width: 0; }
+html[data-theme] body .skuas-form-modal .customer-modal-address-card { min-width: 0; padding: 16px !important; border-color: var(--form-border) !important; background: var(--form-body) !important; }
+.skuas-form-modal .customer-modal-address-card > div:first-child { flex-wrap: wrap; gap: 8px; }
+html[data-theme] body .crm-modal-surface.skuas-form-modal .skuas-modal-footer {
+  flex: 0 0 auto;
+  height: auto !important;
+  min-height: 76px !important;
+  padding: 16px 24px !important;
+  background: var(--form-body) !important;
+  border-color: var(--form-border) !important;
+  gap: 12px !important;
+}
+.skuas-form-modal .skuas-form-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-left: auto; }
+html[data-theme] body .skuas-form-modal .skuas-modal-footer button { min-height: 42px; border-radius: 9px; }
+html[data-theme][data-branding] body .skuas-form-modal .skuas-modal-footer button[type="submit"] { background: var(--ui-action) !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+.skuas-form-modal .skuas-modal-footer [role="alert"] { flex: 1 1 220px; }
+@media (max-width: 900px) {
+  .skuas-form-modal .skuas-address-grid { grid-template-columns: minmax(0,1fr) !important; }
+}
+@media (max-width: 700px) {
+  html[data-theme] body .crm-modal-surface.skuas-form-modal { max-height: calc(100dvh - 24px) !important; }
+  html[data-theme][data-branding] body .crm-modal-surface.skuas-form-modal .skuas-modal-header { padding: 14px 16px !important; }
+  html[data-theme] body .crm-modal-surface.skuas-form-modal .skuas-modal-body { padding: 18px 16px !important; gap: 20px; }
+  .skuas-form-modal .skuas-form-grid { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  html[data-theme] body .crm-modal-surface.skuas-form-modal .skuas-modal-footer { padding: 12px 16px !important; }
+  .skuas-form-modal .skuas-form-actions { width: 100%; }
+  .skuas-form-modal .skuas-form-actions > button { flex: 1; padding-inline: 12px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme][data-branding] body .skuas-form-modal .skuas-modal-header .skuas-modal-close,
+  html[data-theme][data-branding] body .skuas-form-modal .skuas-modal-header .skuas-modal-close svg { transition: none !important; transform: none !important; }
+}
+.skuas-customer-form-overlay { padding: 20px !important; box-sizing: border-box; }
+.skuas-form-modal .skuas-address-fields { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (max-width: 700px) { .skuas-customer-form-overlay { padding: 12px !important; } }

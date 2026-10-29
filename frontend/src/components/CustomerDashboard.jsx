@@ -7,6 +7,7 @@ import { AlertTriangle, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search,
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
+import { CRMModal, CRMModalHeader, CRMModalBody, CRMModalFooter, CRMFormSection, CRMFormGrid, CRMFormField, CRMFormActions } from './ui/CRMForm';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
@@ -3412,18 +3413,11 @@ export default function CustomerDashboard() {
       ) : null}
 
       {showModal ? createPortal(
-        <div style={modalOverlayStyle}>
-          <form className="crm-modal-surface customer-modal-surface" style={modalStyle} onSubmit={handleSubmit}>
-            <div className="crm-modal-surface-header" style={modalHeaderStyle}>
-              <h3 style={shell.modalHeaderTitle}>{editingId ? 'Edit Customer' : 'New Customer'}</h3>
-              <button type="button" style={shell.modalCloseButton} onClick={closeModal} aria-label="Close">
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="crm-modal-surface-body" style={modalBodyStyle}>
-              <label style={shell.label}>Segment</label>
-              <div style={shell.inlineChecks}>
+        <div className="skuas-customer-form-overlay" style={modalOverlayStyle}>
+          <CRMModal as="form" className="customer-modal-surface" style={modalStyle} onSubmit={handleSubmit} aria-labelledby="customer-form-title">
+<CRMModalHeader title={editingId ? 'Edit Customer' : 'New Customer'} titleId="customer-form-title" subtitle="Contact information, addresses and service premises" onClose={closeModal} closeDisabled={isSaving} />
+<CRMModalBody>
+<CRMFormSection title="Customer details"><CRMFormGrid><CRMFormField label="Segment"><div style={shell.inlineChecks}>
                 <label>
                   <input
                     type="radio"
@@ -3442,10 +3436,8 @@ export default function CustomerDashboard() {
                   />{' '}
                   Commercial
                 </label>
-              </div>
-
-              <label style={shell.label}>Company Name</label>
-              <input
+              </div></CRMFormField>
+<CRMFormField label="Company Name"><input
                 style={shell.input}
                 value={form.companyName}
                 onChange={(event) =>
@@ -3454,10 +3446,8 @@ export default function CustomerDashboard() {
                     companyName: event.target.value
                   }))
                 }
-              />
-
-              <label style={shell.label}>Contact Person Name</label>
-              <input
+              /></CRMFormField>
+<CRMFormField label="Contact Person Name"><input
                 style={shell.input}
                 value={form.contactPersonName}
                 onChange={(event) =>
@@ -3466,10 +3456,8 @@ export default function CustomerDashboard() {
                     contactPersonName: event.target.value
                   }))
                 }
-              />
-
-                <label style={shell.label}>Display Name</label>
-                <select
+              /></CRMFormField>
+<CRMFormField label="Display Name"><select
                   style={shell.input}
                   value={displayNameOptions.includes(form.displayName) ? form.displayName : (displayNameOptions[0] || '')}
                   onChange={(event) => setForm((prev) => ({ ...prev, displayName: event.target.value }))}
@@ -3480,10 +3468,8 @@ export default function CustomerDashboard() {
                 {displayNameOptions.map((option) => (
                   <option key={option} value={option}>{option}</option>
                 ))}
-              </select>
-
-              <label style={shell.label}>Position</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px' }}>
+              </select></CRMFormField>
+<CRMFormField label="Position"><div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px' }}>
                 <select
                   style={shell.input}
                   value={form.position}
@@ -3500,10 +3486,8 @@ export default function CustomerDashboard() {
                   value={form.positionCustom}
                   onChange={(event) => setForm((prev) => ({ ...prev, positionCustom: event.target.value }))}
                 />
-              </div>
-
-              <label style={shell.label}>Mobile Number</label>
-              <input
+              </div></CRMFormField>
+<CRMFormField label="Mobile Number"><input
                 style={shell.input}
                 value={form.mobileNumber}
                 inputMode="numeric"
@@ -3517,9 +3501,8 @@ export default function CustomerDashboard() {
                     };
                   })
                 }
-              />
-
-              {inlineDuplicateWarning ? (
+              /></CRMFormField>
+<div className="skuas-form-wide">{inlineDuplicateWarning ? (
                 <>
                   <div />
                   <div style={shell.inlineDuplicateWarning}>
@@ -3527,10 +3510,8 @@ export default function CustomerDashboard() {
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{inlineDuplicateWarning}</span>
                   </div>
                 </>
-              ) : null}
-
-              <label style={shell.label}>WhatsApp Number</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'center' }}>
+              ) : null}</div>
+<CRMFormField label="WhatsApp Number"><div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'center' }}>
                 <input
                   style={shell.input}
                   value={form.whatsappSameAsMobile ? form.mobileNumber : form.whatsappNumber}
@@ -3552,26 +3533,20 @@ export default function CustomerDashboard() {
                   />{' '}
                   Same as mobile
                 </label>
-              </div>
-
-              <label style={shell.label}>Alt Number</label>
-              <input
+              </div></CRMFormField>
+<CRMFormField label="Alt Number"><input
                 style={shell.input}
                 value={form.altNumber}
                 inputMode="numeric"
                 onChange={(event) => setForm((prev) => ({ ...prev, altNumber: toTenDigitNumber(event.target.value) }))}
-              />
-
-              <label style={shell.label}>Email Id</label>
-              <input
+              /></CRMFormField>
+<CRMFormField label="Email Id"><input
                 style={shell.input}
                 type="email"
                 value={form.emailId}
                 onChange={(event) => setForm((prev) => ({ ...prev, emailId: event.target.value }))}
-              />
-
-              <label style={shell.label}>GST Number</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '8px' }}>
+              /></CRMFormField>
+<CRMFormField label="GST Number"><div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '8px' }}>
                 <label style={{ ...shell.inlineChecks, fontSize: '12px' }}>
                   <input
                     type="checkbox"
@@ -3594,50 +3569,32 @@ export default function CustomerDashboard() {
                     }))
                   }
                 />
-              </div>
-
-              {renderAddressSearchControls('billing')}
-
-              <label style={shell.label}>Billing Address</label>
-              <div style={addressSplitStyle}>
+              </div></CRMFormField></CRMFormGrid></CRMFormSection>
+<CRMFormSection title="Addresses"><div className="skuas-address-search">{renderAddressSearchControls('billing')}</div><div className="skuas-address-grid" style={addressSplitStyle}>
                 <div className="customer-modal-address-card" style={shell.addressCard}>
                   <div style={shell.addressHead}>
                     <h4 style={shell.addressTitle}>Billing Address</h4>
                   </div>
-                  <div style={addressGridStyle}>
-                    <label style={shell.label}>Attention</label>
-                    <input
+                  <CRMFormGrid className="skuas-address-fields"><CRMFormField label="Attention"><input
                       style={shell.input}
                       value={form.billingAttention}
                       onChange={(event) => updateBillingAttention(event.target.value)}
-                    />
-
-                    <label style={shell.label}>Address</label>
-                    <textarea style={shell.textarea} value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} />
-
-                    <label style={shell.label}>Area Name</label>
-                    <input
+                    /></CRMFormField>
+<CRMFormField label="Address"><textarea style={shell.textarea} value={form.billingStreet1} onChange={(event) => updateBillingField('billingStreet1', event.target.value)} /></CRMFormField>
+<CRMFormField label="Area Name"><input
                       style={shell.input}
                       value={form.billingArea}
                       onChange={(event) => updateBillingField('billingArea', event.target.value)}
-                    />
-
-                    <label style={shell.label}>City</label>
-                    <input
+                    /></CRMFormField>
+<CRMFormField label="City"><input
                       style={shell.input}
                       value={form.billingCity}
                       onChange={(event) => updateBillingField('billingCity', event.target.value)}
-                    />
-
-                    <label style={shell.label}>State</label>
-                    <select style={shell.input} value={form.billingState} onChange={(event) => updateBillingField('billingState', event.target.value)}>
+                    /></CRMFormField>
+<CRMFormField label="State"><select style={shell.input} value={form.billingState} onChange={(event) => updateBillingField('billingState', event.target.value)}>
                       {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
-                    </select>
-
-                    <label style={shell.label}>Pin Code</label>
-                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(event) => updateBillingField('billingPincode', event.target.value)} />
-
-                  </div>
+                    </select></CRMFormField>
+<CRMFormField label="Pin Code"><input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(event) => updateBillingField('billingPincode', event.target.value)} /></CRMFormField></CRMFormGrid>
                 </div>
 
                 <div className="customer-modal-address-card" style={shell.addressCard}>
@@ -3657,41 +3614,25 @@ export default function CustomerDashboard() {
                       ↓ Copy billing address
                     </button>
                   </div>
-                  <div style={addressGridStyle}>
-                    <label style={shell.label}>Attention</label>
-                    <input
+                  <CRMFormGrid className="skuas-address-fields"><CRMFormField label="Attention"><input
                       style={shell.input}
                       value={form.shippingAttention}
                       onChange={(event) => updateShippingAttention(event.target.value)}
-                    />
-
-                    <label style={shell.label}>Address</label>
-                    <textarea style={shell.textarea} value={form.shippingStreet1} onChange={(event) => updateShippingField('shippingStreet1', event.target.value)} />
-
-                    <label style={shell.label}>Area Name</label>
-                    <input style={shell.input} value={form.shippingArea} onChange={(event) => updateShippingField('shippingArea', event.target.value)} />
-
-                    <label style={shell.label}>City</label>
-                    <input
+                    /></CRMFormField>
+<CRMFormField label="Address"><textarea style={shell.textarea} value={form.shippingStreet1} onChange={(event) => updateShippingField('shippingStreet1', event.target.value)} /></CRMFormField>
+<CRMFormField label="Area Name"><input style={shell.input} value={form.shippingArea} onChange={(event) => updateShippingField('shippingArea', event.target.value)} /></CRMFormField>
+<CRMFormField label="City"><input
                       style={shell.input}
                       value={form.shippingCity}
                       onChange={(event) => updateShippingField('shippingCity', event.target.value)}
-                    />
-
-                    <label style={shell.label}>State</label>
-                    <select style={shell.input} value={form.shippingState} onChange={(event) => updateShippingField('shippingState', event.target.value)}>
+                    /></CRMFormField>
+<CRMFormField label="State"><select style={shell.input} value={form.shippingState} onChange={(event) => updateShippingField('shippingState', event.target.value)}>
                       {stateOptions.map((state) => <option key={state} value={state}>{state}</option>)}
-                    </select>
-
-                    <label style={shell.label}>Pin Code</label>
-                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(event) => updateShippingField('shippingPincode', event.target.value)} />
-
-                  </div>
+                    </select></CRMFormField>
+<CRMFormField label="Pin Code"><input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(event) => updateShippingField('shippingPincode', event.target.value)} /></CRMFormField></CRMFormGrid>
                 </div>
-              </div>
-
-              <label style={shell.label}>Area in sqft</label>
-              <input
+              </div></CRMFormSection>
+<CRMFormSection title="Additional details"><CRMFormGrid><CRMFormField label="Area in sqft"><input
                 style={shell.input}
                 type="text"
                 inputMode="numeric"
@@ -3699,9 +3640,8 @@ export default function CustomerDashboard() {
                 autoComplete="off"
                 value={form.areaSqft}
                 onChange={(event) => setForm((prev) => ({ ...prev, areaSqft: event.target.value.replace(/\D/g, '') }))}
-              />
-
-              <CustomerPremisesPanel
+              /></CRMFormField></CRMFormGrid></CRMFormSection>
+<CustomerPremisesPanel
                 customerId={editingId}
                 customer={customers.find((customer) => customer._id === editingId) || null}
                 form={form}
@@ -3709,16 +3649,12 @@ export default function CustomerDashboard() {
                 pendingPremises={pendingPremises}
                 onPendingPremisesChange={setPendingPremises}
               />
-
-            </div>
-
-            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
-              {saveError ? (
-                <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
+</CRMModalBody>
+<CRMModalFooter>{saveError ? (
+                <div role="alert" style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
                   {saveError}
                 </div>
-              ) : null}
-              <button
+              ) : null}<CRMFormActions><button
                 type="button"
                 style={shell.cancelButton}
                 onClick={() => {
@@ -3730,12 +3666,10 @@ export default function CustomerDashboard() {
                 }}
               >
                 Cancel
-              </button>
-              <button type="submit" style={shell.saveButton} disabled={isSaving}>
+              </button><button type="submit" style={shell.saveButton} disabled={isSaving}>
                 {isSaving ? 'Saving...' : editingId ? 'Update Customer' : 'Save Customer'}
-              </button>
-            </div>
-          </form>
+              </button></CRMFormActions></CRMModalFooter>
+</CRMModal>
         </div>,
         document.body
       ) : null}
