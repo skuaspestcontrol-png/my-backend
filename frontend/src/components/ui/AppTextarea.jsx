@@ -13,7 +13,7 @@ export default function AppTextarea({ label, helper, error, style, className, ..
         onBlur={(e) => { setFocus(false); props.onBlur?.(e); }}
         style={{ ...baseControl, minHeight: 80, padding: '10px 12px', ...(focus ? focusRingStyle : {}), ...(error ? { borderColor: '#DC2626' } : {}), ...style }}
       />
-      {error ? <span style={{ color: '#DC2626', fontSize: 12 }}>{error}</span> : helper ? <span style={{ color: '#6B7280', fontSize: 12 }}>{helper}</span> : null}
+      {error ? <span style={{ color: 'var(--color-danger)', fontSize: 12 }}>{error}</span> : helper ? <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{helper}</span> : null}
     </label>
   );
 }

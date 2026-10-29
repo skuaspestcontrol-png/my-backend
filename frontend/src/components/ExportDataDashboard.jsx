@@ -993,7 +993,7 @@ const shell = {
     gap: 8,
     border: '1px solid var(--color-border)',
     borderRadius: 14,
-    background: '#fff',
+    background: 'var(--surface-card)',
     padding: '0 12px',
     minHeight: 40
   },
@@ -1004,13 +1004,13 @@ const shell = {
     background: 'transparent',
     fontSize: 13,
     fontWeight: 600,
-    color: '#0f172a'
+    color: 'var(--text-primary)'
   },
   cardsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 },
   cardBody: { display: 'grid', gap: 12 },
   cardTop: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
-  cardTitle: { margin: 0, fontSize: 15, fontWeight: 800, color: '#0f172a' },
-  cardText: { margin: 0, fontSize: 13, lineHeight: 1.6, color: '#64748b', fontWeight: 600 },
+  cardTitle: { margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' },
+  cardText: { margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-muted)', fontWeight: 600 },
   countPill: {
     display: 'inline-flex',
     alignItems: 'center',

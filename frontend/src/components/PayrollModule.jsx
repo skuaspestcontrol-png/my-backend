@@ -145,7 +145,7 @@ const shell = {
   page: { display: 'grid', gap: '14px' },
   hero: {
     background: 'var(--color-primary)',
-    border: '1px solid rgba(159, 23, 77, 0.24)',
+    border: '1px solid var(--border-soft)',
     borderRadius: '18px',
     padding: '16px'
   },
@@ -192,7 +192,7 @@ const shell = {
   input: { width: '100%', minHeight: '34px', borderRadius: '8px', border: '1px solid var(--border)', padding: '7px 9px', fontSize: '12px', background: 'var(--input-bg)', color: 'var(--input-text)' },
   actionRow: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
   btn: {
-    border: '1px solid rgba(159, 23, 77, 0.32)',
+    border: '1px solid var(--border-soft)',
     background: 'var(--color-primary)',
     color: '#fff',
     borderRadius: '8px',

@@ -362,7 +362,7 @@ const shell = {
   controlBadge: {
     minHeight: '44px',
     borderRadius: '12px',
-    border: '1px solid rgba(159, 23, 77, 0.42)',
+    border: '1px solid var(--border-soft)',
     background: 'var(--color-primary)',
     color: '#fff',
     fontWeight: 800,
@@ -418,7 +418,7 @@ const shell = {
     padding: '0 14px',
     cursor: 'pointer'
   },
-  topButtonPrimary: { borderColor: 'rgba(159, 23, 77, 0.52)', background: 'var(--color-primary)', color: '#ffffff' },
+  topButtonPrimary: { borderColor: 'var(--border-soft)', background: 'var(--color-primary)', color: '#ffffff' },
   settingsContentShell: {
     display: 'grid',
     gridTemplateColumns: '260px minmax(0, 1fr)',
@@ -635,7 +635,7 @@ const shell = {
     borderRadius: '999px',
     border: '1px solid var(--border)',
     background: 'rgba(15, 23, 42, 0.04)',
-    color: '#1f2937',
+    color: 'var(--text-primary)',
     fontSize: '12px',
     fontWeight: 800,
     padding: '0 10px',

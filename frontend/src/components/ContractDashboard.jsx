@@ -37,6 +37,7 @@ import {
 import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
 import RupeeSymbol from './ui/RupeeSymbol';
+import { SummaryCardGrid, FilterBar, TablePagination } from './ui/PortalPrimitives';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const CONTRACT_PAGE_SIZE = 20;
@@ -150,10 +151,10 @@ const shell = {
     border: 'none',
     boxSizing: 'border-box'
   },
-  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
-  subtitle: { margin: 0, fontSize: '14px', color: '#64748b', fontWeight: 600 },
+  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' },
+  subtitle: { margin: 0, fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 },
   headActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' },
-  beta: { border: '1px solid rgba(159,23,77,0.2)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
+  beta: { border: '1px solid var(--border-soft)', background: 'rgba(252,231,243,0.6)', color: 'var(--color-primary)', borderRadius: '999px', padding: '7px 12px', fontSize: '12px', fontWeight: 800, whiteSpace: 'nowrap' },
   newBtn: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -173,12 +174,12 @@ const shell = {
     boxSizing: 'border-box',
     lineHeight: 1
   },
-  card: { background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '14px', overflow: 'hidden', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)' },
-  cardTop: { padding: '10px 12px', borderBottom: '1px solid rgba(148, 163, 184, 0.18)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
-  cardTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: '#1f2937' },
-  shownPill: { border: '1px solid var(--color-border)', background: '#f8fafc', color: '#334155', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
+  card: { background: 'var(--surface-card)', border: '1px solid var(--border-soft)', borderRadius: '14px', overflow: 'hidden', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)' },
+  cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: 'var(--surface-card)', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
+  cardTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' },
+  shownPill: { border: '1px solid var(--color-border)', background: 'var(--surface-secondary)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
   quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
-  quickLabel: { fontSize: '12px', fontWeight: 800, color: '#64748b' },
+  quickLabel: { fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' },
   summaryStrip: {
     padding: '8px 12px 4px',
     display: 'grid',
@@ -198,19 +199,19 @@ const shell = {
     minHeight: '95px',
     padding: '10px 12px 10px 14px',
     borderRadius: '14px',
-    border: '1px solid rgba(148,163,184,0.36)',
-    background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-card)',
     boxShadow: '0 1px 3px rgba(15,23,42,0.04)',
     boxSizing: 'border-box',
     overflow: 'hidden'
   },
   summaryCardAccent: { position: 'absolute', inset: '0 auto 0 0', width: '4px', borderTopLeftRadius: '14px', borderBottomLeftRadius: '14px' },
   summaryCopy: { display: 'grid', gap: '2px', minWidth: 0, paddingTop: 0 },
-  summaryLabel: { margin: 0, fontSize: '10px', fontWeight: 800, letterSpacing: '0.03em', color: '#64748b', textTransform: 'uppercase', lineHeight: 1.1 },
-  summarySubLabel: { margin: 0, fontSize: '11px', fontWeight: 700, letterSpacing: '-0.01em', color: '#475569', lineHeight: 1.1 },
-  summaryValue: { margin: 0, fontSize: '22px', fontWeight: 800, lineHeight: 1, color: '#111827', letterSpacing: '-0.03em', whiteSpace: 'nowrap', flexShrink: 0 },
+  summaryLabel: { margin: 0, fontSize: '10px', fontWeight: 800, letterSpacing: '0.03em', color: 'var(--text-muted)', textTransform: 'uppercase', lineHeight: 1.1 },
+  summarySubLabel: { margin: 0, fontSize: '11px', fontWeight: 700, letterSpacing: '-0.01em', color: 'var(--text-secondary)', lineHeight: 1.1 },
+  summaryValue: { margin: 0, fontSize: '22px', fontWeight: 800, lineHeight: 1, color: 'var(--text-primary)', letterSpacing: '-0.03em', whiteSpace: 'nowrap', flexShrink: 0 },
   summaryValueCurrency: { fontSize: '21px' },
-  summaryMeta: { margin: 0, fontSize: '11px', fontWeight: 700, color: '#94a3b8' },
+  summaryMeta: { margin: 0, fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' },
   chip: {
     border: '1px solid transparent',
     borderRadius: '999px',
@@ -232,51 +233,51 @@ const shell = {
     lineHeight: 1
   },
   customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '9px', width: '34px', height: '34px', minWidth: '34px', minHeight: '34px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
-  customizeMenu: { position: 'fixed', width: '292px', maxHeight: '420px', overflow: 'hidden', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '12px', boxShadow: '0 18px 38px rgba(15,23,42,0.12)', zIndex: 5500, backgroundClip: 'padding-box' },
-  customizeHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: '#334155' },
+  customizeMenu: { position: 'fixed', width: '292px', maxHeight: '420px', overflow: 'hidden', background: 'var(--surface-card)', border: '1px solid var(--border-soft)', borderRadius: '12px', boxShadow: '0 18px 38px rgba(15,23,42,0.12)', zIndex: 5500, backgroundClip: 'padding-box' },
+  customizeHeader: { padding: '10px 12px', borderBottom: '1px solid var(--color-border)', fontWeight: 800, fontSize: '12px', color: 'var(--text-secondary)' },
   customizeBody: { padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' },
-  customizeRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#334155' },
-  filtersBox: { margin: '8px 12px 10px', border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '10px', padding: '8px', display: 'grid', gap: '8px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)', width: 'calc(100% - 24px)', maxWidth: 'calc(100% - 24px)', minWidth: 0, boxSizing: 'border-box', backgroundClip: 'padding-box' },
+  customizeRow: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' },
+  filtersBox: { margin: '8px 12px 10px', border: '1px solid var(--border-soft)', borderRadius: '10px', padding: '8px', display: 'grid', gap: '8px', background: 'var(--surface-card)', width: 'calc(100% - 24px)', maxWidth: 'calc(100% - 24px)', minWidth: 0, boxSizing: 'border-box', backgroundClip: 'padding-box' },
   filterGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' },
   filterField: { display: 'grid', gap: '4px' },
-  filterLabel: { fontSize: '11px', color: '#64748b', fontWeight: 800 },
-  input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid #D1D5DB', padding: '0 8px', fontSize: '12px', color: '#334155', background: '#fff', boxSizing: 'border-box' },
-  clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap' },
-  tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid rgba(148, 163, 184, 0.18)', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,250,252,0.98) 100%)', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)' },
+  filterLabel: { fontSize: '11px', color: 'var(--text-muted)', fontWeight: 800 },
+  input: { width: '100%', minHeight: '30px', borderRadius: '8px', border: '1px solid var(--border-soft)', padding: '0 8px', fontSize: '12px', color: 'var(--text-secondary)', background: 'var(--surface-card)', boxSizing: 'border-box' },
+  clearBtn: { alignSelf: 'end', minHeight: '30px', borderRadius: '8px', border: '1px solid var(--border-soft)', background: 'var(--surface-card)', color: 'var(--color-primary-dark)', fontWeight: 800, padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', maxWidth: '100%', boxSizing: 'border-box', whiteSpace: 'nowrap' },
+  tableWrap: { overflowX: 'auto', overflowY: 'hidden', borderTop: '1px solid var(--border-soft)', background: 'var(--surface-card)', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)' },
   table: { width: '100%', minWidth: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
-  th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '8px 12px 8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', background: '#f8fafc', overflow: 'visible', textOverflow: 'clip', position: 'relative', minHeight: '42px', height: 'auto', lineHeight: 1.25 },
-  td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid #eef2f7', fontSize: '10px', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: '#fff' },
+  th: { textAlign: 'left', verticalAlign: 'middle', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', padding: '8px 12px 8px 6px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', background: 'var(--surface-secondary)', overflow: 'visible', textOverflow: 'clip', position: 'relative', minHeight: '42px', height: 'auto', lineHeight: 1.25 },
+  td: { textAlign: 'left', verticalAlign: 'middle', padding: '8px 6px', borderBottom: '1px solid var(--border-soft)', fontSize: '10px', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', background: 'var(--surface-card)' },
   selectedRow: { background: 'transparent' },
-  selectedCell: { background: '#fff' },
-  selectedText: { color: '#111827' },
-  subText: { marginTop: '1px', fontSize: '9px', color: '#64748b', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  selectedCell: { background: 'var(--surface-card)' },
+  selectedText: { color: 'var(--text-primary)' },
+  subText: { marginTop: '1px', fontSize: '9px', color: 'var(--text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusPill: { borderRadius: '999px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, display: 'inline-block' },
   typePill: { borderRadius: '8px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(34,197,94,0.2)', color: '#15803d' },
   amountGreen: { color: '#16a34a', fontWeight: 800 },
   amountRed: { color: '#dc2626', fontWeight: 800 },
-  actionBtn: { border: '1px solid rgba(17,17,17,0.16)', background: '#fff', color: '#1f2937', borderRadius: '10px', minWidth: '86px', minHeight: '32px', padding: '0 8px 0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, lineHeight: 1, transition: 'background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease' },
-  actionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid #d1d5db', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', flexShrink: 0 },
-  actionMenu: { position: 'fixed', width: '170px', background: '#fff', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 5000, overflow: 'hidden' },
-  actionMenuItem: { width: '100%', textAlign: 'left', border: 'none', background: '#fff', color: '#1f2937', cursor: 'pointer', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
+  actionBtn: { border: '1px solid rgba(17,17,17,0.16)', background: 'var(--surface-card)', color: 'var(--text-primary)', borderRadius: '10px', minWidth: '86px', minHeight: '32px', padding: '0 8px 0 12px', display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 700, lineHeight: 1, transition: 'background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease' },
+  actionIconBox: { width: '16px', height: '16px', borderRadius: '5px', border: '1px solid var(--border-soft)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-secondary)', flexShrink: 0 },
+  actionMenu: { position: 'fixed', width: '170px', background: 'var(--surface-card)', border: '1px solid var(--color-border)', borderRadius: '8px', boxShadow: '0 8px 18px rgba(15,23,42,0.1)', zIndex: 5000, overflow: 'hidden' },
+  actionMenuItem: { width: '100%', textAlign: 'left', border: 'none', background: 'var(--surface-card)', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px 10px', fontSize: '11px', fontWeight: 600, lineHeight: 1.1, minHeight: '30px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' },
   actionMenuDanger: { color: '#dc2626' },
-  footer: { padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid rgba(148, 163, 184, 0.18)', borderBottomLeftRadius: '14px', borderBottomRightRadius: '14px', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', backdropFilter: 'blur(10px)' },
+  footer: { padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid var(--border-soft)', borderBottomLeftRadius: '14px', borderBottomRightRadius: '14px', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', backdropFilter: 'blur(10px)' },
   footText: { fontSize: '12px', color: 'var(--table-footer-text)', fontWeight: 700 },
   pager: { display: 'inline-flex', gap: '6px', alignItems: 'center' },
-  pageBtn: { minWidth: '34px', width: '34px', minHeight: '32px', height: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#475569', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
+  pageBtn: { minWidth: '34px', width: '34px', minHeight: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-soft)', background: 'var(--surface-card)', color: 'var(--text-secondary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0 },
   pageBtnActive: { border: '1px solid rgba(22,163,74,0.35)', background: 'rgba(22,163,74,0.16)', color: '#15803d', fontWeight: 800 },
   workspace: { background: 'var(--surface-elevated, #fff)', border: '1px solid var(--color-border)', borderRadius: '14px', padding: '12px 14px', display: 'grid', gap: '10px' },
   workspaceTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  workspaceNote: { margin: 0, color: '#64748b', fontSize: '13px', fontWeight: 600 },
+  workspaceNote: { margin: 0, color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600 },
   workspaceActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  subtleBtn: { minHeight: '34px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', fontWeight: 700, padding: '0 12px', cursor: 'pointer' },
+  subtleBtn: { minHeight: '34px', borderRadius: '8px', border: '1px solid var(--border-soft)', background: 'var(--surface-card)', color: 'var(--text-secondary)', fontWeight: 700, padding: '0 12px', cursor: 'pointer' },
   printBtn: { minHeight: '34px', borderRadius: '8px', border: '1px solid rgba(22,163,74,0.35)', background: 'var(--color-primary)', color: '#fff', fontWeight: 800, padding: '0 12px', cursor: 'pointer' },
   tabs: { display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', paddingBottom: '4px' },
-  tab: { border: '1px solid transparent', borderRadius: '10px', background: '#fff', color: '#64748b', fontSize: '13px', fontWeight: 700, padding: '8px 12px', display: 'inline-flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap', cursor: 'pointer' },
-  tabActive: { borderColor: '#F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' },
-  loading: { padding: '20px 16px', color: '#64748b', fontSize: '14px', fontWeight: 600 },
-  empty: { padding: '24px 16px', textAlign: 'center', color: '#64748b', fontWeight: 700 },
+  tab: { border: '1px solid transparent', borderRadius: '10px', background: 'var(--surface-card)', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 700, padding: '8px 12px', display: 'inline-flex', alignItems: 'center', gap: '8px', whiteSpace: 'nowrap', cursor: 'pointer' },
+  tabActive: { borderColor: 'var(--border-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)' },
+  loading: { padding: '20px 16px', color: 'var(--text-muted)', fontSize: '14px', fontWeight: 600 },
+  empty: { padding: '24px 16px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 700 },
   actionCell: { display: 'inline-flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' },
-  miniBtn: { border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', minHeight: '28px', padding: '0 8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
+  miniBtn: { border: '1px solid var(--border-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', minHeight: '28px', padding: '0 8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }
   ,
   customerLinkBtn: {
     border: 'none',
@@ -301,73 +302,73 @@ const shell = {
     wordBreak: 'break-word'
   },
   mobileList: { display: 'grid', gap: '8px', padding: '10px' },
-  mobileCard: { border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '12px', padding: '10px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', display: 'grid', gap: '8px', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
+  mobileCard: { border: '1px solid var(--border-soft)', borderRadius: '12px', padding: '10px', background: 'var(--surface-card)', display: 'grid', gap: '8px', boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)', backgroundClip: 'padding-box' },
   mobileCardTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' },
-  mobileContractNo: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#111827' },
-  mobileCustomer: { margin: 0, fontSize: '14px', fontWeight: 700, color: '#111827' },
+  mobileContractNo: { margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' },
+  mobileCustomer: { margin: 0, fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' },
   mobileMetaGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' },
-  mobileMetaLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' },
-  mobileMetaValue: { fontSize: '12px', color: '#1f2937', fontWeight: 700 },
+  mobileMetaLabel: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase' },
+  mobileMetaValue: { fontSize: '12px', color: 'var(--text-primary)', fontWeight: 700 },
   mobileActions: { display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' },
-  customerSummaryBtn: { border: '1px solid #d1d5db', background: '#fff', color: '#334155', borderRadius: '999px', minWidth: '24px', width: '24px', height: '24px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  customerSummaryBtn: { border: '1px solid var(--border-soft)', background: 'var(--surface-card)', color: 'var(--text-secondary)', borderRadius: '999px', minWidth: '24px', width: '24px', height: '24px', padding: 0, fontSize: '11px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 6000, display: 'flex', alignItems: 'stretch', justifyContent: 'flex-end', padding: 0 },
-  modalCard: { width: 'min(520px, 100%)', maxHeight: '100vh', height: '100vh', overflow: 'auto', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)', borderRadius: '18px 0 0 18px', border: '1px solid rgba(148, 163, 184, 0.18)', boxShadow: '-22px 0 54px rgba(15,23,42,0.18)', backgroundClip: 'padding-box' },
-  modalHead: { padding: '12px 14px', borderBottom: '1px solid rgba(148, 163, 184, 0.18)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(249,250,252,0.98))' },
-  modalTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  modalSub: { margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: 600 },
-  modalClose: { border: '1px solid #D1D5DB', background: '#fff', color: '#475569', borderRadius: '8px', minWidth: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+  modalCard: { width: 'min(520px, 100%)', maxHeight: '100vh', height: '100vh', overflow: 'auto', background: 'var(--surface-card)', borderRadius: '18px 0 0 18px', border: '1px solid var(--border-soft)', boxShadow: '-22px 0 54px rgba(15,23,42,0.18)', backgroundClip: 'padding-box' },
+  modalHead: { padding: '12px 14px', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: 'var(--surface-card)' },
+  modalTitle: { margin: 0, fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '8px' },
+  modalSub: { margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 },
+  modalClose: { border: '1px solid var(--border-soft)', background: 'var(--surface-card)', color: 'var(--text-secondary)', borderRadius: '8px', minWidth: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   modalBody: { padding: '12px 14px', display: 'grid', gap: '10px' },
   summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' },
-  summaryCard: { border: '1px solid rgba(148,163,184,0.18)', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,250,252,0.98) 100%)', borderRadius: '12px', padding: '10px 12px', textAlign: 'left', boxShadow: '0 8px 20px rgba(15,23,42,0.05)', backgroundClip: 'padding-box' },
-  summaryLabel: { fontSize: '10px', color: '#475569', fontWeight: 800, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '5px', letterSpacing: '0.04em' },
-  summaryValue: { marginTop: '4px', fontSize: '18px', fontWeight: 800, color: '#0f172a' },
-  profitSection: { border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '14px', padding: '12px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,250,252,0.98) 100%)', display: 'grid', gap: '10px', boxShadow: '0 10px 24px rgba(15,23,42,0.05)', backgroundClip: 'padding-box' },
+  summaryCard: { border: '1px solid var(--border-soft)', background: 'var(--surface-card)', borderRadius: '12px', padding: '10px 12px', textAlign: 'left', boxShadow: '0 8px 20px rgba(15,23,42,0.05)', backgroundClip: 'padding-box' },
+  summaryLabel: { fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 800, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '5px', letterSpacing: '0.04em' },
+  summaryValue: { marginTop: '4px', fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' },
+  profitSection: { border: '1px solid var(--border-soft)', borderRadius: '14px', padding: '12px', background: 'var(--surface-card)', display: 'grid', gap: '10px', boxShadow: '0 10px 24px rgba(15,23,42,0.05)', backgroundClip: 'padding-box' },
   profitSectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' },
-  profitSectionTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: '#0f172a' },
+  profitSectionTitle: { margin: 0, fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' },
   profitGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' },
-  profitCard: { border: '1px solid rgba(148,163,184,0.18)', borderRadius: '12px', padding: '10px 12px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(249,250,252,0.98))', backgroundClip: 'padding-box' },
+  profitCard: { border: '1px solid var(--border-soft)', borderRadius: '12px', padding: '10px 12px', background: 'var(--surface-card)', backgroundClip: 'padding-box' },
   profitCardProfit: { borderColor: 'rgba(22,163,74,0.22)', background: 'rgba(22,163,74,0.08)' },
   profitCardLoss: { borderColor: 'rgba(220,38,38,0.22)', background: 'rgba(220,38,38,0.08)' },
   profitCardAmber: { borderColor: 'rgba(217,119,6,0.22)', background: 'rgba(217,119,6,0.08)' },
-  profitLabel: { margin: 0, fontSize: '10px', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
-  profitValue: { marginTop: '4px', fontSize: '18px', fontWeight: 800, color: '#0f172a' },
+  profitLabel: { margin: 0, fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  profitValue: { marginTop: '4px', fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' },
   profitBreakdownGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px' },
-  profitBreakdownCard: { border: '1px solid rgba(148,163,184,0.16)', borderRadius: '12px', padding: '8px 10px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(249,250,252,0.98))', boxShadow: '0 6px 16px rgba(15,23,42,0.04)', backgroundClip: 'padding-box' },
-  profitBreakdownLabel: { margin: 0, fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
-  profitBreakdownValue: { marginTop: '4px', fontSize: '15px', fontWeight: 800, color: '#0f172a' },
-  modalToggleBtn: { border: '1px solid #F9A8D4', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', minHeight: '30px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content' },
-  compactSection: { border: '1px solid rgba(148,163,184,0.18)', borderRadius: '12px', padding: '10px', background: 'linear-gradient(180deg, rgba(255,255,255,0.99), rgba(248,250,252,0.98))', display: 'grid', gap: '8px', backgroundClip: 'padding-box' },
+  profitBreakdownCard: { border: '1px solid var(--border-soft)', borderRadius: '12px', padding: '8px 10px', background: 'var(--surface-card)', boxShadow: '0 6px 16px rgba(15,23,42,0.04)', backgroundClip: 'padding-box' },
+  profitBreakdownLabel: { margin: 0, fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  profitBreakdownValue: { marginTop: '4px', fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' },
+  modalToggleBtn: { border: '1px solid var(--border-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '8px', minHeight: '30px', padding: '0 10px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', width: 'fit-content' },
+  compactSection: { border: '1px solid var(--border-soft)', borderRadius: '12px', padding: '10px', background: 'var(--surface-card)', display: 'grid', gap: '8px', backgroundClip: 'padding-box' },
   compactSectionHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', minWidth: 0 },
-  compactTitle: { margin: 0, fontSize: '11px', color: '#475569', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
-  customerName: { margin: 0, color: '#0f172a', fontSize: '16px', fontWeight: 800, lineHeight: 1.2, wordBreak: 'break-word' },
+  compactTitle: { margin: 0, fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  customerName: { margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: 800, lineHeight: 1.2, wordBreak: 'break-word' },
   definitionGrid: { display: 'grid', gridTemplateColumns: 'minmax(92px, 0.42fr) minmax(0, 1fr)', gap: '5px 10px', alignItems: 'baseline' },
-  definitionLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
-  definitionValue: { fontSize: '12px', color: '#0f172a', fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' },
+  definitionLabel: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
+  definitionValue: { fontSize: '12px', color: 'var(--text-primary)', fontWeight: 700, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' },
   serviceList: { display: 'grid', gap: '8px' },
-  serviceCard: { border: '1px solid rgba(148,163,184,0.20)', borderRadius: '10px', padding: '9px 10px', background: '#fff', display: 'grid', gap: '6px' },
+  serviceCard: { border: '1px solid var(--border-soft)', borderRadius: '10px', padding: '9px 10px', background: 'var(--surface-card)', display: 'grid', gap: '6px' },
   serviceTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', minWidth: 0 },
-  serviceName: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  serviceName: { margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusBadge: { borderRadius: '999px', padding: '3px 7px', fontSize: '9px', fontWeight: 800, background: 'rgba(22,163,74,0.12)', color: '#166534', flexShrink: 0 },
-  serviceMeta: { fontSize: '12px', color: '#334155', fontWeight: 700 },
+  serviceMeta: { fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 },
   serviceMiniGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '4px 10px' },
-  inlineMetric: { minWidth: 0, fontSize: '11px', color: '#475569', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  actionBox: { border: '1px solid rgba(159,23,77,0.18)', borderRadius: '10px', padding: '9px 10px', background: 'var(--color-primary-light)', display: 'grid', gap: '2px' },
+  inlineMetric: { minWidth: 0, fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  actionBox: { border: '1px solid var(--border-soft)', borderRadius: '10px', padding: '9px 10px', background: 'var(--color-primary-light)', display: 'grid', gap: '2px' },
   actionType: { fontSize: '10px', color: 'var(--color-primary-dark)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em' },
-  actionValue: { fontSize: '15px', color: '#0f172a', fontWeight: 800 },
-  actionLabel: { fontSize: '12px', color: '#475569', fontWeight: 700 },
+  actionValue: { fontSize: '15px', color: 'var(--text-primary)', fontWeight: 800 },
+  actionLabel: { fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 700 },
   moneyGrid: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px 10px' },
   moneyRow: { display: 'grid', gap: '2px', minWidth: 0 },
-  moneyLabel: { fontSize: '10px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
-  moneyValue: { fontSize: '13px', color: '#0f172a', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis' },
+  moneyLabel: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.03em' },
+  moneyValue: { fontSize: '13px', color: 'var(--text-primary)', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis' },
   activityPills: { display: 'flex', gap: '6px', flexWrap: 'wrap' },
-  activityPill: { border: '1px solid rgba(148,163,184,0.22)', borderRadius: '999px', padding: '4px 8px', background: '#fff', fontSize: '11px', color: '#334155', fontWeight: 800 },
+  activityPill: { border: '1px solid var(--border-soft)', borderRadius: '999px', padding: '4px 8px', background: 'var(--surface-card)', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 800 },
   detailSection: { border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' },
-  detailHead: { padding: '8px 10px', background: 'linear-gradient(180deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid var(--color-border)', fontSize: '11px', fontWeight: 800, color: 'var(--text)' , textTransform: 'uppercase' },
+  detailHead: { padding: '8px 10px', background: 'var(--surface-card)', borderBottom: '1px solid var(--color-border)', fontSize: '11px', fontWeight: 800, color: 'var(--text)' , textTransform: 'uppercase' },
   detailTable: { width: '100%', borderCollapse: 'separate', borderSpacing: 0 },
-  detailTh: { fontSize: '11px', fontWeight: 800, color: '#64748b', textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: '#f8fafc', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '38px', height: 'auto' },
-  detailTd: { fontSize: '12px', color: 'var(--text)', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', background: '#fff' },
-  detailBtn: { border: '1px solid #F9A8D4', background: '#fff', color: 'var(--color-primary-dark)', borderRadius: '7px', minHeight: '26px', padding: '0 8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' },
-  suggestionBox: { border: '1px dashed rgba(159,23,77,0.26)', borderRadius: '12px', background: 'linear-gradient(180deg, #fff 0%, #fdf2f8 100%)', padding: '8px 10px', fontSize: '12px', color: '#334155', textAlign: 'left' }
+  detailTh: { fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', background: 'var(--surface-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '38px', height: 'auto' },
+  detailTd: { fontSize: '12px', color: 'var(--text)', padding: '8px 10px', borderBottom: '1px solid #f1f5f9', background: 'var(--surface-card)' },
+  detailBtn: { border: '1px solid var(--border-soft)', background: 'var(--surface-card)', color: 'var(--color-primary-dark)', borderRadius: '7px', minHeight: '26px', padding: '0 8px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' },
+  suggestionBox: { border: '1px dashed var(--border-soft)', borderRadius: '12px', background: 'linear-gradient(180deg, #fff 0%, #fdf2f8 100%)', padding: '8px 10px', fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'left' }
 };
 
 const normalizeName = (value) => String(value || '').trim().toLowerCase();
@@ -1849,7 +1850,7 @@ export default function ContractDashboard() {
   return (
     <div className="contract-dashboard-page" style={shell.page}>
       <div style={shell.card}>
-        <div style={cardTopStyle}>
+        <div className="portal-contract-header" style={cardTopStyle}>
           <div style={shell.titleWrap}>
             <h1 style={shell.cardTitle}>All Contracts</h1>
           </div>
@@ -1858,6 +1859,7 @@ export default function ContractDashboard() {
               <Search size={16} style={headerSearchIconStyle} />
               <input
                 type="search"
+                aria-label="Search contracts"
                 style={headerSearchInputStyle}
                 value={filters.search}
                 onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
@@ -1868,7 +1870,7 @@ export default function ContractDashboard() {
           <div style={headActionsStyle}>
             <button
               type="button"
-              style={newButtonStyle}
+              data-ui-action="primary" style={newButtonStyle}
               onClick={() => navigateToInvoiceEditor({ openNewInvoice: 1, fromContract: 1 })}
             >
               <Plus size={16} />
@@ -1877,10 +1879,11 @@ export default function ContractDashboard() {
           </div>
         </div>
 
-        <div style={summaryStripStyle}>
+        <SummaryCardGrid style={summaryStripStyle}>
           {contractSummaryCards.map((card) => (
             <div
               key={card.key}
+              data-ui="summary-card"
               style={{
                 ...summaryCardStyle,
                 width: '100%',
@@ -1888,6 +1891,9 @@ export default function ContractDashboard() {
               }}
             >
               <span style={{ ...shell.summaryCardAccent, background: card.tone }} />
+              <span className="portal-summary-icon" data-summary-tone={card.key} aria-hidden="true">
+                {card.key === 'totalContracts' ? <FileText size={24} /> : card.key === 'totalAmount' ? <Wallet size={24} /> : <AlertCircle size={24} />}
+              </span>
               <div style={shell.summaryCopy}>
                 <p style={{ ...shell.summaryLabel, fontSize: isMobile ? '9px' : shell.summaryLabel.fontSize }}>{card.label}</p>
               </div>
@@ -1902,7 +1908,7 @@ export default function ContractDashboard() {
               </p>
             </div>
           ))}
-        </div>
+        </SummaryCardGrid>
 
         <div style={quickWrapStyle}>
           <span style={quickLabelStyle}>Quick Filters:</span>
@@ -1914,6 +1920,7 @@ export default function ContractDashboard() {
               <button
                 key={entry.label}
                 type="button"
+                aria-pressed={active}
                 onClick={() => setQuickFilter(entry.label)}
                 style={{ ...chipStyle, ...tone, boxShadow: active ? '0 8px 18px rgba(131, 24, 67, 0.15)' : 'none', borderColor: active ? 'rgba(131, 24, 67, 0.25)' : 'transparent' }}
               >
@@ -1993,11 +2000,11 @@ export default function ContractDashboard() {
           ) : null}
         </div>
 
-        <div style={shell.filtersBox}>
+        <FilterBar data-ui="filter-bar" style={shell.filtersBox}>
           <div style={filterGridStyle}>
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Status</label>
-              <select style={shell.input} value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}>
+              <select aria-label="Status" style={shell.input} value={filters.status} onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}>
                 <option>All Status</option>
                 <option>Draft</option>
                 <option>Cancelled</option>
@@ -2012,13 +2019,13 @@ export default function ContractDashboard() {
             </div>
           <div style={shell.filterField}>
             <label style={shell.filterLabel}>Type</label>
-            <select style={shell.input} value={filters.type} onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))}>
+            <select aria-label="Type" style={shell.input} value={filters.type} onChange={(event) => setFilters((prev) => ({ ...prev, type: event.target.value }))}>
               {typeOptions.map((option) => <option key={option}>{option}</option>)}
             </select>
           </div>
           <div style={shell.filterField}>
             <label style={shell.filterLabel}>Month Wise</label>
-            <select style={shell.input} value={filters.month} onChange={(event) => setFilters((prev) => ({ ...prev, month: event.target.value }))}>
+            <select aria-label="Month Wise" style={shell.input} value={filters.month} onChange={(event) => setFilters((prev) => ({ ...prev, month: event.target.value }))}>
               <option value="">All Month</option>
               {monthOptions.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -2027,7 +2034,7 @@ export default function ContractDashboard() {
           </div>
           <div style={shell.filterField}>
             <label style={shell.filterLabel}>Year Wise</label>
-            <select style={shell.input} value={filters.year} onChange={(event) => setFilters((prev) => ({ ...prev, year: event.target.value }))}>
+            <select aria-label="Year Wise" style={shell.input} value={filters.year} onChange={(event) => setFilters((prev) => ({ ...prev, year: event.target.value }))}>
               <option value="">All Year</option>
               {yearOptions.slice(1).map((option) => (
                 <option key={option} value={option}>{option}</option>
@@ -2036,7 +2043,7 @@ export default function ContractDashboard() {
           </div>
           <div style={shell.filterField}>
             <label style={shell.filterLabel}>Sales Person Wise</label>
-            <select style={shell.input} value={filters.salesperson} onChange={(event) => setFilters((prev) => ({ ...prev, salesperson: event.target.value }))}>
+            <select aria-label="Sales Person Wise" style={shell.input} value={filters.salesperson} onChange={(event) => setFilters((prev) => ({ ...prev, salesperson: event.target.value }))}>
               <option value="">All Sales Person</option>
               {salespersonOptions.slice(1).map((option) => (
                 <option key={option} value={option}>{option}</option>
@@ -2045,11 +2052,11 @@ export default function ContractDashboard() {
           </div>
           <div style={shell.filterField}>
             <label style={shell.filterLabel}>Start Date From</label>
-            <input type="date" style={mobileDateInputStyle} value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} />
+            <input type="date" aria-label="Start Date From" style={mobileDateInputStyle} value={filters.from} onChange={(event) => setFilters((prev) => ({ ...prev, from: event.target.value }))} />
             </div>
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Start Date To</label>
-              <input type="date" style={mobileDateInputStyle} value={filters.to} onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))} />
+              <input type="date" aria-label="Start Date To" style={mobileDateInputStyle} value={filters.to} onChange={(event) => setFilters((prev) => ({ ...prev, to: event.target.value }))} />
             </div>
             <div style={{ ...shell.filterField, alignItems: 'flex-end' }}>
               <button
@@ -2061,7 +2068,7 @@ export default function ContractDashboard() {
               </button>
             </div>
           </div>
-        </div>
+        </FilterBar>
 
         {loadError && hasLoadedContractsRef.current ? (
           <div role="alert" style={{ padding: '10px 14px', color: 'var(--text-primary)', fontSize: '12px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
@@ -2069,9 +2076,9 @@ export default function ContractDashboard() {
           </div>
         ) : null}
         {loading && hasLoadedContractsRef.current ? <div role="status" style={shell.loading}>Refreshing contracts...</div> : null}
-        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped">{renderBody()}</div>
+        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped" tabIndex={0} role="region" aria-label="Contracts table">{renderBody()}</div>
 
-        <div style={footerStyle}>
+        <TablePagination style={footerStyle}>
           <div style={shell.footText}>{firstRecord}-{lastRecord} of {sortedContracts.length} records</div>
           <div style={pagerStyle}>
             <button
@@ -2095,7 +2102,7 @@ export default function ContractDashboard() {
               <ChevronRight size={16} />
             </button>
           </div>
-        </div>
+        </TablePagination>
       </div>
 
       {actionMenu ? createPortal(

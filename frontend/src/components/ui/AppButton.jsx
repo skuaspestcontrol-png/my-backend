@@ -19,6 +19,7 @@ export default function AppButton({
   loading = false,
   disabled = false,
   style,
+  className,
   ...props
 }) {
   const s = theme.buttonSize[size] || theme.buttonSize.md;
@@ -33,6 +34,7 @@ export default function AppButton({
       type="button"
       disabled={isDisabled}
       aria-busy={loading}
+      className={['crm-button', `crm-button--${variant}`, className].filter(Boolean).join(' ')}
       data-variant={variant}
       style={{
         minHeight: s.height,

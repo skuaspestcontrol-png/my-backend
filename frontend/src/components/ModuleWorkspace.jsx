@@ -38,7 +38,7 @@ const shell = {
   title: { margin: 0, fontSize: '30px', lineHeight: 1.1, letterSpacing: '-0.03em' },
   description: { margin: '10px 0 0 0', color: 'rgba(255,255,255,0.9)', fontSize: '14px', lineHeight: 1.7, maxWidth: '680px', fontWeight: 600 },
   heroSide: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(247,248,252,0.92) 100%)',
+    background: 'var(--surface-card)',
     border: '1px solid rgba(255, 255, 255, 0.5)',
     borderRadius: '20px',
     padding: '18px',
@@ -50,24 +50,24 @@ const shell = {
   },
   grid: { display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '18px' },
   panel: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.97) 100%)',
+    background: 'var(--surface-card)',
     borderRadius: '20px',
-    border: '1px solid rgba(148, 163, 184, 0.16)',
+    border: '1px solid var(--border-soft)',
     padding: '22px',
     boxShadow: '0 18px 38px rgba(15, 23, 42, 0.08)',
     backdropFilter: 'blur(12px)'
   },
   stats: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '14px', marginTop: '18px' },
   stat: {
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,250,252,0.94) 100%)',
+    background: 'var(--surface-card)',
     color: '#111111',
     borderRadius: '18px',
     padding: '16px',
-    border: '1px solid rgba(148, 163, 184, 0.16)',
+    border: '1px solid var(--border-soft)',
     boxShadow: '0 14px 30px rgba(15, 23, 42, 0.07)'
   },
-  statLabel: { fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b', marginBottom: '8px' },
-  statValue: { fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em', color: '#0f172a' },
+  statLabel: { fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '8px' },
+  statValue: { fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)' },
   list: { display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '14px' },
   listItem: {
     display: 'flex',
@@ -77,10 +77,10 @@ const shell = {
     padding: '14px',
     borderRadius: '14px',
     background: 'rgba(255,255,255,0.76)',
-    border: '1px solid rgba(148, 163, 184, 0.14)'
+    border: '1px solid var(--border-soft)'
   },
-  miniTitle: { margin: 0, fontSize: '12px', fontWeight: 800, color: '#0f172a' },
-  miniText: { margin: '4px 0 0 0', fontSize: '13px', lineHeight: 1.6, color: '#64748b' },
+  miniTitle: { margin: 0, fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)' },
+  miniText: { margin: '4px 0 0 0', fontSize: '13px', lineHeight: 1.6, color: 'var(--text-muted)' },
   actionList: { display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' },
   action: {
     display: 'flex',

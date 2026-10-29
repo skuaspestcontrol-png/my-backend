@@ -4,7 +4,11 @@ export const theme = {
     primaryHover: 'var(--color-primary-dark)',
     bg: 'var(--color-bg)',
     softPink: 'var(--color-primary-light)',
-    card: 'var(--color-white)',
+    card: 'var(--surface-card)',
+    surface: 'var(--surface-card)',
+    surfaceSoft: 'var(--surface-secondary)',
+    borderSoft: 'var(--border-soft)',
+    textSecondary: 'var(--text-secondary)',
     text: 'var(--color-text)',
     muted: 'var(--color-muted)',
     border: 'var(--brand-border-color)',
@@ -33,10 +37,10 @@ export const theme = {
     md: '0 8px 24px rgba(15,23,42,0.08)'
   },
   status: {
-    active: { bg: '#DCFCE7', fg: '#166534' },
-    pending: { bg: '#FEF3C7', fg: '#92400E' },
-    danger: { bg: '#FEE2E2', fg: '#991B1B' },
-    info: { bg: '#DBEAFE', fg: '#1D4ED8' }
+    active: { bg: 'var(--status-active-bg)', fg: 'var(--status-active-text)' },
+    pending: { bg: 'var(--status-pending-bg)', fg: 'var(--status-pending-text)' },
+    danger: { bg: 'var(--status-danger-bg)', fg: 'var(--status-danger-text)' },
+    info: { bg: 'var(--status-info-bg)', fg: 'var(--status-info-text)' }
   }
 };
 

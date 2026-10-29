@@ -71,7 +71,7 @@ const shell = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
-    border: '1px solid rgba(159, 23, 77, 0.34)',
+    border: '1px solid var(--border-soft)',
     background: 'var(--color-primary)',
     color: '#fff',
     borderRadius: '12px',
@@ -204,7 +204,7 @@ const shell = {
   footer: { height: '76px', minHeight: '76px', boxSizing: 'border-box', padding: '0 28px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: 'var(--surface-card-elevated)', backdropFilter: 'blur(10px)', position: 'sticky', bottom: 0 },
   footerActions: { display: 'flex', alignItems: 'center', gap: '8px' },
   cancelBtn: { minHeight: '42px', height: '42px', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '15px', fontWeight: 800, padding: '0 22px' },
-  saveBtn: { minHeight: '42px', height: '42px', borderRadius: '10px', border: '1px solid rgba(159, 23, 77, 0.32)', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '15px', fontWeight: 800, padding: '0 22px' }
+  saveBtn: { minHeight: '42px', height: '42px', borderRadius: '10px', border: '1px solid var(--border-soft)', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: '15px', fontWeight: 800, padding: '0 22px' }
 };
 
 const employeeColumns = [

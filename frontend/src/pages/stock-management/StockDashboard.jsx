@@ -19,6 +19,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import PageHeader from '../../components/ui/PageHeader';
 import AppCard from '../../components/ui/AppCard';
+import { SummaryCardGrid, LoadingState, ErrorState } from '../../components/ui/PortalPrimitives';
 import { apiGet, money, number, safeRows, stockCategoryDisplayLabel } from './stockApi';
 
 const summaryCards = [
@@ -108,19 +109,17 @@ export default function StockDashboard() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'grid', placeItems: 'center', minHeight: 240 }}>
-          <LoadingSpinner size={26} />
-        </div>
+        <LoadingState message="Loading stock dashboard…" />
       ) : error ? (
         <AppCard>
-          <EmptyState title="Unable to load stock dashboard" message={error} />
+          <ErrorState message={error} />
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
             <AppButton onClick={load} iconLeft={<RefreshCcw size={16} />}>Try Again</AppButton>
           </div>
         </AppCard>
       ) : (
         <>
-          <div style={summaryGridStyle}>
+          <SummaryCardGrid style={summaryGridStyle}>
             {summaryCards.map((card) => (
               <DashboardStatCard
                 key={card.key}
@@ -133,7 +132,7 @@ export default function StockDashboard() {
                 valueStyle={statValueStyle}
               />
             ))}
-          </div>
+          </SummaryCardGrid>
 
           <div style={chartGridStyle}>
             <AppCard title="Category Wise Stock" className="crm-chart-card">

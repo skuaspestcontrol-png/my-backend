@@ -20,7 +20,7 @@ const shell = {
   page: { display: 'grid', gap: '14px' },
   hero: {
     borderRadius: '20px',
-    border: '1px solid rgba(159, 23, 77, 0.26)',
+    border: '1px solid var(--border-soft)',
     background: 'var(--color-primary)',
     padding: '16px',
     display: 'grid',
@@ -45,7 +45,7 @@ const shell = {
   label: { margin: 0, fontSize: '11px', fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' },
   input: { width: '100%', minHeight: '35px', borderRadius: '9px', border: '1px solid var(--border)', padding: '8px 10px', fontSize: '13px', background: 'var(--input-bg)', color: 'var(--input-text)' },
   btn: {
-    border: '1px solid rgba(159, 23, 77, 0.36)',
+    border: '1px solid var(--border-soft)',
     borderRadius: '9px',
     minHeight: '38px',
     height: '38px',
@@ -83,7 +83,7 @@ const shell = {
     cursor: 'pointer'
   },
   iconActionBtnActive: {
-    border: '1px solid rgba(159, 23, 77, 0.42)',
+    border: '1px solid var(--border-soft)',
     background: 'var(--color-primary)',
     color: '#fff'
   },
@@ -110,7 +110,7 @@ const shell = {
     boxShadow: '0 8px 20px rgba(2, 6, 23, 0.16)',
     backgroundClip: 'padding-box'
   },
-  badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', border: '1px solid rgba(159, 23, 77, 0.25)', padding: '3px 8px', fontSize: '11px', fontWeight: 700 },
+  badge: { display: 'inline-flex', alignItems: 'center', borderRadius: '999px', border: '1px solid var(--border-soft)', padding: '3px 8px', fontSize: '11px', fontWeight: 700 },
   kanbanBoard: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(220px, 1fr))', gap: '10px', overflowX: 'auto', paddingBottom: '4px' },
   kanbanCol: { minHeight: '240px', borderRadius: '13px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', padding: '8px', display: 'grid', gap: '8px', alignContent: 'start', boxShadow: '0 10px 24px rgba(2, 6, 23, 0.2)', backgroundClip: 'padding-box' },
   kanbanHead: { margin: 0, fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },

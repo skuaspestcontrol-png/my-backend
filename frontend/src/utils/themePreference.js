@@ -19,16 +19,16 @@ export const applyPortalTheme = (theme) => {
   root.style.colorScheme = normalized;
 
   if (normalized === 'dark') {
-    root.style.setProperty('--color-bg', '#0b1024');
+    root.style.setProperty('--color-bg', '#0B1220');
     root.style.setProperty('--color-text', '#f8fafc');
-    root.style.setProperty('--color-muted', '#a8b3c7');
-    root.style.setProperty('--color-border', 'rgba(148, 163, 184, 0.22)');
-    root.style.setProperty('--color-white', '#151a33');
+    root.style.setProperty('--color-muted', '#AAB8CF');
+    root.style.setProperty('--color-border', '#30415D');
+    root.style.setProperty('--color-white', '#17243B');
   } else {
-    root.style.setProperty('--color-bg', '#f3f4f8');
-    root.style.setProperty('--color-text', '#111827');
-    root.style.setProperty('--color-muted', '#6b7280');
-    root.style.setProperty('--color-border', 'var(--brand-border-color)');
+    root.style.setProperty('--color-bg', '#F4F6FB');
+    root.style.setProperty('--color-text', '#172033');
+    root.style.setProperty('--color-muted', '#64748B');
+    root.style.setProperty('--color-border', '#E2E8F0');
     root.style.setProperty('--color-white', '#ffffff');
   }
 

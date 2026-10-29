@@ -494,24 +494,24 @@ const shell = {
   titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '8px', padding: 0, borderRadius: 0, background: 'transparent', border: 'none' },
   title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' },
   topActions: { display: 'flex', alignItems: 'center', gap: '8px' },
-  toolLabel: { fontSize: '12px', color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
+  toolLabel: { fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' },
   paginationInfo: { fontSize: '12px', color: 'var(--table-footer-text)', fontWeight: 700 },
   customizeButton: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--color-primary-soft)', background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', borderRadius: '10px', width: '34px', height: '34px', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', boxShadow: '0 1px 2px rgba(15, 23, 42, 0.05)', transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease' },
   buttonPrimary: { display: 'inline-flex', alignItems: 'center', gap: '8px', border: 'none', borderRadius: '10px', padding: '9px 14px', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '14px' },
   buttonGhost: { border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '12px', width: '48px', height: '48px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   summaryWrap: { padding: '16px 18px', background: 'var(--surface-card)' },
   summaryCard: { display: 'grid', gap: '12px' },
-  summaryTitle: { margin: 0, fontSize: '13px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' },
+  summaryTitle: { margin: 0, fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' },
   summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: '12px' },
   summaryMetric: { border: '1px solid var(--border)', borderRadius: '8px', padding: '12px 14px', background: 'var(--surface-card-elevated)', minHeight: '96px', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.04)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '8px' },
-  summaryLabel: { color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.25 },
+  summaryLabel: { color: 'var(--text-muted)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', lineHeight: 1.25 },
   summaryValue: { color: 'var(--text-primary)', fontSize: '24px', fontWeight: 800, lineHeight: 1.05 },
-  summaryHint: { color: '#64748b', fontSize: '12px', fontWeight: 700, lineHeight: 1.35 },
+  summaryHint: { color: 'var(--text-muted)', fontSize: '12px', fontWeight: 700, lineHeight: 1.35 },
   summaryAccent: { color: '#d97706' },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: 'var(--table-bg)', backgroundClip: 'padding-box', borderRadius: 0 },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed' },
   headCell: { textAlign: 'left', fontSize: '11px', fontWeight: 700, color: 'var(--table-header-text)', padding: '8px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.2, minHeight: '34px', height: 'auto' },
-  row: { borderBottom: '1px solid #eef2f7' },
+  row: { borderBottom: '1px solid var(--border-soft)' },
   cell: { padding: '7px 10px', fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', verticalAlign: 'middle', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   invoiceCell: { color: 'var(--color-primary)', fontWeight: 400, textDecoration: 'underline dotted rgba(159,23,77,0.4)' },
   checkboxWrap: { width: '38px', textAlign: 'center' },
@@ -4119,7 +4119,7 @@ export default function InvoiceDashboard() {
       ) : null}
 
       <div className="invoice-summary-wrap" style={shell.summaryWrap}>
-        <div className="invoice-summary-card" style={shell.summaryCard}>
+        <div className="invoice-summary-card" data-ui="summary-card" style={shell.summaryCard}>
           <h3 style={shell.summaryTitle}>Payment Summary</h3>
           <div style={summaryGridStyle}>
             <div className="invoice-summary-metric" style={summaryMetricStyle}>

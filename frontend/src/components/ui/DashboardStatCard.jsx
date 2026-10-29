@@ -4,7 +4,7 @@ export default function DashboardStatCard({ title, value, icon, tone = 'var(--co
   const hasIcon = Boolean(icon);
 
   return (
-    <AppCard className={['crm-kpi-card', className].filter(Boolean).join(' ')} style={{ padding: 0, ...style }}>
+    <AppCard className={['crm-kpi-card', 'portal-summary-card', className].filter(Boolean).join(' ')} style={{ padding: 0, ...style }}>
       <div style={{ padding: 16, display: 'grid', gap: hasIcon ? 10 : 8, ...contentStyle }}>
         <div style={{ display: 'flex', justifyContent: hasIcon ? 'space-between' : 'flex-start', alignItems: 'center', minHeight: hasIcon ? 32 : 0 }}>
           <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', ...titleStyle }}>{title}</span>

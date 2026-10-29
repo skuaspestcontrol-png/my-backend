@@ -98,9 +98,9 @@ const shell = {
     minHeight: '36px',
     height: '36px',
     borderRadius: '999px',
-    border: '1px solid #d1d5db',
-    background: '#fff',
-    color: '#374151',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-card)',
+    color: 'var(--text-secondary)',
     padding: '0 16px',
     fontWeight: 700,
     fontSize: '13px',
@@ -121,7 +121,7 @@ const shell = {
     zIndex: 1,
     border: '1px solid rgba(15,23,42,0.08)',
     borderRadius: '16px',
-    background: '#fff',
+    background: 'var(--surface-card)',
     overflow: 'hidden',
     minHeight: 0,
     flex: 1
@@ -130,10 +130,10 @@ const shell = {
     width: '100%',
     height: '100%',
     border: 'none',
-    background: '#fff'
+    background: 'var(--surface-card)'
   },
   status: {
-    border: '1px solid rgba(159, 23, 77, 0.18)',
+    border: '1px solid var(--border-soft)',
     background: 'rgba(252,231,243,0.55)',
     color: 'var(--color-primary-dark)',
     borderRadius: '10px',

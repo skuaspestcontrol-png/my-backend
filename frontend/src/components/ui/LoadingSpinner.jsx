@@ -8,7 +8,7 @@ export default function LoadingSpinner({ size = 18, color = theme.colors.primary
         width: size,
         height: size,
         borderRadius: '999px',
-        border: `2px solid ${color}33`,
+        border: `2px solid color-mix(in srgb, ${color} 20%, transparent)`,
         borderTopColor: color,
         display: 'inline-block',
         animation: 'crm-spin 0.8s linear infinite'

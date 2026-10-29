@@ -175,11 +175,12 @@ const SidebarSection = ({ title, children, collapsed = false }) => (
   <div style={{ marginTop: collapsed ? '10px' : '14px' }}>
     {!collapsed ? (
       <div
+        className="sidebar-section-title"
         style={{
           padding: '0 22px 8px',
           fontSize: '11px',
           fontWeight: 800,
-          color: '#6b7280',
+          color: 'var(--text-secondary)',
           textTransform: 'uppercase',
           letterSpacing: '0.02em'
         }}
@@ -524,7 +525,7 @@ export default function DashboardLayout({ children }) {
     .join('');
 
   return (
-    <div className="app-layout">
+    <div className="app-layout portal-design-system">
       <button
         type="button"
         aria-label="Close sidebar"
@@ -533,6 +534,7 @@ export default function DashboardLayout({ children }) {
       />
 
       <aside
+        id="portal-sidebar"
         className={`sidebar${isDrawerMode && sidebarOpen ? ' open' : ''}`}
         onMouseEnter={() => {
           if (!isDrawerMode) setSidebarHovering(true);
@@ -634,7 +636,7 @@ export default function DashboardLayout({ children }) {
           </Link>
         </div>
 
-        <nav style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 0 24px' }}>
+        <nav aria-label="Main navigation" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 0 24px' }}>
           <Link
             to="/dashboard"
             className={isActive('/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'}
@@ -662,8 +664,8 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && leadsMenuOpen ? (
               <div style={submenuWrapStyle}>
-                <Link to="/leads" className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads')} onClick={closeDrawerOnMobile}>Lead Master</Link>
-                <Link to="/leads/followup" className={isActive('/leads/followup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads/followup')} onClick={closeDrawerOnMobile}>Followup</Link>
+                <Link to="/leads" aria-current={isActive('/leads') ? 'page' : undefined} className={isActive('/leads') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads')} onClick={closeDrawerOnMobile}>Lead Master</Link>
+                <Link to="/leads/followup" aria-current={isActive('/leads/followup') ? 'page' : undefined} className={isActive('/leads/followup') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkActiveStyle('/leads/followup')} onClick={closeDrawerOnMobile}>Followup</Link>
               </div>
             ) : null}
             <button
@@ -681,13 +683,13 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && salesMenuOpen ? (
               <div style={submenuWrapStyle}>
-                <Link to="/sales/customers" className={isActive('/sales/customers') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/customers')} onClick={closeDrawerOnMobile}>Customer</Link>
-                <Link to="/sales/contracts" className={isActive('/sales/contracts') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/contracts')} onClick={closeDrawerOnMobile}>Contract</Link>
-                <Link to="/sales/invoices" className={isActive('/sales/invoices') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/invoices')} onClick={closeDrawerOnMobile}>Invoice</Link>
-                <Link to="/quotations" className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/quotations', isActive('/quotations') || isActive('/quotations/new'))} onClick={closeDrawerOnMobile}>Quotation</Link>
-                <Link to="/sales/payment-received" className={isActive('/sales/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
-                <Link to="/sales/renewal" className={isActive('/sales/renewal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/renewal')} onClick={closeDrawerOnMobile}>Renewal</Link>
-                <Link to="/sales/whatsapp-marketing" className={isActive('/sales/whatsapp-marketing') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/whatsapp-marketing')} onClick={closeDrawerOnMobile}>WhatsApp Marketing</Link>
+                <Link to="/sales/customers" aria-current={isActive('/sales/customers') ? 'page' : undefined} className={isActive('/sales/customers') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/customers')} onClick={closeDrawerOnMobile}>Customer</Link>
+                <Link to="/sales/contracts" aria-current={isActive('/sales/contracts') ? 'page' : undefined} className={isActive('/sales/contracts') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/contracts')} onClick={closeDrawerOnMobile}>Contract</Link>
+                <Link to="/sales/invoices" aria-current={isActive('/sales/invoices') ? 'page' : undefined} className={isActive('/sales/invoices') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/invoices')} onClick={closeDrawerOnMobile}>Invoice</Link>
+                <Link to="/quotations" aria-current={isActive('/quotations') ? 'page' : undefined} className={isActive('/quotations') || isActive('/quotations/new') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/quotations', isActive('/quotations') || isActive('/quotations/new'))} onClick={closeDrawerOnMobile}>Quotation</Link>
+                <Link to="/sales/payment-received" aria-current={isActive('/sales/payment-received') ? 'page' : undefined} className={isActive('/sales/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
+                <Link to="/sales/renewal" aria-current={isActive('/sales/renewal') ? 'page' : undefined} className={isActive('/sales/renewal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/renewal')} onClick={closeDrawerOnMobile}>Renewal</Link>
+                <Link to="/sales/whatsapp-marketing" aria-current={isActive('/sales/whatsapp-marketing') ? 'page' : undefined} className={isActive('/sales/whatsapp-marketing') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales/whatsapp-marketing')} onClick={closeDrawerOnMobile}>WhatsApp Marketing</Link>
               </div>
             ) : null}
 
@@ -699,10 +701,10 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && salesPerformanceMenuOpen ? (
               <div style={submenuWrapStyle}>
-                <Link to="/sales-performance/dashboard" className={isActive('/sales-performance/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/dashboard')} onClick={closeDrawerOnMobile}>Dashboard</Link>
-                <Link to="/sales-performance/targets" className={isActive('/sales-performance/targets') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/targets')} onClick={closeDrawerOnMobile}>Targets</Link>
-                <Link to="/sales-performance/team-performance" className={isActive('/sales-performance/team-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/team-performance')} onClick={closeDrawerOnMobile}>Team Performance</Link>
-                <Link to="/sales-performance/reports" className={isActive('/sales-performance/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/reports')} onClick={closeDrawerOnMobile}>Reports</Link>
+                <Link to="/sales-performance/dashboard" aria-current={isActive('/sales-performance/dashboard') ? 'page' : undefined} className={isActive('/sales-performance/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/dashboard')} onClick={closeDrawerOnMobile}>Dashboard</Link>
+                <Link to="/sales-performance/targets" aria-current={isActive('/sales-performance/targets') ? 'page' : undefined} className={isActive('/sales-performance/targets') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/targets')} onClick={closeDrawerOnMobile}>Targets</Link>
+                <Link to="/sales-performance/team-performance" aria-current={isActive('/sales-performance/team-performance') ? 'page' : undefined} className={isActive('/sales-performance/team-performance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/team-performance')} onClick={closeDrawerOnMobile}>Team Performance</Link>
+                <Link to="/sales-performance/reports" aria-current={isActive('/sales-performance/reports') ? 'page' : undefined} className={isActive('/sales-performance/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/sales-performance/reports')} onClick={closeDrawerOnMobile}>Reports</Link>
               </div>
             ) : null}
 
@@ -714,9 +716,9 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && purchaseMenuOpen ? (
               <div style={submenuWrapStyle}>
-                <Link to="/purchase/vendors" className={isActive('/purchase/vendors') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/vendors')} onClick={closeDrawerOnMobile}>Vendors</Link>
-                <Link to="/purchase/bills" className={isActive('/purchase/bills') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/bills')} onClick={closeDrawerOnMobile}>Bills</Link>
-                <Link to="/purchase/payment-received" className={isActive('/purchase/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
+                <Link to="/purchase/vendors" aria-current={isActive('/purchase/vendors') ? 'page' : undefined} className={isActive('/purchase/vendors') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/vendors')} onClick={closeDrawerOnMobile}>Vendors</Link>
+                <Link to="/purchase/bills" aria-current={isActive('/purchase/bills') ? 'page' : undefined} className={isActive('/purchase/bills') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/bills')} onClick={closeDrawerOnMobile}>Bills</Link>
+                <Link to="/purchase/payment-received" aria-current={isActive('/purchase/payment-received') ? 'page' : undefined} className={isActive('/purchase/payment-received') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/purchase/payment-received')} onClick={closeDrawerOnMobile}>Payment Received</Link>
               </div>
             ) : null}
 
@@ -731,13 +733,13 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && fieldOpsMenuOpen ? (
               <div style={submenuWrapStyle}>
-                <Link to="/operations/assign-services" className={isActive('/operations/assign-services') || isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assign-services')} onClick={closeDrawerOnMobile}>Assign Services</Link>
-                <Link to="/operations/assigned-jobs" className={isActive('/operations/assigned-jobs') || isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assigned-jobs')} onClick={closeDrawerOnMobile}>Assigned Jobs</Link>
-                <Link to="/operations/track-technicians" className={isActive('/operations/track-technicians') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/track-technicians')} onClick={closeDrawerOnMobile}>Track Technicians</Link>
-                <Link to="/service-calendar" className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/service-calendar')} onClick={closeDrawerOnMobile}>Service Calendar</Link>
+                <Link to="/operations/assign-services" aria-current={isActive('/operations/assign-services') ? 'page' : undefined} className={isActive('/operations/assign-services') || isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assign-services')} onClick={closeDrawerOnMobile}>Assign Services</Link>
+                <Link to="/operations/assigned-jobs" aria-current={isActive('/operations/assigned-jobs') ? 'page' : undefined} className={isActive('/operations/assigned-jobs') || isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assigned-jobs')} onClick={closeDrawerOnMobile}>Assigned Jobs</Link>
+                <Link to="/operations/track-technicians" aria-current={isActive('/operations/track-technicians') ? 'page' : undefined} className={isActive('/operations/track-technicians') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/track-technicians')} onClick={closeDrawerOnMobile}>Track Technicians</Link>
+                <Link to="/service-calendar" aria-current={isActive('/service-calendar') ? 'page' : undefined} className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/service-calendar')} onClick={closeDrawerOnMobile}>Service Calendar</Link>
               </div>
             ) : null}
-            <Link to="/complaints" className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')} title="Complaints" aria-label="Complaints" onClick={closeDrawerOnMobile}><Bell size={18} /> {!isSidebarCollapsed ? 'Complaints' : null}</Link>
+            <Link to="/complaints" aria-current={isActive('/complaints') ? 'page' : undefined} className={isActive('/complaints') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/complaints')} title="Complaints" aria-label="Complaints" onClick={closeDrawerOnMobile}><Bell size={18} /> {!isSidebarCollapsed ? 'Complaints' : null}</Link>
           </SidebarSection>
 
           <SidebarSection title="Inventory" collapsed={isSidebarCollapsed}>
@@ -749,25 +751,25 @@ export default function DashboardLayout({ children }) {
             </button>
             {!isSidebarCollapsed && stockMenuOpen ? (
               <div style={submenuWrapStyle}>
-                <Link to="/stock/dashboard" className={isActive('/stock/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/dashboard')} onClick={closeDrawerOnMobile}>Dashboard</Link>
-                <Link to="/stock/items" className={isActive('/stock/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/items')} onClick={closeDrawerOnMobile}>Items</Link>
-                <Link to="/stock/purchase" className={isActive('/stock/purchase') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/purchase')} onClick={closeDrawerOnMobile}>Stock In / Purchase</Link>
-                <Link to="/stock/issue-usage" className={isActive('/stock/issue-usage') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/issue-usage')} onClick={closeDrawerOnMobile}>Issue &amp; Usage</Link>
-                <Link to="/stock/reports" className={isActive('/stock/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/reports')} onClick={closeDrawerOnMobile}>Reports</Link>
+                <Link to="/stock/dashboard" aria-current={isActive('/stock/dashboard') ? 'page' : undefined} className={isActive('/stock/dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/dashboard')} onClick={closeDrawerOnMobile}>Dashboard</Link>
+                <Link to="/stock/items" aria-current={isActive('/stock/items') ? 'page' : undefined} className={isActive('/stock/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/items')} onClick={closeDrawerOnMobile}>Items</Link>
+                <Link to="/stock/purchase" aria-current={isActive('/stock/purchase') ? 'page' : undefined} className={isActive('/stock/purchase') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/purchase')} onClick={closeDrawerOnMobile}>Stock In / Purchase</Link>
+                <Link to="/stock/issue-usage" aria-current={isActive('/stock/issue-usage') ? 'page' : undefined} className={isActive('/stock/issue-usage') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/issue-usage')} onClick={closeDrawerOnMobile}>Issue &amp; Usage</Link>
+                <Link to="/stock/reports" aria-current={isActive('/stock/reports') ? 'page' : undefined} className={isActive('/stock/reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/stock/reports')} onClick={closeDrawerOnMobile}>Reports</Link>
               </div>
             ) : null}
           </SidebarSection>
 
           <SidebarSection title="HR & Payroll" collapsed={isSidebarCollapsed}>
-            <Link to="/hr-dashboard" className={isActive('/hr-dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/hr-dashboard')} title="HR Dashboard" aria-label="HR Dashboard" onClick={closeDrawerOnMobile}><LayoutDashboard size={18} /> {!isSidebarCollapsed ? 'HR Dashboard' : null}</Link>
-            <Link to="/employees" className={isActive('/employees') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/employees')} title="Employee Master" aria-label="Employee Master" onClick={closeDrawerOnMobile}><UserCheck size={18} /> {!isSidebarCollapsed ? 'Employee Master' : null}</Link>
-            <Link to="/attendance" className={isActive('/attendance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/attendance')} title="Attendance" aria-label="Attendance" onClick={closeDrawerOnMobile}><CalendarClock size={18} /> {!isSidebarCollapsed ? 'Attendance' : null}</Link>
-            <Link to="/payroll" className={isActive('/payroll') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/payroll')} title="Payroll" aria-label="Payroll" onClick={closeDrawerOnMobile}><RupeeSymbol size={18} /> {!isSidebarCollapsed ? 'Payroll' : null}</Link>
+            <Link to="/hr-dashboard" aria-current={isActive('/hr-dashboard') ? 'page' : undefined} className={isActive('/hr-dashboard') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/hr-dashboard')} title="HR Dashboard" aria-label="HR Dashboard" onClick={closeDrawerOnMobile}><LayoutDashboard size={18} /> {!isSidebarCollapsed ? 'HR Dashboard' : null}</Link>
+            <Link to="/employees" aria-current={isActive('/employees') ? 'page' : undefined} className={isActive('/employees') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/employees')} title="Employee Master" aria-label="Employee Master" onClick={closeDrawerOnMobile}><UserCheck size={18} /> {!isSidebarCollapsed ? 'Employee Master' : null}</Link>
+            <Link to="/attendance" aria-current={isActive('/attendance') ? 'page' : undefined} className={isActive('/attendance') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/attendance')} title="Attendance" aria-label="Attendance" onClick={closeDrawerOnMobile}><CalendarClock size={18} /> {!isSidebarCollapsed ? 'Attendance' : null}</Link>
+            <Link to="/payroll" aria-current={isActive('/payroll') ? 'page' : undefined} className={isActive('/payroll') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/payroll')} title="Payroll" aria-label="Payroll" onClick={closeDrawerOnMobile}><RupeeSymbol size={18} /> {!isSidebarCollapsed ? 'Payroll' : null}</Link>
           </SidebarSection>
 
           <SidebarSection title="Administration" collapsed={isSidebarCollapsed}>
-            <Link to="/items" className={isActive('/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/items')} title="Items" aria-label="Items" onClick={closeDrawerOnMobile}><Package size={18} /> {!isSidebarCollapsed ? 'Items' : null}</Link>
-            <Link to="/admin/export-data" className={isActive('/admin/export-data') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/admin/export-data')} title="Export Data" aria-label="Export Data" onClick={closeDrawerOnMobile}><FileDown size={18} /> {!isSidebarCollapsed ? 'Export Data' : null}</Link>
+            <Link to="/items" aria-current={isActive('/items') ? 'page' : undefined} className={isActive('/items') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/items')} title="Items" aria-label="Items" onClick={closeDrawerOnMobile}><Package size={18} /> {!isSidebarCollapsed ? 'Items' : null}</Link>
+            <Link to="/admin/export-data" aria-current={isActive('/admin/export-data') ? 'page' : undefined} className={isActive('/admin/export-data') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={linkStyle('/admin/export-data')} title="Export Data" aria-label="Export Data" onClick={closeDrawerOnMobile}><FileDown size={18} /> {!isSidebarCollapsed ? 'Export Data' : null}</Link>
           </SidebarSection>
         </nav>
       </aside>
@@ -803,6 +805,8 @@ export default function DashboardLayout({ children }) {
               }
               setSidebarPinnedOpen((prev) => !prev);
             }}
+            aria-controls="portal-sidebar"
+            aria-expanded={isDrawerMode ? sidebarOpen : !isSidebarCollapsed}
             aria-label={isDrawerMode ? sidebarOpen ? 'Hide menu' : 'Show menu' : sidebarPinnedOpen ? 'Auto minimize menu' : 'Keep menu extended'}
             title={isDrawerMode ? sidebarOpen ? 'Hide menu' : 'Show menu' : sidebarPinnedOpen ? 'Auto minimize menu' : 'Keep menu extended'}
             style={{
@@ -1126,7 +1130,7 @@ export default function DashboardLayout({ children }) {
           </div>
         </header>
 
-        <main className="main-content" style={{ padding: contentPadding }}>
+        <main id="portal-main" className="main-content" style={{ padding: contentPadding }}>
           <div className="dashboard-container">
             {children}
           </div>

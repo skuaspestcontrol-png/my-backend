@@ -20,7 +20,7 @@ const shell = {
   hero: {
     display: 'grid',
     gap: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.2)',
+    border: '1px solid var(--border-soft)',
     background: 'var(--color-primary)',
     borderRadius: '20px',
     padding: '18px'
@@ -29,23 +29,23 @@ const shell = {
   sub: { margin: 0, color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 600 },
   statsGrid: { display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' },
   stat: {
-    border: '1px solid rgba(159, 23, 77, 0.18)',
-    background: '#fff',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-card)',
     borderRadius: '16px',
     padding: '14px',
     boxShadow: 'var(--shadow-sm)'
   },
-  statLabel: { margin: 0, color: '#6B7280', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
-  statValue: { margin: '8px 0 0 0', color: '#111827', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em' },
+  statLabel: { margin: 0, color: 'var(--text-muted)', fontSize: '12px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
+  statValue: { margin: '8px 0 0 0', color: 'var(--text-primary)', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em' },
   tablePanel: {
     border: '1px solid var(--color-border)',
-    background: '#fff',
+    background: 'var(--surface-card)',
     borderRadius: '18px',
     overflow: 'hidden'
   },
   tableHeadBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '14px 16px', borderBottom: '1px solid var(--color-border)' },
-  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827' },
-  tableHeadButton: { minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' },
+  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' },
+  tableHeadButton: { minHeight: '32px', borderRadius: '8px', border: '1px solid var(--border-soft)', background: 'var(--surface-card)', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '720px' },
   th: {
     textAlign: 'left',
@@ -62,7 +62,7 @@ const shell = {
     minHeight: '42px',
     height: 'auto'
   },
-  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' },
+  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: 'var(--text-secondary)', fontSize: '13px', verticalAlign: 'top' },
   actionButton: {
     border: '1px solid rgba(220,38,38,0.25)',
     background: '#fff5f5',

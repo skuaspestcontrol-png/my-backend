@@ -22,7 +22,7 @@ const shell = {
   hero: {
     display: 'grid',
     gap: '10px',
-    border: '1px solid rgba(159, 23, 77, 0.2)',
+    border: '1px solid var(--border-soft)',
     background: 'var(--color-primary)',
     borderRadius: '20px',
     padding: '18px'
@@ -31,24 +31,24 @@ const shell = {
   sub: { margin: 0, color: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 600 },
   statsGrid: { display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' },
   stat: {
-    border: '1px solid rgba(159, 23, 77, 0.18)',
-    background: '#fff',
+    border: '1px solid var(--border-soft)',
+    background: 'var(--surface-card)',
     borderRadius: '12px',
     padding: '12px 14px',
     minHeight: '96px',
     boxShadow: 'var(--shadow-sm)'
   },
-  statLabel: { margin: 0, color: '#64748b', fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', lineHeight: 1.25 },
-  statValue: { margin: '12px 0 0 0', color: '#111827', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05 },
+  statLabel: { margin: 0, color: 'var(--text-muted)', fontSize: '11px', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', lineHeight: 1.25 },
+  statValue: { margin: '12px 0 0 0', color: 'var(--text-primary)', fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.05 },
   tablePanel: {
     border: '1px solid var(--color-border)',
-    background: '#fff',
+    background: 'var(--surface-card)',
     borderRadius: '18px',
     overflow: 'hidden'
   },
   tableHeadBar: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '9px 16px', borderBottom: '1px solid var(--color-border)' },
-  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: '#111827', lineHeight: 1.2 },
-  tableHeadButton: { minHeight: '32px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' },
+  tableHead: { margin: 0, fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 },
+  tableHeadButton: { minHeight: '32px', borderRadius: '8px', border: '1px solid var(--border-soft)', background: 'var(--surface-card)', padding: '0 10px', fontWeight: 700, fontSize: '12px', cursor: 'pointer' },
   table: { width: '100%', borderCollapse: 'collapse', minWidth: '720px' },
   th: {
     textAlign: 'left',
@@ -59,11 +59,11 @@ const shell = {
     textTransform: 'uppercase',
     letterSpacing: '0.06em'
   },
-  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#334155', fontSize: '13px', verticalAlign: 'top' },
+  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: 'var(--text-secondary)', fontSize: '13px', verticalAlign: 'top' },
   pagination: { padding: '10px 16px', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)' },
   paginationInfo: { color: 'var(--table-footer-text)', fontSize: '12px', fontWeight: 700 },
   paginationActions: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  paginationBtn: { width: '34px', minWidth: '34px', minHeight: '32px', height: '32px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', color: 'var(--color-primary)', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
+  paginationBtn: { width: '34px', minWidth: '34px', minHeight: '32px', height: '32px', border: '1px solid var(--border-soft)', borderRadius: '8px', background: 'var(--surface-card)', color: 'var(--color-primary)', padding: 0, fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' },
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
   , actionButton: {
     border: '1px solid #fecaca',

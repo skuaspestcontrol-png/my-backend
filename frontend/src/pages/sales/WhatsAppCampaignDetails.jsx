@@ -9,10 +9,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 const formatDate = (value) => value ? new Date(value).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '-';
 const styles = {
   page: { display: 'grid', gap: 12, width: '100%', minWidth: 0 },
-  panel: { border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: 16, background: '#fff', padding: 16, overflow: 'hidden' },
-  button: { minHeight: 36, borderRadius: 10, border: '1px solid #d1d5db', background: '#fff', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 800, cursor: 'pointer' },
+  panel: { border: '1px solid var(--border-soft)', borderRadius: 16, background: 'var(--surface-card)', padding: 16, overflow: 'hidden' },
+  button: { minHeight: 36, borderRadius: 10, border: '1px solid var(--border-soft)', background: 'var(--surface-card)', padding: '0 12px', display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 800, cursor: 'pointer' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10 },
-  muted: { color: '#64748b', fontSize: 12 }
+  muted: { color: 'var(--text-muted)', fontSize: 12 }
 };
 
 export default function WhatsAppCampaignDetails() {

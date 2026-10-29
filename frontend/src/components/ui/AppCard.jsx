@@ -1,7 +1,7 @@
 export default function AppCard({ children, title, action, style, headerStyle, bodyStyle, className }) {
   return (
     <section
-      className={['crm-card', className].filter(Boolean).join(' ')}
+      className={['crm-card', 'portal-section-card', className].filter(Boolean).join(' ')}
       style={{
         overflow: 'hidden',
         background: 'var(--card-bg)',

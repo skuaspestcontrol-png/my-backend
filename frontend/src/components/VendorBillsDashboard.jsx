@@ -84,7 +84,7 @@ const shell = {
   summaryValue: { color: 'var(--text-primary)', fontSize: '30px', fontWeight: 800 },
   tableWrap: { overflowX: 'auto', overflowY: 'hidden', background: 'var(--table-bg)', borderTop: '1px solid var(--border-soft)', borderRadius: '10px', border: '1px solid var(--border)' },
   table: { width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: '900px' },
-  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: '#6b7280', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
+  th: { textAlign: 'left', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', padding: '12px 10px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', lineHeight: 1.25, minHeight: '42px', height: 'auto' },
   td: { padding: '12px 10px', fontSize: '14px', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-soft)' },
   modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(10,10,10,0.62)', display: 'grid', placeItems: 'center', zIndex: 3000, padding: 'clamp(12px, 3vh, 24px)' },
   modal: { background: 'var(--surface-card)', width: 'min(100%, 1180px)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--shadow)', overflow: 'hidden', maxHeight: '92vh', height: '92vh', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' },
@@ -384,7 +384,7 @@ export default function VendorBillsDashboard() {
       </div>
 
       <div style={shell.summaryWrap}>
-        <div style={shell.summaryCard}>
+        <div data-ui="summary-card" style={shell.summaryCard}>
           <h3 style={shell.summaryTitle}>Vendor Bills Summary</h3>
           <div style={isMobile ? { ...shell.summaryGrid, gridTemplateColumns: '1fr' } : shell.summaryGrid}>
             <div><span style={shell.summaryLabel}>Total Vendor Bills</span><div style={shell.summaryValue}>{summary.count}</div></div>

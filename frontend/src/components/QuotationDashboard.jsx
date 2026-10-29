@@ -69,7 +69,7 @@ const shell = {
     padding: '0 10px',
     borderRadius: 10,
     border: '1px solid var(--color-border)',
-    background: '#fff',
+    background: 'var(--surface-card)',
     color: 'var(--color-text)',
     fontSize: 12,
     fontWeight: 700,
@@ -95,7 +95,7 @@ const shell = {
   summaryWrap: {
     background: 'rgba(255,255,255,0.82)',
     borderRadius: '16px',
-    border: '1px solid rgba(159, 23, 77, 0.14)',
+    border: '1px solid var(--border-soft)',
     padding: '12px',
     boxShadow: 'var(--shadow-soft)',
     backdropFilter: 'blur(12px)',
@@ -106,18 +106,18 @@ const shell = {
   card: {
     border: '1px solid rgba(17,17,17,0.08)',
     borderRadius: '10px',
-    background: '#fff',
+    background: 'var(--surface-card)',
     padding: '8px 10px',
     display: 'grid',
     gap: '4px'
   },
-  metricLabel: { margin: 0, color: '#64748b', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 },
+  metricLabel: { margin: 0, color: 'var(--text-muted)', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 },
   metricValue: { margin: 0, color: '#111111', fontSize: '24px', lineHeight: 1, fontWeight: 800, letterSpacing: '-0.02em' },
   metricSub: { margin: 0, color: '#7c8797', fontSize: '10px', fontWeight: 700 },
   panel: {
     border: '1px solid var(--color-border)',
     borderRadius: 14,
-    background: '#fff',
+    background: 'var(--surface-card)',
     boxShadow: 'var(--shadow-sm)',
     overflow: 'hidden'
   },
@@ -152,7 +152,7 @@ const shell = {
     fontSize: 13,
     fontWeight: 600,
     color: 'var(--color-text)',
-    borderBottom: '1px solid #eef2f7',
+    borderBottom: '1px solid var(--border-soft)',
     verticalAlign: 'top'
   },
   badge: {
@@ -163,8 +163,8 @@ const shell = {
     fontSize: 11,
     fontWeight: 800,
     border: '1px solid rgba(15,23,42,0.1)',
-    background: '#f8fafc',
-    color: '#334155'
+    background: 'var(--surface-secondary)',
+    color: 'var(--text-secondary)'
   }
 };
 

@@ -242,10 +242,10 @@ const shell = {
     gap: '10px'
   },
   summaryCard: {
-    border: '1px solid rgba(148, 163, 184, 0.18)',
+    border: '1px solid var(--border-soft)',
     borderRadius: '14px',
     padding: '12px',
-    background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(249,250,252,0.98) 100%)',
+    background: 'var(--surface-card)',
     boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
     backgroundClip: 'padding-box',
     display: 'grid',
@@ -387,7 +387,7 @@ const shell = {
     minHeight: '30px',
     height: '30px',
     borderRadius: '999px',
-    border: '1px solid rgba(159, 23, 77, 0.32)',
+    border: '1px solid var(--border-soft)',
     background: 'rgba(159, 23, 77, 0.08)',
     color: 'var(--color-primary-dark)',
     fontSize: '12px',
@@ -427,7 +427,7 @@ const shell = {
     color: '#0f766e'
   },
   overtimeBadgeNeutral: {
-    borderColor: 'rgba(148,163,184,0.28)',
+    borderColor: 'var(--border-soft)',
     background: 'rgba(148,163,184,0.12)',
     color: 'var(--text-secondary)'
   },
@@ -1308,8 +1308,8 @@ export default function Attendance() {
         </section>
       </div>
       <details className="att-month-summary"><summary>Month Wise Summary · {monthHeading(month)}</summary>      <h3 style={shell.sectionTitle}>Month Wise Summary ({monthHeading(month)})</h3>
-      <div style={shell.summaryGrid}>
-        <div className="attendance-summary-card" style={shell.summaryCard}>
+      <div data-ui="summary-grid" style={shell.summaryGrid}>
+        <div className="attendance-summary-card" data-ui="summary-card" style={shell.summaryCard}>
           <span style={shell.summaryLabel}><Users size={13} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Employees Marked</span>
           <span style={shell.summaryValue}>{monthSummary.uniqueEmployees.size}</span>
         </div>
@@ -1329,7 +1329,7 @@ export default function Attendance() {
           <span style={shell.summaryLabel}>Leave Days</span>
           <span style={shell.summaryValue}>{monthSummary.leaveDays}</span>
         </div>
-        <div className="attendance-summary-card" style={shell.summaryCard}>
+        <div className="attendance-summary-card" data-ui="summary-card" style={shell.summaryCard}>
           <span style={shell.summaryLabel}><Clock3 size={13} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Average Hours</span>
           <span style={shell.summaryValue}>{(monthSummary.workedDays ? (monthSummary.totalHours / monthSummary.workedDays) : 0).toFixed(2)}</span>
         </div>

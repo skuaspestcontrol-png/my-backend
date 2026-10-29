@@ -49,7 +49,7 @@ export default function ResizableTable({
 
   return (
     <AppCard className={className} style={{ overflow: 'hidden', ...cardStyle }}>
-      <div className="crm-scroll-table" style={{ overflowX: 'auto' }}>
+      <div className="crm-scroll-table" tabIndex={0} role="region" aria-label="Scrollable data table" style={{ overflowX: 'auto' }}>
         <table
           className={tableClassName}
           style={{
