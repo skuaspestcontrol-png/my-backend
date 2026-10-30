@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -1900,10 +1902,10 @@ export default function RenewalDashboard() {
     };
     const declineReasons = ['Price too high', 'Competitor selected', 'Customer no longer requires service', 'Customer dissatisfied with previous service', 'Property vacated or closed', 'Budget unavailable', 'Customer unreachable', 'Service no longer applicable', 'Other'];
     return (
-      <div style={shell.modalOverlay}>
-        <div style={shell.modal}>
-          <div style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><button style={shell.modalCloseBtn} onClick={closeModal} title="Close" aria-label="Close">×</button></div>
-          <div style={shell.modalBody}>
+      createPortal(<div style={shell.modalOverlay}>
+        <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.modal}>
+          <div className="crm-modal-surface-header" style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><CRMModalCloseButton style={shell.modalCloseBtn} onClick={closeModal} title="Close" aria-label="Close" /></div>
+          <div className="crm-modal-surface-body" style={shell.modalBody}>
             {modal.type === 'view' && (
               <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
                 <strong>{row.customerName}</strong>
@@ -1936,7 +1938,7 @@ export default function RenewalDashboard() {
                 <span>Sales Person: {row.assignedSalesPersonName || '-'}</span>
                 {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Open renewal letter</a> : null}
                 {canUseAssignedRenewal(row) ? <button style={shell.ghostBtn} onClick={() => openModal('edit', row)}>Edit Renewal</button> : null}
-                {canUseAssignedRenewal(row) && row.status === 'Done' && !row.convertedContractId ? <button style={shell.primaryBtn} onClick={() => openModal('convert', row)}>Convert to New Contract</button> : null}
+                {canUseAssignedRenewal(row) && row.status === 'Done' && !row.convertedContractId ? <div className="crm-modal-surface-footer"><button style={shell.primaryBtn} onClick={() => openModal('convert', row)} data-modal-primary="true">Convert to New Contract</button></div> : null}
               </div>
             )}
             {modal.type === 'edit' && (
@@ -1944,14 +1946,14 @@ export default function RenewalDashboard() {
                 <label style={shell.field}><span style={shell.label}>Service Type</span><input style={shell.input} value={form.serviceType} onChange={(e) => setForm((p) => ({ ...p, serviceType: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Renewal Due Date</span><input type="date" style={shell.input} value={form.renewalDueDate} onChange={(e) => setForm((p) => ({ ...p, renewalDueDate: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Proposed Amount</span><input style={shell.input} value={form.proposedAmount} onChange={(e) => setForm((p) => ({ ...p, proposedAmount: e.target.value }))} /></label>
-                <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>{statuses.filter((s) => s !== 'All').map((s) => <option key={s} value={s}>{s}</option>)}</select></label>
-                <button
+                <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>{statuses.filter((s) => s.value !== 'All').map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
+                <div className="crm-modal-surface-footer"><button
                   style={shell.primaryBtn}
                   disabled={busy}
                   onClick={() => runAction('Renewal updated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/edit`, form))}
-                >
+                 data-modal-primary="true">
                   Save Renewal
-                </button>
+                </button></div>
               </>
             )}
             {modal.type === 'assign' && (
@@ -1960,7 +1962,7 @@ export default function RenewalDashboard() {
                   const selected = salesPeople.find((p) => String(p.id || p.name) === e.target.value);
                   setForm((prev) => ({ ...prev, salesPersonId: e.target.value, salesPersonName: selected?.name || '' }));
                 }}><option value="">Select sales person</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
-                <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Sales person assigned', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/assign`, form))}>Assign</button>
+                <div className="crm-modal-surface-footer"><button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Sales person assigned', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/assign`, form))} data-modal-primary="true">Assign</button></div>
               </>
             )}
             {modal.type === 'followup' && (
@@ -1973,10 +1975,10 @@ export default function RenewalDashboard() {
                 </div>
                 <label style={shell.field}><span style={shell.label}>Follow-up Date</span><input type="date" style={shell.input} value={form.followupDate} onChange={(e) => setForm((p) => ({ ...p, followupDate: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Note</span><textarea style={{ ...shell.input, height: 86, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} /></label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} className="crm-modal-surface-footer">
                   <a style={{ ...shell.ghostBtn, textDecoration: 'none' }} href={row.mobile ? `tel:${row.mobile}` : undefined} title="Call customer" aria-label="Call customer"><Phone size={15} />Call</a>
                   <button type="button" style={shell.ghostBtn} title="WhatsApp customer" aria-label="WhatsApp customer" onClick={() => openRenewalWhatsAppComposer(row)}><MessageCircleMore size={15} />WhatsApp</button>
-                  <button type="button" style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Follow-up saved', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/followup`, form))}>Save Follow-up</button>
+                  <button type="button" style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Follow-up saved', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/followup`, form))} data-modal-primary="true">Save Follow-up</button>
                   <button type="button" style={shell.ghostBtn} onClick={closeModal}>Cancel</button>
                 </div>
               </>
@@ -1991,13 +1993,13 @@ export default function RenewalDashboard() {
                     <span><strong>Final Amount:</strong> {formatINR(row.finalRenewalAmount || row.finalAmount || row.proposedAmount)}</span>
                     <span><strong>Notes:</strong> {String(row.renewalNotes || row.notes || row.lastNote || '-')}</span>
                   </div>
-                  <button style={shell.ghostBtn} onClick={closeModal}>Close</button>
+                  <div className="crm-modal-surface-footer"><button style={shell.ghostBtn} onClick={closeModal}>Close</button></div>
                 </div>
               ) : (
                 <>
                   <label style={shell.field}><span style={shell.label}>Final Amount</span><input style={shell.input} value={form.finalAmount} onChange={(e) => setForm((p) => ({ ...p, finalAmount: e.target.value }))} /></label>
                   <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
-                  <button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal marked done', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/mark-done`, form))}>Mark Done</button>
+                  <div className="crm-modal-surface-footer"><button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal marked done', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/mark-done`, form))} data-modal-primary="true">Mark Done</button></div>
                 </>
               )
             )}
@@ -2011,7 +2013,7 @@ export default function RenewalDashboard() {
                     <span><strong>Reason:</strong> {String(row.lostReason || row.declineReason || row.reason || row.remarks || '-')}</span>
                     <span><strong>Notes:</strong> {String(row.lostNotes || row.lastFollowupNote || '-')}</span>
                   </div>
-                  <button style={shell.ghostBtn} onClick={closeModal}>Close</button>
+                  <div className="crm-modal-surface-footer"><button style={shell.ghostBtn} onClick={closeModal}>Close</button></div>
                 </div>
               ) : (
                 <>
@@ -2019,10 +2021,10 @@ export default function RenewalDashboard() {
                   <label style={shell.field}><span style={shell.label}>Lost Reason</span><select style={shell.input} value={form.reasonCategory || ''} onChange={(e) => setForm((p) => ({ ...p, reasonCategory: e.target.value, reason: e.target.value === 'Other' ? p.reason : e.target.value }))}><option value="">Select reason</option>{declineReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label>
                   {form.reasonCategory === 'Other' ? <label style={shell.field}><span style={shell.label}>Other Reason</span><input style={shell.input} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label> : null}
                   <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.lostNotes || ''} onChange={(e) => setForm((p) => ({ ...p, lostNotes: e.target.value, notes: e.target.value }))} /></label>
-                  <button style={shell.dangerBtn} disabled={busy} onClick={() => {
+                  <div className="crm-modal-surface-footer"><button style={shell.dangerBtn} disabled={busy} onClick={() => {
                     if (!window.confirm('Mark this renewal as lost?')) return;
                     runAction('Renewal marked lost', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form));
-                  }}>Mark as Lost</button>
+                  }} data-modal-danger="true">Mark as Lost</button></div>
                 </>
               )
             )}
@@ -2104,7 +2106,7 @@ export default function RenewalDashboard() {
                     <label style={shell.field}><span style={shell.label}>Actual agreement date</span><input type="date" style={shell.input} value={form.agreementDate || ''} max={todayInput()} onChange={(event) => setForm((prev) => ({ ...prev, agreementDate: event.target.value }))} /></label>
                     <span>Invoice date is suggested when no agreement date is stored. Confirm the actual agreement date; the time this link is recorded is tracked separately.</span>
                     <label style={shell.field}><span style={shell.label}>{selectedExisting?.reviewAllowed ? 'Review reason (required)' : form.correctExistingLink ? 'Correction reason (required)' : 'Notes'}</span><textarea style={{ ...shell.input, height: 70 }} value={form.note || ''} onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))} /></label>
-                    <button type="button" style={shell.primaryBtn} disabled={busy || existingLinks.loading || !selectedExisting || (selectedExisting.eligible === false && !existingReviewConfirmed(selectedExisting)) || !form.agreementDate || (form.correctExistingLink && !form.note?.trim())} onClick={handleLinkExisting}>{busy ? 'Saving…' : selectedExisting?.reviewAllowed ? 'Save reviewed link & mark Won' : form.correctExistingLink ? 'Save corrected link' : 'Link existing records & mark Won'}</button>
+                    <div className="crm-modal-surface-footer"><button type="button" style={shell.primaryBtn} disabled={busy || existingLinks.loading || !selectedExisting || (selectedExisting.eligible === false && !existingReviewConfirmed(selectedExisting)) || !form.agreementDate || (form.correctExistingLink && !form.note?.trim())} onClick={handleLinkExisting} data-modal-primary="true">{busy ? 'Saving…' : selectedExisting?.reviewAllowed ? 'Save reviewed link & mark Won' : form.correctExistingLink ? 'Save corrected link' : 'Link existing records & mark Won'}</button></div>
                   </>
                 ) : (
                   <>
@@ -2126,14 +2128,14 @@ export default function RenewalDashboard() {
                 <label style={shell.field}><span style={shell.label}>Price</span><select style={shell.input} value={form.priceOption || 'same'} onChange={(e) => updateConvertForm({ priceOption: e.target.value })}><option value="same">Same as previous contract</option><option value="revised">Revised price</option></select></label>
                 <label style={shell.field}><span style={shell.label}>Agreed Amount</span><input style={shell.input} value={form.amount} readOnly={form.priceOption === 'same'} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value, priceOption: 'revised' }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 70, paddingTop: 8 }} value={form.note || ''} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
-                <button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract}>{busy ? 'Saving…' : row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'}</button>
+                <div className="crm-modal-surface-footer"><button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract} data-modal-primary="true">{busy ? 'Saving…' : row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'}</button></div>
                   </>
                 )}
               </>
             )}
           </div>
         </div>
-      </div>
+      </div>, document.body)
     );
   };
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -4286,12 +4287,10 @@ export default function InvoiceDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayLockedStyle}>
-          <form className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
+          <form role="dialog" aria-modal="true" className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
             <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalHeaderTitle}>{contractViewOnly ? 'View Contract' : editingId ? 'Edit Contract' : 'New Contract'}</h3>
-              <button type="button" style={shell.modalCloseButton} onClick={closeInvoiceModal} aria-label="Close">
-                <X size={24} />
-              </button>
+              <CRMModalCloseButton type="button" style={shell.modalCloseButton} onClick={closeInvoiceModal} aria-label="Close" />
             </div>
             <fieldset
               disabled={contractViewOnly}
@@ -5014,7 +5013,7 @@ export default function InvoiceDashboard() {
             </div>
             </fieldset>
 
-            <div className={`crm-modal-surface-footer${isMobile ? ' crm-modal-surface-footer-compact' : ''}`} style={modalFooterStyle}>
+            <div className={[`crm-modal-surface-footer${isMobile ? ' crm-modal-surface-footer-compact' : ''}`, "crm-modal-surface-footer"].filter(Boolean).join(' ')} style={modalFooterStyle}>
               {saveError ? (
                 <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
                   {saveError}
@@ -5037,7 +5036,7 @@ export default function InvoiceDashboard() {
                 </button>
               ) : null}
               {contractViewOnly ? null : (
-                <button
+                <button data-modal-primary="true"
                   type="submit"
                   style={isMobile ? { ...shell.saveButton, width: '100%' } : shell.saveButton}
                   disabled={isSaving}
@@ -5053,19 +5052,12 @@ export default function InvoiceDashboard() {
 
       {showInvoiceNumberPrefs ? createPortal(
         <div style={shell.miniModalOverlay}>
-          <div style={shell.miniModal}>
-            <div style={shell.miniModalHead}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.miniModal}>
+            <div className="crm-modal-surface-header" style={shell.miniModalHead}>
               <h3 style={shell.miniModalTitle}>Configure Invoice Number Preferences</h3>
-              <button
-                type="button"
-                style={shell.miniCloseButton}
-                onClick={() => setShowInvoiceNumberPrefs(false)}
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+              <CRMModalCloseButton type="button" style={shell.miniCloseButton} onClick={() => setShowInvoiceNumberPrefs(false)} aria-label="Close" />
             </div>
-            <div style={shell.miniModalBody}>
+            <div className="crm-modal-surface-body" style={shell.miniModalBody}>
               <p style={shell.miniModalNote}>
                 Your invoice numbers can be auto-generated to save time. You can still edit the invoice number manually in the form.
               </p>
@@ -5140,8 +5132,8 @@ export default function InvoiceDashboard() {
                 Enter invoice numbers manually
               </label>
             </div>
-            <div data-brand-footer="true" style={shell.miniFooter}>
-              <button type="button" style={shell.saveButton} onClick={saveInvoiceNumberPrefs}>Save</button>
+            <div className="crm-modal-surface-footer" data-brand-footer="true" style={shell.miniFooter}>
+              <button data-modal-primary="true"  type="button" style={shell.saveButton} onClick={saveInvoiceNumberPrefs}>Save</button>
               <button type="button" style={shell.cancelButton} onClick={() => setShowInvoiceNumberPrefs(false)}>Cancel</button>
             </div>
           </div>
@@ -5150,18 +5142,12 @@ export default function InvoiceDashboard() {
 
       {showBillingAddressPicker ? createPortal(
         <div style={shell.addressPickerOverlay}>
-          <div style={{ ...shell.addressPicker, width: 'min(100%, 640px)' }}>
-            <div style={shell.addressPickerHead}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={{ ...shell.addressPicker, width: 'min(100%, 640px)' }}>
+            <div className="crm-modal-surface-header" style={shell.addressPickerHead}>
               <h3 style={shell.addressPickerTitle}>Billing Address</h3>
-              <button
-                type="button"
-                style={shell.addressPickerCloseButton}
-                onClick={() => setShowBillingAddressPicker(false)}
-              >
-                Close
-              </button>
+              <CRMModalCloseButton type="button" style={shell.addressPickerCloseButton} onClick={() => setShowBillingAddressPicker(false)} />
             </div>
-            <div style={shell.addressList}>
+            <div className="crm-modal-surface-body" style={shell.addressList}>
               {billingAddressOptions.map((option) => (
                 <div
                   key={option.id}
@@ -5187,22 +5173,16 @@ export default function InvoiceDashboard() {
 
       {showShippingAddressPicker ? createPortal(
         <div style={shell.addressPickerOverlay}>
-          <div style={shell.addressPicker}>
-            <div style={shell.addressPickerHead}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.addressPicker}>
+            <div className="crm-modal-surface-header" style={shell.addressPickerHead}>
               <h3 style={shell.addressPickerTitle}>Shipping Address</h3>
-              <button
-                type="button"
-                style={shell.addressPickerCloseButton}
-                onClick={() => {
+              <CRMModalCloseButton type="button" style={shell.addressPickerCloseButton} onClick={() => {
                   setShowShippingAddressPicker(false);
                   setEditingShippingAddressId('');
                   setShippingAddressDraft(emptyAddressDraft);
-                }}
-              >
-                Close
-              </button>
+                }} />
             </div>
-            <div style={shell.addressList}>
+            <div className="crm-modal-surface-body" style={shell.addressList}>
               {shippingAddressOptions.map((option) => (
                 <div
                   key={option.id}
@@ -5255,8 +5235,8 @@ export default function InvoiceDashboard() {
       , document.body) : null}
       {showShippingAddressPicker && editingShippingAddressId ? createPortal(
         <div style={shell.miniModalOverlay}>
-          <div style={{ ...shell.miniModal, width: 'min(100%, 900px)' }}>
-            <div style={shell.miniModalHead}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={{ ...shell.miniModal, width: 'min(100%, 900px)' }}>
+            <div className="crm-modal-surface-header" style={shell.miniModalHead}>
               <h3 style={shell.miniModalTitle}>
                 {editingShippingAddressId === 'new' || editingShippingAddressId === 'new-premise' ? 'Add New Address' : 'Edit Address'}
               </h3>
@@ -5270,19 +5250,13 @@ export default function InvoiceDashboard() {
                     Copy billing address
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  style={shell.miniHeaderButton}
-                  onClick={() => {
+                <CRMModalCloseButton type="button" style={shell.miniHeaderButton} onClick={() => {
                     setEditingShippingAddressId('');
                     setShippingAddressDraft(emptyAddressDraft);
-                  }}
-                >
-                  Close
-                </button>
+                  }} />
               </div>
             </div>
-            <div
+            <div className="crm-modal-surface-body"
               style={{
                 ...shell.miniModalBody,
                 display: 'grid',
@@ -5341,8 +5315,8 @@ export default function InvoiceDashboard() {
                 onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, pincode: toSixDigitPincode(event.target.value) }))}
               />
             </div>
-            <div data-brand-footer="true" style={shell.miniFooter}>
-              <button type="button" style={shell.saveButton} onClick={saveShippingAddressDraft}>
+            <div className="crm-modal-surface-footer" data-brand-footer="true" style={shell.miniFooter}>
+              <button data-modal-primary="true"  type="button" style={shell.saveButton} onClick={saveShippingAddressDraft}>
                 Save Address
               </button>
               <button

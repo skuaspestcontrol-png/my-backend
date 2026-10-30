@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import { createPortal } from 'react-dom';
 import { Download, FileText, X } from 'lucide-react';
 
@@ -329,50 +330,22 @@ export default function PdfPreviewModal({
 
   return createPortal(
     <div style={shell.overlay} onClick={handleClose}>
-      <div
+      <div className="crm-modal-surface"
         style={shell.modal}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={title || 'PDF preview'}
       >
-        <div data-brand-header="true" style={shell.header}>
+        <div className="crm-modal-surface-header" data-brand-header="true" style={shell.header}>
           <div style={{ minWidth: 0 }}>
             <h3 style={shell.title}><FileText size={16} /> {title || 'PDF Preview'}</h3>
             {policyNote ? <p style={shell.policyNote}>{policyNote}</p> : null}
           </div>
-          <button type="button" onClick={handleClose} style={shell.closeButton} aria-label="Close">
-            <X size={22} />
-          </button>
+          <CRMModalCloseButton type="button" onClick={handleClose} style={shell.closeButton} aria-label="Close" />
         </div>
-        <div style={shell.body}>
-          <div style={{ ...shell.actions, flexDirection: 'row' }}>
-            <button type="button" style={actionButtonStyle(Boolean(sourceUrl))} onClick={handleDownload} disabled={!sourceUrl}>
-              <Download size={14} /> Download PDF
-            </button>
-            <button type="button" style={actionButtonStyle(Boolean(sourceUrl))} onClick={handleOpenNewTab} disabled={!sourceUrl}>
-              Open in New Tab
-            </button>
-            <button
-              type="button"
-              style={actionButtonStyle(canShareEmail)}
-              onClick={handleShareEmail}
-              disabled={!canShareEmail}
-            >
-              {canShareEmail ? 'Share Email' : 'Coming soon'}
-            </button>
-            <button
-              type="button"
-              style={actionButtonStyle(hasWhatsAppAction)}
-              onClick={handleShareWhatsApp}
-              disabled={!hasWhatsAppAction}
-            >
-              {hasWhatsAppAction ? 'Share WhatsApp' : 'Coming soon'}
-            </button>
-            <button type="button" style={actionButtonStyle(true)} onClick={handleClose}>
-              Close
-            </button>
-          </div>
+        <div className="crm-modal-surface-body" style={shell.body}>
+
           {diagnostic?.text || redactedSettingsData ? (
             <div style={{
               border: `1px solid ${diagnostic?.tone === 'success' ? 'rgba(22,163,74,0.18)' : diagnostic?.tone === 'danger' ? 'rgba(220,38,38,0.22)' : 'rgba(245,158,11,0.22)'}`,
@@ -456,7 +429,33 @@ export default function PdfPreviewModal({
             ) : null}
           </div>
         </div>
-      </div>
+      <div className="crm-modal-surface-footer" style={{ ...shell.actions, flexDirection: 'row' }}>
+            <button type="button" style={actionButtonStyle(Boolean(sourceUrl))} onClick={handleDownload} disabled={!sourceUrl}>
+              <Download size={14} /> Download PDF
+            </button>
+            <button type="button" style={actionButtonStyle(Boolean(sourceUrl))} onClick={handleOpenNewTab} disabled={!sourceUrl}>
+              Open in New Tab
+            </button>
+            <button
+              type="button"
+              style={actionButtonStyle(canShareEmail)}
+              onClick={handleShareEmail}
+              disabled={!canShareEmail}
+            >
+              {canShareEmail ? 'Share Email' : 'Coming soon'}
+            </button>
+            <button
+              type="button"
+              style={actionButtonStyle(hasWhatsAppAction)}
+              onClick={handleShareWhatsApp}
+              disabled={!hasWhatsAppAction}
+            >
+              {hasWhatsAppAction ? 'Share WhatsApp' : 'Coming soon'}
+            </button>
+            <button type="button" style={actionButtonStyle(true)} onClick={handleClose}>
+              Close
+            </button>
+          </div></div>
     </div>,
     document.body
   );

@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { CRMModalCloseButton } from '../ui/CRMForm';
 import axios from 'axios';
 import { X } from 'lucide-react';
 
@@ -78,13 +80,13 @@ export default function EmailPreviewModal({
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.50)', backdropFilter: 'blur(16px)', display: 'grid', placeItems: 'center', zIndex: 7100, padding: '16px' }}>
-      <div style={{ width: 'min(820px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'rgba(255,255,255,0.64)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.30)', boxShadow: '0 28px 70px rgba(15,23,42,0.22)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ background: 'var(--card-header-bg)', color: '#fff', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    createPortal(<div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.50)', backdropFilter: 'blur(16px)', display: 'grid', placeItems: 'center', zIndex: 7100, padding: '16px' }}>
+      <div className="crm-modal-surface" role="dialog" aria-modal="true" style={{ width: 'min(820px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'rgba(255,255,255,0.64)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.30)', boxShadow: '0 28px 70px rgba(15,23,42,0.22)', display: 'flex', flexDirection: 'column' }}>
+        <div className="crm-modal-surface-header" style={{ background: 'var(--card-header-bg)', color: '#fff', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.01em' }}>Email Preview</h3>
-          <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}><X size={20} /></button>
+          <CRMModalCloseButton type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }} />
         </div>
-        <div style={{ padding: '14px 16px 16px', overflowY: 'auto', display: 'grid', gap: '12px' }}>
+        <div className="crm-modal-surface-body" style={{ padding: '14px 16px 16px', overflowY: 'auto', display: 'grid', gap: '12px' }}>
           <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
             <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Recipient</div><div style={{ fontSize: '13px', fontWeight: 700 }}>{recipientName || '-'}</div></div>
             <div><div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800 }}>Email</div><div style={{ fontSize: '13px', fontWeight: 700 }}>{recipientEmail || '-'}</div></div>
@@ -105,11 +107,11 @@ export default function EmailPreviewModal({
           </div>
           {error ? <div style={{ color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{error}</div> : null}
         </div>
-        <div data-brand-footer="true" style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' }}>
+        <div className="crm-modal-surface-footer" data-brand-footer="true" style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', backdropFilter: 'blur(10px)' }}>
           <button type="button" onClick={onClose} style={{ minHeight: '36px', borderRadius: '10px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 12px', fontWeight: 700, fontSize: '13px' }}>Cancel</button>
-          <button type="button" onClick={handleSend} disabled={busy || !recipientEmail || !subject.trim() || !body.trim()} style={{ minHeight: '36px', borderRadius: '10px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 800, fontSize: '13px' }}>{busy ? 'Sending...' : 'Send Email'}</button>
+          <button data-modal-primary="true" type="button" onClick={handleSend} disabled={busy || !recipientEmail || !subject.trim() || !body.trim()} style={{ minHeight: '36px', borderRadius: '10px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 800, fontSize: '13px' }}>{busy ? 'Sending...' : 'Send Email'}</button>
         </div>
       </div>
-    </div>
+    </div>, document.body)
   );
 }

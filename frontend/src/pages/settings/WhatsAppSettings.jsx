@@ -126,7 +126,7 @@ export default function WhatsAppSettings() {
   return (
     <section style={{ display: 'grid', gap: '10px' }}>
       <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>WhatsApp API Settings</h2>
-      <form onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '12px', padding: '12px', display: 'grid', gap: '10px' }}>
+      <form className="crm-inline-form crm-form-surface" onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '12px', padding: '12px', display: 'grid', gap: '10px' }}>
         <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>API Base URL<input value={form.apiBaseUrl} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, apiBaseUrl: e.target.value }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
           <label style={{ display: 'grid', gap: '6px', fontSize: '12px', fontWeight: 700 }}>Phone Number<input value={form.phoneNumber} autoComplete="off" inputMode="numeric" onChange={(e) => setForm((p) => ({ ...p, phoneNumber: normalizeIndianMobileNumber(e.target.value) }))} style={{ minHeight: '38px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 11px' }} /></label>
@@ -163,7 +163,7 @@ export default function WhatsAppSettings() {
         </p>
 
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button type="submit" disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Save Settings</button>
+          <button data-modal-primary="true" type="submit" disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Save Settings</button>
           <button type="button" onClick={sendTest} disabled={busy} style={{ minHeight: '36px', borderRadius: '8px', border: '1px solid var(--brand-border-color)', background: 'var(--color-primary-light)', color: 'var(--brand-ink)', padding: '0 14px', fontWeight: 700, fontSize: '12px' }}>Test Connection</button>
         </div>
         {status ? <p style={{ margin: 0, fontSize: '12px', color: '#334155', fontWeight: 700 }}>{status}</p> : null}

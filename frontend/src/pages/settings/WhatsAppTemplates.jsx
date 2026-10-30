@@ -117,7 +117,7 @@ export default function WhatsAppTemplates() {
     <section style={{ display: 'grid', gap: '12px' }}>
       <h2 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: '#111827' }}>WhatsApp Templates</h2>
 
-      <form onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '16px', padding: '14px', display: 'grid', gap: '10px' }}>
+      <form className="crm-inline-form crm-form-surface" onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '16px', padding: '14px', display: 'grid', gap: '10px' }}>
         <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: '1fr 1fr' }}>
           <input placeholder="Template name" value={form.templateName} onChange={(e) => setForm((p) => ({ ...p, templateName: e.target.value }))} style={{ minHeight: '40px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px' }} />
           <input placeholder="Template type (e.g. invoice_send)" value={form.templateType} onChange={(e) => setForm((p) => ({ ...p, templateType: e.target.value }))} style={{ minHeight: '40px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px' }} />
@@ -131,8 +131,8 @@ export default function WhatsAppTemplates() {
         <input placeholder="Official template name (optional)" value={form.officialTemplateName} onChange={(e) => setForm((p) => ({ ...p, officialTemplateName: e.target.value }))} style={{ minHeight: '40px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '0 12px' }} />
         <textarea placeholder="Message body with variables" value={form.messageBody} onChange={(e) => setForm((p) => ({ ...p, messageBody: e.target.value }))} style={{ minHeight: '120px', borderRadius: '10px', border: '1px solid #d1d5db', padding: '10px 12px' }} />
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}><input type="checkbox" checked={form.isActive} onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))} /> Active</label>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="submit" style={{ minHeight: '40px', borderRadius: '10px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 800 }}>{editingId ? 'Update Template' : 'Add Template'}</button>
+        <div className="crm-form-actions" style={{ display: 'flex', gap: '10px' }}>
+          <button data-modal-primary="true" type="submit" style={{ minHeight: '40px', borderRadius: '10px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 14px', fontWeight: 800 }}>{editingId ? 'Update Template' : 'Add Template'}</button>
           {editingId ? <button type="button" onClick={() => { setEditingId(''); setForm(emptyForm); }} style={{ minHeight: '40px', borderRadius: '10px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 14px', fontWeight: 700 }}>Cancel</button> : null}
         </div>
       </form>

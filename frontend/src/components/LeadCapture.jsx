@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -2893,7 +2894,7 @@ export default function LeadCapture() {
 
       {viewedLead ? (
         <>
-          <div style={s.viewDrawerOverlay} onClick={closeViewLeadPanel} />
+          {createPortal(<div style={s.viewDrawerOverlay} onClick={closeViewLeadPanel} />, document.body)}
           <aside style={s.viewDrawer} data-lead-view-drawer="true">
             <div style={s.viewDrawerHead}>
               <h3 style={s.viewDrawerTitle}>View Lead</h3>
@@ -2977,11 +2978,11 @@ export default function LeadCapture() {
       ) : null}
 
       {followupLead ? (
-        <div style={s.followupOverlay}>
-          <div className="crm-modal-surface" style={s.followupModal}>
+        createPortal(<div style={s.followupOverlay}>
+          <div role="dialog" aria-modal="true" className="crm-modal-surface" style={s.followupModal}>
             <div className="crm-modal-surface-header" style={s.followupHead}>
               <h3 style={s.followupTitle}><PhoneCall size={22} /> Log Follow-up</h3>
-              <X size={22} style={{ cursor: 'pointer', color: '#ffffff', flexShrink: 0 }} onClick={closeLogFollowupModal} />
+              <CRMModalCloseButton style={{ cursor: 'pointer', color: '#ffffff', flexShrink: 0 }} onClick={closeLogFollowupModal} />
             </div>
             <div className="crm-modal-surface-body" style={s.followupBody}>
               <div style={s.followupLeadBadge}>
@@ -3040,20 +3041,20 @@ export default function LeadCapture() {
             </div>
             <div className="crm-modal-surface-footer" style={s.followupActions}>
               <button type="button" style={s.followupCancelBtn} onClick={closeLogFollowupModal}>Cancel</button>
-              <button type="button" style={s.followupSaveBtn} onClick={saveLogFollowup} disabled={isSavingFollowup}>
+              <button data-modal-primary="true"   type="button" style={s.followupSaveBtn} onClick={saveLogFollowup} disabled={isSavingFollowup}>
                 {isSavingFollowup ? 'Saving...' : 'Save Follow-up'}
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
 
       {show && (
-        <div style={leadOverlayStyle}>
-          <form className="crm-modal-surface" style={leadModalStyle} onSubmit={save}>
+        createPortal(<div style={leadOverlayStyle}>
+          <form role="dialog" aria-modal="true" className="crm-modal-surface" style={leadModalStyle} onSubmit={save}>
             <div className="crm-modal-surface-header" style={leadModalHeadStyle}>
               <span>{editingLeadId ? 'Edit Lead Form' : 'Lead Entry Form'}</span>
-              <X onClick={resetForm} style={{ cursor: 'pointer' }} />
+              <CRMModalCloseButton onClick={resetForm} />
             </div>
 
             <div className="crm-modal-surface-body" style={leadModalCompactBodyStyle}>
@@ -3363,12 +3364,12 @@ export default function LeadCapture() {
               <button type="button" onClick={resetForm} style={{ marginRight: '10px', minHeight: '40px', padding: '0 16px', border: '1px solid rgba(17,17,17,0.1)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 700 }}>
                 Cancel
               </button>
-              <button type="submit" style={{ minHeight: '40px', background: 'var(--color-primary)', color: '#fff', border: 'none', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+              <button data-modal-primary="true"   type="submit" style={{ minHeight: '40px', background: 'var(--color-primary)', color: '#fff', border: 'none', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                 {editingLeadId ? 'Update' : 'Submit'}
               </button>
             </div>
           </form>
-        </div>
+        </div>, document.body)
       )}
 
       <WhatsAppPreviewModal

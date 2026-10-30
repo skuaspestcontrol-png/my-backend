@@ -1,5 +1,6 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { CRMModalCloseButton } from './ui/CRMForm';
+import { flushSync, createPortal } from 'react-dom';
 import axios from 'axios';
 import trimCanvas from 'trim-canvas';
 import {
@@ -3167,13 +3168,13 @@ export default function TechnicianPortal() {
       ) : null}
 
       {showCostModal ? (
-        <div style={shell.costModalOverlay} onClick={closeAddCostModal}>
-          <div style={shell.costModalCard} onClick={(event) => event.stopPropagation()}>
-            <div data-brand-header="true" style={shell.costModalHead}>
+        createPortal(<div style={shell.costModalOverlay} onClick={closeAddCostModal}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.costModalCard} onClick={(event) => event.stopPropagation()}>
+            <div className="crm-modal-surface-header" data-brand-header="true" style={shell.costModalHead}>
               <h3 style={shell.costModalTitle}>Add Cost</h3>
-              <button type="button" style={shell.backBtn} onClick={closeAddCostModal}>Close</button>
+              <CRMModalCloseButton type="button" style={shell.backBtn} onClick={closeAddCostModal} />
             </div>
-            <div style={shell.costModalBody}>
+            <div className="crm-modal-surface-body" style={shell.costModalBody}>
               <div style={shell.costModalGrid}>
                 <div style={shell.costModalField}>
                   <p style={shell.costModalLabel}>Type</p>
@@ -3254,14 +3255,14 @@ export default function TechnicianPortal() {
               </div>
               {costModalError ? <p style={{ margin: 0, color: '#b91c1c', fontSize: '12px', fontWeight: 700 }}>{costModalError}</p> : null}
             </div>
-            <div data-brand-footer="true" style={shell.costModalFooter}>
+            <div className="crm-modal-surface-footer" data-brand-footer="true" style={shell.costModalFooter}>
               <button type="button" style={shell.backBtn} onClick={closeAddCostModal} disabled={costModalSaving}>Cancel</button>
-              <button type="button" style={shell.actionBtn} onClick={submitCostDraft} disabled={costModalSaving}>
+              <button data-modal-primary="true" type="button" style={shell.actionBtn} onClick={submitCostDraft} disabled={costModalSaving}>
                 {costModalSaving ? 'Saving...' : 'Save Cost'}
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
 
       <PdfPreviewModal

@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { CRMModalCloseButton } from './CRMForm';
 
 export default function Modal({ open, title, onClose, children, footer }) {
   const titleId = useId();
@@ -24,16 +26,16 @@ export default function Modal({ open, title, onClose, children, footer }) {
     return () => { dialog?.removeEventListener('keydown', keydown); if (previous?.isConnected) previous.focus?.(); };
   }, [open]);
   if (!open) return null;
-  return (
+  return createPortal(
     <div className="crm-modal-overlay" onClick={onClose}>
-      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="crm-modal crm-modal-normal" onClick={(event) => event.stopPropagation()}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1} className="crm-modal crm-modal-normal crm-modal-surface" onClick={(event) => event.stopPropagation()}>
         <header className="crm-modal-header">
           <h3 id={titleId} className="crm-modal-title">{title}</h3>
-          <button type="button" className="crm-btn" disabled={!onClose} onClick={onClose} style={{ border: '1px solid var(--brand-border-color)', background: 'transparent', color: '#fff' }}>Close</button>
+          <CRMModalCloseButton disabled={!onClose} onClick={onClose} />
         </header>
         <div className="crm-modal-body">{children}</div>
         {footer ? <footer className="crm-modal-footer">{footer}</footer> : null}
       </div>
-    </div>
+    </div>, document.body
   );
 }

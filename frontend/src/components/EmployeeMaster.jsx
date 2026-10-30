@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronUp, Edit, Eye, EyeOff, Plus, Trash2, UploadCloud, UserCheck, X } from 'lucide-react';
@@ -945,12 +946,10 @@ export default function EmployeeMaster() {
 
       {showModal ? createPortal(
         <div style={shell.modalOverlay}>
-          <form className="crm-modal-surface employee-master-modal" style={shell.modal} onSubmit={handleSave}>
+          <form role="dialog" aria-modal="true" className="crm-modal-surface employee-master-modal" style={shell.modal} onSubmit={handleSave}>
             <div className="crm-modal-surface-header" style={shell.modalHeader}>
               <span>{editingId ? 'Edit Employee' : 'Add Employee'} - {form.empCode || 'Auto'}</span>
-              <button type="button" onClick={closeModal} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
+              <CRMModalCloseButton type="button" onClick={closeModal} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }} />
             </div>
 
             <div className="crm-modal-surface-body" style={shell.modalBody}>
@@ -1290,7 +1289,7 @@ export default function EmployeeMaster() {
               <span style={{ ...shell.helper, color: status.toLowerCase().includes('failed') ? '#ef4444' : 'var(--text-secondary)' }}>{status || 'Fill employee details and submit.'}</span>
               <div style={shell.footerActions}>
                 <button type="button" style={shell.cancelBtn} onClick={closeModal}>Cancel</button>
-                <button type="submit" style={shell.saveBtn} disabled={isSaving}>
+                <button data-modal-primary="true"   type="submit" style={shell.saveBtn} disabled={isSaving}>
                   {isSaving ? 'Saving...' : editingId ? 'Update Employee' : 'Submit'}
                 </button>
               </div>

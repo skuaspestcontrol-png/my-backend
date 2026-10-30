@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -2217,25 +2218,19 @@ export default function ContractDashboard() {
           style={shell.modalOverlay}
           onClick={closeCustomerSummary}
         >
-          <div
+          <div className="crm-modal-surface" role="dialog" aria-modal="true"
             style={shell.modalCard}
             onClick={(event) => event.stopPropagation()}
           >
-            <div style={shell.modalHead}>
+            <div className="crm-modal-surface-header" style={shell.modalHead}>
               <div>
                 <h3 style={shell.modalTitle}><UserRound size={18} /> Customer Summary</h3>
                 <p style={shell.modalSub}>{`${customerSummary.row.customer} • ${customerSummary.row.mobile || 'No mobile'}`}</p>
               </div>
-              <button
-                type="button"
-                style={shell.modalClose}
-                onClick={closeCustomerSummary}
-              >
-                <X size={16} />
-              </button>
+              <CRMModalCloseButton type="button" style={shell.modalClose} onClick={closeCustomerSummary} />
             </div>
 
-            <div style={shell.modalBody}>
+            <div className="crm-modal-surface-body" style={shell.modalBody}>
               <div style={shell.compactSection}>
                 <div style={shell.compactSectionHead}>
                   <h4 style={shell.compactTitle}>Customer Details</h4>

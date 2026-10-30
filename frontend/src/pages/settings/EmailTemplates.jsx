@@ -115,7 +115,7 @@ export default function EmailTemplates() {
     <section style={{ display: 'grid', gap: '10px' }}>
       <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827' }}>Email Templates</h4>
 
-      <form onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '14px', padding: '12px', display: 'grid', gap: '8px' }}>
+      <form className="crm-inline-form crm-form-surface" onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '14px', padding: '12px', display: 'grid', gap: '8px' }}>
         <div style={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
           <input placeholder="Template name" value={form.templateName} onChange={(e) => setForm((p) => ({ ...p, templateName: e.target.value }))} style={{ minHeight: '34px', borderRadius: '8px', border: '1px solid #d1d5db', padding: '0 10px' }} />
           <input placeholder="Template type (e.g. invoice_send)" value={form.templateType} onChange={(e) => setForm((p) => ({ ...p, templateType: e.target.value }))} style={{ minHeight: '34px', borderRadius: '8px', border: '1px solid #d1d5db', padding: '0 10px' }} />
@@ -125,8 +125,8 @@ export default function EmailTemplates() {
         <input placeholder="Email Subject" value={form.emailSubject} onChange={(e) => setForm((p) => ({ ...p, emailSubject: e.target.value }))} style={{ minHeight: '34px', borderRadius: '8px', border: '1px solid #d1d5db', padding: '0 10px' }} />
         <textarea placeholder="Email Body (HTML supported)" value={form.emailBody} onChange={(e) => setForm((p) => ({ ...p, emailBody: e.target.value }))} style={{ minHeight: '110px', borderRadius: '8px', border: '1px solid #d1d5db', padding: '8px 10px' }} />
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '12px' }}><input type="checkbox" checked={form.isActive} onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))} /> Active</label>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button type="submit" style={{ minHeight: '34px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>{editingId ? 'Update' : 'Add'}</button>
+        <div className="crm-form-actions" style={{ display: 'flex', gap: '8px' }}>
+          <button data-modal-primary="true" type="submit" style={{ minHeight: '34px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>{editingId ? 'Update' : 'Add'}</button>
           {editingId ? <button type="button" onClick={() => { setEditingId(''); setForm(emptyForm); }} style={{ minHeight: '34px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#fff', color: '#334155', padding: '0 12px', fontWeight: 700, fontSize: '12px' }}>Cancel</button> : null}
         </div>
       </form>

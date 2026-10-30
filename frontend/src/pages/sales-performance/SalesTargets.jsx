@@ -483,8 +483,8 @@ export default function SalesTargets() {
         )}
       </AppCard>
 
-      <AppCard title={form.id ? 'Edit Target' : 'Add Target'} style={{ width: '100%', minWidth: 0 }}>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, width: '100%', minWidth: 0 }}>
+      <AppCard className="crm-form-surface" title={form.id ? 'Edit Target' : 'Add Target'} style={{ width: '100%', minWidth: 0 }}>
+        <form className="crm-inline-form" onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, width: '100%', minWidth: 0 }}>
           <div style={formGridStyle}>
             <AppSelect label="Sales Person" value={form.salesPersonId} onChange={(e) => setForm({ ...form, salesPersonId: e.target.value })} required>
               <option value="">Select person</option>
@@ -503,9 +503,9 @@ export default function SalesTargets() {
             <AppInput type="number" min="0" step="0.01" label="Revenue Target" value={form.revenueTarget} onChange={(e) => setForm({ ...form, revenueTarget: e.target.value })} required />
             <AppInput type="number" min="0" step="0.01" label="Collection Target" value={form.collectionTarget} onChange={(e) => setForm({ ...form, collectionTarget: e.target.value })} required />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
+          <div className="crm-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
             {form.id ? <AppButton variant="outline" type="button" onClick={resetForm} className="sp-btn-cancel" style={button34Style}>Cancel Edit</AppButton> : null}
-            <AppButton type="submit" loading={saving} className="sp-btn-save" style={button34Style}>{form.id ? 'Update Target' : 'Save Target'}</AppButton>
+            <AppButton data-modal-primary="true" type="submit" loading={saving} className="sp-btn-save" style={button34Style}>{form.id ? 'Update Target' : 'Save Target'}</AppButton>
           </div>
         </form>
       </AppCard>

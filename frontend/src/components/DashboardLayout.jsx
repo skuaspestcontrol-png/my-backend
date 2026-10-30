@@ -1,4 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { CRMModalCloseButton } from './ui/CRMForm';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { applyBrandingTheme, brandingTextColor, loadBrandingSettings, pickBrandingSettings, saveBrandingSettings } from '../utils/brandingTheme';
@@ -1137,7 +1139,7 @@ export default function DashboardLayout({ children }) {
         </main>
       </div>
       {serviceCalendarOpen ? (
-        <div
+        createPortal(<div
           role="dialog"
           aria-modal="true"
           aria-label="Service Calendar"
@@ -1154,7 +1156,7 @@ export default function DashboardLayout({ children }) {
             }}
         >
           <div
-            className="service-calendar-modal-surface"
+            className="service-calendar-modal-surface crm-modal-surface"
             onClick={(event) => event.stopPropagation()}
             style={{
               width: 'min(1200px, 100%)',
@@ -1170,7 +1172,7 @@ export default function DashboardLayout({ children }) {
               flexDirection: 'column'
             }}
           >
-            <div
+            <div className="crm-modal-surface-header"
               style={{
                 minHeight: '60px',
                 padding: isMobile ? '12px 14px' : '14px 18px',
@@ -1183,7 +1185,7 @@ export default function DashboardLayout({ children }) {
               }}
             >
               <div style={{ display: 'grid', gap: '2px' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: isMobile ? '16px' : '18px' }}>
+                <div className="crm-modal-title" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 800, fontSize: isMobile ? '16px' : '18px' }}>
                   <CalendarDays size={18} />
                   Service Calendar
                 </div>
@@ -1191,11 +1193,7 @@ export default function DashboardLayout({ children }) {
                   View scheduled services.
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setServiceCalendarOpen(false)}
-                aria-label="Close service calendar"
-                style={{
+              <CRMModalCloseButton type="button" onClick={() => setServiceCalendarOpen(false)} aria-label="Close service calendar" style={{
                   width: '38px',
                   height: '38px',
                   borderRadius: '10px',
@@ -1205,18 +1203,15 @@ export default function DashboardLayout({ children }) {
                   display: 'grid',
                   placeItems: 'center',
                   cursor: 'pointer'
-                }}
-              >
-                <X size={18} />
-              </button>
+                }} />
             </div>
-            <div className="service-calendar-modal-body" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '12px' : '16px', background: 'rgba(248, 250, 252, 0.46)' }}>
+            <div className="service-calendar-modal-body crm-modal-surface-body" style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isMobile ? '12px' : '16px', background: 'rgba(248, 250, 252, 0.46)' }}>
               <Suspense fallback={<div style={{ padding: '20px', color: '#475569', fontWeight: 700 }}>Loading service calendar...</div>}>
                 <ServiceCalendar />
               </Suspense>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
     </div>
   );

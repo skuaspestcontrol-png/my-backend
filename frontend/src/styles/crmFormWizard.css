@@ -1,0 +1,61 @@
+/* Opt-in wizard layout. Existing modal, page, table and navigation styles are untouched. */
+html[data-theme][data-branding] body .crm-modal-surface.crm-form-wizard { width: min(1120px,100%) !important; height: min(800px,calc(100dvh - 40px)); }
+.crm-form-wizard .crm-wizard-workspace { display: grid; grid-template-columns: 236px minmax(0,1fr); flex: 1; min-height: 0; min-width: 0; }
+.crm-form-wizard .crm-wizard-nav { background: var(--ui-page); border-right: 1px solid var(--ui-border); padding: 24px 12px; min-width: 0; overflow-y: auto; }
+.crm-wizard-nav ol { list-style: none; margin: 0; padding: 0; }
+.crm-wizard-nav li { position: relative; }
+.crm-wizard-nav li:not(:last-child)::after { content: ''; position: absolute; top: 48px; bottom: -12px; left: 25px; width: 1px; background: var(--ui-border); }
+html[data-theme][data-branding] body .crm-form-wizard .crm-wizard-nav button { position: relative; display: flex; align-items: flex-start; width: 100%; min-height: 90px; gap: 12px; padding: 14px 10px; border: 0; border-radius: 10px; background: transparent !important; color: var(--ui-text) !important; text-align: left; cursor: pointer; box-shadow: none; }
+.crm-wizard-nav button > span:last-child { min-width: 0; }
+.crm-wizard-nav strong { display: block; margin: 1px 0 7px; font-size: 13px; line-height: 1.4; }
+.crm-wizard-nav small { display: block; font-size: 12px; line-height: 1.5; color: var(--ui-muted); }
+html[data-theme][data-branding] body .crm-form-wizard .crm-wizard-nav button.is-active { background: var(--ui-action-soft) !important; color: var(--ui-link) !important; }
+.crm-wizard-nav button.is-active small { color: var(--ui-link); }
+html[data-theme][data-branding] body .crm-form-wizard .crm-wizard-number { position: relative; z-index: 1; display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; background: var(--ui-border); color: var(--ui-text); font-size: 12px; font-weight: 700; }
+html[data-theme][data-branding] body .crm-form-wizard .is-active .crm-wizard-number { background: #0560ff; color: #fff; }
+.crm-wizard-nav button:disabled { cursor: not-allowed !important; opacity: .7; }
+html[data-theme][data-branding] body .crm-form-wizard .crm-wizard-body { display: block !important; min-width: 0; overflow: auto; }
+.crm-form-wizard .crm-wizard-panel[hidden] { display: none !important; }
+.crm-form-wizard .crm-wizard-panel:not([hidden]) { display: grid; gap: 24px; min-width: 0; animation: crm-step-in 180ms ease-out; }
+.crm-wizard-panel-intro { display: flex; align-items: flex-start; gap: 12px; }
+.crm-wizard-panel-heading { margin: 0; color: var(--ui-text); font-size: 18px; line-height: 1.4; }
+.crm-wizard-panel-intro p { margin: 5px 0 0; font-size: 13px; line-height: 1.5; color: var(--ui-muted); }
+.crm-form-wizard .crm-wizard-hint { margin: 0; color: var(--ui-muted); font-size: 13px; line-height: 1.5; }
+.crm-wizard-section-icon { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; border-radius: 10px; background: var(--ui-action-soft); color: var(--ui-link); }
+.crm-form-wizard .crm-form-heading { display: flex; align-items: center; gap: 14px; }
+.crm-form-wizard .crm-form-heading > svg { flex: 0 0 28px; }
+.crm-form-wizard .skuas-modal-footer .skuas-form-actions > button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+html[data-theme][data-branding] body .crm-modal-surface.crm-form-wizard .skuas-modal-footer button[data-modal-primary="true"] { background: #0560ff !important; border-color: #0560ff !important; }
+.crm-form-wizard .crm-wizard-error { flex: 1 1 240px; font-size: 13px; line-height: 1.5; }
+.crm-wizard-review { display: grid; gap: 18px; min-width: 0; }
+.crm-wizard-review section { min-width: 0; padding: 16px; border: 1px solid var(--ui-border); border-radius: 12px; }
+.crm-wizard-review h4 { margin: 0 0 16px; font-size: 15px; }
+.crm-wizard-review dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin: 0; }
+.crm-wizard-review dl > div { min-width: 0; }
+.crm-wizard-review dt { font-size: 12px; color: var(--ui-muted); margin-bottom: 5px; }
+.crm-wizard-review dd { font-size: 14px; line-height: 1.5; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.crm-form-wizard .skuas-form-field[data-required-hint] > label::after { content: ' *'; color: var(--status-danger-text); }
+@keyframes crm-step-in { from { opacity: .55; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@media(max-width:1000px) {
+  .crm-form-wizard .crm-wizard-workspace { grid-template-columns: 192px minmax(0,1fr); }
+  .crm-form-wizard .skuas-address-grid { grid-template-columns: minmax(0,1fr) !important; }
+}
+@media(max-width:700px) {
+  html[data-theme][data-branding] body .crm-modal-surface.crm-form-wizard { height: calc(100dvh - 32px); }
+  .crm-form-wizard .crm-wizard-workspace { display: flex; flex-direction: column; }
+  .crm-form-wizard .crm-wizard-nav { flex: 0 0 auto; padding: 10px; border-right: 0; border-bottom: 1px solid var(--ui-border); overflow-x: auto; }
+  .crm-wizard-nav ol { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .crm-wizard-nav li::after { display: none; }
+  html[data-theme][data-branding] body .crm-form-wizard .crm-wizard-nav button { align-items: center; flex-direction: column; min-height: 86px; padding: 8px 4px; gap: 7px; text-align: center; }
+  .crm-wizard-nav strong { margin: 0; font-size: 11px; }
+  .crm-wizard-nav small { display: none; }
+  .crm-form-wizard .crm-wizard-body { flex: 1; }
+  .crm-form-wizard .skuas-modal-footer .skuas-form-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .crm-form-wizard .skuas-modal-footer .skuas-form-actions > button:first-child { grid-column: auto; }
+  .crm-form-wizard .skuas-modal-footer .skuas-form-actions > button:last-child { grid-column: -2; }
+  html[data-theme][data-branding] body .crm-form-wizard .skuas-modal-footer .skuas-form-actions > button { padding-inline: 10px !important; }
+  .crm-form-wizard .skuas-modal-footer .skuas-form-actions:has(button[type="submit"]) { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .crm-form-wizard .skuas-modal-footer .skuas-form-actions > button[type="submit"] { grid-column: 1 / -1; }
+  .crm-wizard-review dl { grid-template-columns: minmax(0,1fr); }
+}
+@media(prefers-reduced-motion:reduce) { .crm-form-wizard .crm-wizard-panel:not([hidden]) { animation: none; } }

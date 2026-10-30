@@ -1,4 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { ArrowRight, CheckCircle2, Download, FileSpreadsheet, GitMerge, MapPinned, SearchCheck, UploadCloud, X } from 'lucide-react';
 import { useColumnResize } from './table/useColumnResize';
@@ -363,17 +365,17 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
   const StepIcon = stepIcon;
 
   return (
-    <div style={shell.overlay}>
-      <div style={shell.modal}>
-        <div data-brand-header="true" style={shell.header}>
+    createPortal(<div style={shell.overlay}>
+      <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.modal}>
+        <div className="crm-modal-surface-header" data-brand-header="true" style={shell.header}>
           <div>
             <h2 style={shell.title}>Smart Customer Import / Export</h2>
             <p style={shell.sub}>Deduplicate, merge, and add customer premises without duplicate customer spam.</p>
           </div>
-          <button type="button" style={shell.close} onClick={close}><X size={15} /> Close</button>
+          <CRMModalCloseButton type="button" style={shell.close} onClick={close} />
         </div>
 
-        <div style={shell.steps}>
+        <div className="crm-modal-surface-body"><div style={shell.steps}>
           {steps.map(([label, Icon], idx) => (
             <div key={label} style={{ ...shell.step, ...(idx + 1 === step ? { background: 'var(--color-primary)', color: '#fff', borderColor: 'var(--color-primary)' } : null) }}>
               <Icon size={14} /> {label}
@@ -585,18 +587,18 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
               </div>
             </>
           ) : null}
-        </div>
+        </div></div>
 
-        <div data-brand-footer="true" style={shell.footer}>
+        <div className="crm-modal-surface-footer" data-brand-footer="true" style={shell.footer}>
           <span style={shell.note}>Smart import protects customer records and stores multiple addresses as premises.</span>
           <div style={shell.actions}>
             <button type="button" style={shell.lightBtn} onClick={step === 1 ? close : () => setStep((prev) => Math.max(1, prev - 1))}>{step === 1 ? 'Cancel' : 'Back'}</button>
-            {step < 4 ? <button type="button" style={shell.btn} onClick={step === 2 ? saveMapping : () => setStep((prev) => prev + 1)} disabled={!canContinue || busy}>Continue <ArrowRight size={14} /></button> : null}
-            {step === 4 ? <button type="button" style={shell.btn} onClick={finalize} disabled={busy}>{busy ? 'Finalizing...' : 'Finalize Import'}</button> : null}
-            {step === 5 ? <button type="button" style={shell.btn} onClick={close}>Done</button> : null}
+            {step < 4 ? <button data-modal-primary="true" type="button" style={shell.btn} onClick={step === 2 ? saveMapping : () => setStep((prev) => prev + 1)} disabled={!canContinue || busy}>Continue <ArrowRight size={14} /></button> : null}
+            {step === 4 ? <button data-modal-primary="true" type="button" style={shell.btn} onClick={finalize} disabled={busy}>{busy ? 'Finalizing...' : 'Finalize Import'}</button> : null}
+            {step === 5 ? <button data-modal-primary="true" type="button" style={shell.btn} onClick={close}>Done</button> : null}
           </div>
         </div>
       </div>
-    </div>
+    </div>, document.body)
   );
 }

@@ -197,8 +197,8 @@ export default function StockPurchase() {
 
       {error ? <AppCard><EmptyState title="Purchase error" message={error} /></AppCard> : null}
 
-      <AppCard title="Add Purchase" className="crm-filter-card">
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
+      <AppCard title="Add Purchase" className="crm-filter-card crm-form-surface">
+        <form className="crm-inline-form" onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0 }}>
           <div style={formGridStyle}>
             <AppSelect label="Vendor" value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })}>
               <option value="">Optional</option>
@@ -218,8 +218,8 @@ export default function StockPurchase() {
             <AppInput type="date" label="Expiry Date" value={form.expiryDate} onChange={(e) => setForm({ ...form, expiryDate: e.target.value })} />
           </div>
           <AppTextarea label="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-          <div style={actionRowStyle}>
-            <AppButton type="submit" loading={saving} iconLeft={<ShoppingCart size={16} />} style={actionButtonStyle}>Save Purchase</AppButton>
+          <div className="crm-form-actions" style={actionRowStyle}>
+            <AppButton data-modal-primary="true" type="submit" loading={saving} iconLeft={<ShoppingCart size={16} />} style={actionButtonStyle}>Save Purchase</AppButton>
           </div>
         </form>
       </AppCard>

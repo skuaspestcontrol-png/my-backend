@@ -712,7 +712,7 @@ export default function HRDashboard() {
               {role.canManage ? <div className="hr-pending-actions"><button type="button" style={shell.btnLight} onClick={() => decideLeave(entry._id, 'approved')}>Approve</button><button type="button" style={shell.btnLight} onClick={() => decideLeave(entry._id, 'rejected')}>Reject</button></div> : null}
             </article>)}
           </div> : null}
-          <details className="hr-leave-form-disclosure" id="hr-leave-form"><summary>Submit a leave request</summary>
+          <details className="hr-leave-form-disclosure crm-form-surface" id="hr-leave-form"><summary>Submit a leave request</summary>
           <div style={leaveFormGridStyle}>
             <div style={shell.field}>
               <p style={shell.label}>Employee</p>
@@ -733,7 +733,7 @@ export default function HRDashboard() {
             <div style={shell.field}><p style={shell.label}>To</p><input style={shell.input} type="date" value={leaveForm.toDate} onChange={(event) => setLeaveForm((prev) => ({ ...prev, toDate: event.target.value }))} /></div>
             <div style={shell.field}><p style={shell.label}>Days</p><input style={shell.input} type="number" min="0.5" step="0.5" value={leaveForm.days} onChange={(event) => setLeaveForm((prev) => ({ ...prev, days: Number(event.target.value) || 1 }))} /></div>
             <div style={shell.field}><p style={shell.label}>Reason</p><input style={shell.input} value={leaveForm.reason} onChange={(event) => setLeaveForm((prev) => ({ ...prev, reason: event.target.value }))} /></div>
-            <div style={{ ...shell.field, alignSelf: 'end' }}><button type="button" style={shell.btn} disabled={loadStates.employees !== 'ready' || !leaveForm.employeeId} onClick={submitLeave}>Submit Leave</button></div>
+            <div className="crm-form-actions" style={{ ...shell.field, alignSelf: 'end', gridColumn: '1 / -1' }}><button data-modal-primary="true" type="button" style={shell.btn} disabled={loadStates.employees !== 'ready' || !leaveForm.employeeId} onClick={submitLeave}>Submit Leave</button></div>
           </div>
 
           </details>

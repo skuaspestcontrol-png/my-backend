@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { AlertCircle, List, Plus, Save, Send, Users } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -521,16 +523,16 @@ export default function ComplaintsDashboard() {
       )}
 
       {selectedComplaint ? (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 50 }}>
-          <div style={{ width: 'min(720px, 100%)', background: '#fff', borderRadius: 16, border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 24px 80px rgba(15,23,42,0.22)', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '16px 18px', borderBottom: '1px solid #e5e7eb' }}>
+        createPortal(<div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 50 }}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={{ width: 'min(720px, 100%)', background: '#fff', borderRadius: 16, border: '1px solid rgba(15,23,42,0.08)', boxShadow: '0 24px 80px rgba(15,23,42,0.22)', overflow: 'hidden' }}>
+            <div className="crm-modal-surface-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '16px 18px', borderBottom: '1px solid #e5e7eb' }}>
               <div>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Complaint Actions</p>
                 <h3 style={{ margin: '4px 0 0', fontSize: 22, fontWeight: 800, color: '#0f172a' }}>{selectedComplaint.ticketNumber || 'Complaint'}</h3>
               </div>
-              <button type="button" onClick={closeComplaintActions} style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 10, minHeight: 36, padding: '0 12px', fontWeight: 800, cursor: 'pointer' }}>Close</button>
+              <CRMModalCloseButton type="button" onClick={closeComplaintActions} style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 10, minHeight: 36, padding: '0 12px', fontWeight: 800, cursor: 'pointer' }} />
             </div>
-            <div style={{ padding: 18, display: 'grid', gap: 12 }}>
+            <div className="crm-modal-surface-body" style={{ padding: 18, display: 'grid', gap: 12 }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
                 <div style={{ padding: 12, border: '1px solid #e5e7eb', borderRadius: 12, background: '#f8fafc' }}>
                   <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Customer</p>
@@ -564,7 +566,7 @@ export default function ComplaintsDashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
 
       <WhatsAppPreviewModal

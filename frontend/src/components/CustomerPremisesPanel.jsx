@@ -461,7 +461,7 @@ export default function CustomerPremisesPanel({
       {loading ? <p style={styles.text}>Loading premises...</p> : null}
 
       {editingId ? (
-        <div className="customer-premises-form" style={styles.form}>
+        <div className="customer-premises-form crm-form-surface" style={styles.form}>
           <div style={styles.formGrid}>
             <label style={styles.label}>
               Address Label
@@ -495,9 +495,9 @@ export default function CustomerPremisesPanel({
           <div style={styles.tags}>
             <label><input type="checkbox" checked={draft.isDefault} onChange={(e) => setDraft((p) => ({ ...p, isDefault: e.target.checked }))} /> Default</label>
           </div>
-          <div style={styles.footer}>
+          <div className="crm-form-actions" style={styles.footer}>
             <button type="button" style={styles.secondaryBtn} onClick={() => { setEditingId(''); setDraft(emptyPremise); }}><X size={14} /> Cancel</button>
-            <button type="button" style={styles.addBtn} onClick={saveDraft}><Check size={14} /> Save Address</button>
+            <button data-modal-primary="true" type="button" style={styles.addBtn} onClick={saveDraft}><Check size={14} /> Save Address</button>
           </div>
         </div>
       ) : null}

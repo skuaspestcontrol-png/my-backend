@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { CalendarDays, ChevronLeft, ChevronRight, CircleDollarSign, Download, FileText, Filter, HandCoins, Landmark, Pencil, ShieldCheck, Trash2, UserRoundCheck } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
@@ -2061,42 +2063,42 @@ export default function PayrollModule() {
       {status ? <p style={{ ...shell.footer, whiteSpace: 'pre-line' }}>{status}</p> : null}
 
       {paymentModal.open ? (
-        <div style={shell.modalBg}>
-          <div style={getModalStyle()}>
-            <h3 style={shell.panelTitle}><CircleDollarSign size={16} /> Mark Salary as Paid</h3>
-            <p style={shell.sub}>{paymentModal.item?.employeeName} - Net INR {money(paymentModal.item?.netSalary)}</p>
-            <div style={{ ...shell.row, gridTemplateColumns: screenWidth < 640 ? '1fr' : 'repeat(3, minmax(0, 1fr))' }}>
+        createPortal(<div style={shell.modalBg}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={getModalStyle()}>
+            <div className="crm-modal-surface-header"><div><h3 style={shell.panelTitle}><CircleDollarSign size={16} /> Mark Salary as Paid</h3>
+            <p style={shell.sub}>{paymentModal.item?.employeeName} - Net INR {money(paymentModal.item?.netSalary)}</p></div><CRMModalCloseButton type="button" onClick={() => setPaymentModal((prev) => ({ ...prev, open: false, item: null }))} /></div>
+            <div className="crm-modal-surface-body"><div style={{ ...shell.row, gridTemplateColumns: screenWidth < 640 ? '1fr' : 'repeat(3, minmax(0, 1fr))' }}>
               <div style={shell.field}><p style={shell.label}>Payment Mode</p><select style={shell.input} value={paymentModal.paymentMode} onChange={(event) => setPaymentModal((prev) => ({ ...prev, paymentMode: event.target.value }))}><option>Cash</option><option>Bank transfer</option><option>UPI</option><option>Cheque</option></select></div>
               <div style={shell.field}><p style={shell.label}>Payment Date</p><input type="date" style={shell.input} value={paymentModal.paymentDate} onChange={(event) => setPaymentModal((prev) => ({ ...prev, paymentDate: event.target.value }))} /></div>
               <div style={shell.field}><p style={shell.label}>Transaction / Ref No.</p><input style={shell.input} value={paymentModal.transactionRef} onChange={(event) => setPaymentModal((prev) => ({ ...prev, transactionRef: event.target.value }))} /></div>
             </div>
-            <div style={shell.field}><p style={shell.label}>Remarks</p><textarea style={{ ...shell.input, minHeight: '70px' }} value={paymentModal.remarks} onChange={(event) => setPaymentModal((prev) => ({ ...prev, remarks: event.target.value }))} /></div>
-            <div style={getModalActionStyle()}>
-              <button type="button" style={{ ...shell.btn, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={markPaid} disabled={busy}>Confirm Payment</button>
+            <div style={shell.field}><p style={shell.label}>Remarks</p><textarea style={{ ...shell.input, minHeight: '70px' }} value={paymentModal.remarks} onChange={(event) => setPaymentModal((prev) => ({ ...prev, remarks: event.target.value }))} /></div></div>
+            <div className="crm-modal-surface-footer" style={getModalActionStyle()}>
+              <button data-modal-primary="true" type="button" style={{ ...shell.btn, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={markPaid} disabled={busy}>Confirm Payment</button>
               <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => setPaymentModal((prev) => ({ ...prev, open: false, item: null }))}>Cancel</button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
 
       {adjustModal.open ? (
-        <div style={shell.modalBg}>
-          <div style={getModalStyle()}>
-            <h3 style={shell.panelTitle}><ShieldCheck size={16} /> Manual Salary Override</h3>
-            <p style={shell.sub}>Admin/HR can adjust salary with reason for audit log.</p>
-            <div style={{ ...shell.row, gridTemplateColumns: screenWidth < 640 ? '1fr' : 'repeat(4, minmax(0, 1fr))' }}>
+        createPortal(<div style={shell.modalBg}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={getModalStyle()}>
+            <div className="crm-modal-surface-header"><div><h3 style={shell.panelTitle}><ShieldCheck size={16} /> Manual Salary Override</h3>
+            <p style={shell.sub}>Admin/HR can adjust salary with reason for audit log.</p></div><CRMModalCloseButton type="button" onClick={() => setAdjustModal((prev) => ({ ...prev, open: false, item: null }))} /></div>
+            <div className="crm-modal-surface-body"><div style={{ ...shell.row, gridTemplateColumns: screenWidth < 640 ? '1fr' : 'repeat(4, minmax(0, 1fr))' }}>
               <div style={shell.field}><p style={shell.label}>Payroll Status</p><select style={shell.input} value={adjustModal.payrollStatus} onChange={(event) => setAdjustModal((prev) => ({ ...prev, payrollStatus: event.target.value }))}><option value="Draft">Draft</option><option value="Generated">Generated</option><option value="Hold">Hold</option></select></div>
               <div style={shell.field}><p style={shell.label}>Manual Adjustment Amount (+/-)</p><input type="number" style={shell.input} value={adjustModal.manualAdjustmentAmount} onChange={(event) => setAdjustModal((prev) => ({ ...prev, manualAdjustmentAmount: event.target.value }))} /></div>
               <div style={shell.field}><p style={shell.label}>Override Net Salary</p><input type="number" style={shell.input} value={adjustModal.overrideNetSalary} onChange={(event) => setAdjustModal((prev) => ({ ...prev, overrideNetSalary: event.target.value }))} /></div>
               <div style={shell.field}><p style={shell.label}>Override Mode</p><select style={shell.input} value={adjustModal.manualOverrideEnabled ? 'yes' : 'no'} onChange={(event) => setAdjustModal((prev) => ({ ...prev, manualOverrideEnabled: event.target.value === 'yes' }))}><option value="no">Adjustment Mode</option><option value="yes">Absolute Override Net</option></select></div>
             </div>
-            <div style={shell.field}><p style={shell.label}>Reason</p><textarea style={{ ...shell.input, minHeight: '72px' }} value={adjustModal.manualAdjustmentReason} onChange={(event) => setAdjustModal((prev) => ({ ...prev, manualAdjustmentReason: event.target.value }))} /></div>
-            <div style={getModalActionStyle()}>
-              <button type="button" style={{ ...shell.btn, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={saveAdjustment} disabled={busy}>Save Adjustment</button>
+            <div style={shell.field}><p style={shell.label}>Reason</p><textarea style={{ ...shell.input, minHeight: '72px' }} value={adjustModal.manualAdjustmentReason} onChange={(event) => setAdjustModal((prev) => ({ ...prev, manualAdjustmentReason: event.target.value }))} /></div></div>
+            <div className="crm-modal-surface-footer" style={getModalActionStyle()}>
+              <button data-modal-primary="true" type="button" style={{ ...shell.btn, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={saveAdjustment} disabled={busy}>Save Adjustment</button>
               <button type="button" style={{ ...shell.btnLight, ...shell.modalActionButton, width: screenWidth < 640 ? '100%' : 'auto' }} onClick={() => setAdjustModal((prev) => ({ ...prev, open: false, item: null }))}>Cancel</button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
 
       <PdfPreviewModal

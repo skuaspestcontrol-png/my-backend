@@ -252,7 +252,7 @@ export default function StockIssueUsage() {
   };
 
   const renderIssue = () => (
-    <form onSubmit={submitIssue} style={{ display: 'grid', gap: 12 }}>
+    <form className="crm-inline-form crm-form-surface" onSubmit={submitIssue} style={{ display: 'grid', gap: 12 }}>
       <div style={formGridStyle}>
         <AppSelect label="Technician" value={issueForm.technicianId} onChange={(e) => setIssueForm({ ...issueForm, technicianId: e.target.value })} required>
           <option value="">Select technician</option>
@@ -271,14 +271,14 @@ export default function StockIssueUsage() {
         <AppInput label="Job / Contract Ref" value={issueForm.jobId} onChange={(e) => setIssueForm({ ...issueForm, jobId: e.target.value })} />
       </div>
       <AppTextarea label="Notes" value={issueForm.notes} onChange={(e) => setIssueForm({ ...issueForm, notes: e.target.value })} />
-      <div style={submitRowStyle}>
+      <div className="crm-form-actions" style={submitRowStyle}>
         <AppButton type="submit" loading={saving} iconLeft={<Send size={16} />} style={submitButtonStyle}>Issue Stock</AppButton>
       </div>
     </form>
   );
 
   const renderUsage = () => (
-    <form onSubmit={submitUsage} style={{ display: 'grid', gap: 12 }}>
+    <form className="crm-inline-form crm-form-surface" onSubmit={submitUsage} style={{ display: 'grid', gap: 12 }}>
       <div style={formGridStyle}>
         <AppSelect label="Technician" value={usageForm.technicianId} onChange={(e) => setUsageForm({ ...usageForm, technicianId: e.target.value })} required>
           <option value="">Select technician</option>
@@ -298,14 +298,14 @@ export default function StockIssueUsage() {
         <AppInput label="Job / Contract Ref" value={usageForm.jobId} onChange={(e) => setUsageForm({ ...usageForm, jobId: e.target.value })} />
       </div>
       <AppTextarea label="Notes" value={usageForm.notes} onChange={(e) => setUsageForm({ ...usageForm, notes: e.target.value })} />
-      <div style={submitRowStyle}>
+      <div className="crm-form-actions" style={submitRowStyle}>
         <AppButton type="submit" loading={saving} iconLeft={<CheckCircle2 size={16} />} style={submitButtonStyle}>Save Usage</AppButton>
       </div>
     </form>
   );
 
   const renderMovement = () => (
-    <form onSubmit={submitMovement} style={{ display: 'grid', gap: 12 }}>
+    <form className="crm-inline-form crm-form-surface" onSubmit={submitMovement} style={{ display: 'grid', gap: 12 }}>
       <div style={formGridStyle}>
         <AppSelect label="Technician" value={movementForm.technicianId} onChange={(e) => setMovementForm({ ...movementForm, technicianId: e.target.value })}>
           <option value="">Optional</option>
@@ -336,7 +336,7 @@ export default function StockIssueUsage() {
         <AppInput type="number" step="0.001" min="0.001" label="Quantity" value={movementForm.quantity} onChange={(e) => setMovementForm({ ...movementForm, quantity: e.target.value })} required />
       </div>
       <AppInput label="Reason / Notes" value={movementForm.reason} onChange={(e) => setMovementForm({ ...movementForm, reason: e.target.value })} />
-      <div style={submitRowStyle}>
+      <div className="crm-form-actions" style={submitRowStyle}>
         <AppButton type="submit" loading={saving} iconLeft={<RotateCcw size={16} />} style={submitButtonStyle}>Save Movement</AppButton>
       </div>
     </form>
@@ -358,7 +358,7 @@ export default function StockIssueUsage() {
 
       {error ? <AppCard><EmptyState title="Stock movement error" message={error} /></AppCard> : null}
 
-      <AppCard title={activeTab === 'issue' ? 'Issue to Technician' : activeTab === 'usage' ? 'Usage at Site' : 'Return / Wastage'} className="crm-filter-card">
+      <AppCard title={activeTab === 'issue' ? 'Issue to Technician' : activeTab === 'usage' ? 'Usage at Site' : 'Return / Wastage'} className="crm-filter-card crm-form-surface">
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : activeTab === 'issue' ? renderIssue() : activeTab === 'usage' ? renderUsage() : renderMovement()}

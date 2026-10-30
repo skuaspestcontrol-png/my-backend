@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, History, MapPinned, Search, Users } from 'lucide-react';
 import useColumnResize from './table/useColumnResize';
@@ -1602,16 +1604,16 @@ export default function Attendance() {
       <p role="status" aria-live="polite" style={shell.footerNote}>{statusMessage || 'Tip: Attendance auto-saves when you change status, leave, or move out of time fields. Overtime follows the 9:30 AM - 5:30 PM shift, and Sunday work is paid normally.'}</p>
 
       {auditModal.open ? (
-        <div style={shell.modalBg}>
-          <div style={shell.modal}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
+        createPortal(<div style={shell.modalBg}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.modal}>
+            <div className="crm-modal-surface-header" style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
               <div>
                 <h3 style={shell.modalTitle}>Attendance Audit</h3>
                 <p style={shell.auditMeta}>{auditModal.employeeName} • {date}</p>
               </div>
-              <button type="button" style={shell.actionBtn} onClick={() => setAuditModal({ open: false, loading: false, employeeName: '', items: [] })}>Close</button>
+              <CRMModalCloseButton type="button" style={shell.actionBtn} onClick={() => setAuditModal({ open: false, loading: false, employeeName: '', items: [] })} />
             </div>
-            {auditModal.loading ? <p style={shell.footerNote}>Loading audit history...</p> : null}
+            <div className="crm-modal-surface-body">{auditModal.loading ? <p style={shell.footerNote}>Loading audit history...</p> : null}
             {!auditModal.loading && auditModal.items.length === 0 ? <p style={shell.footerNote}>No audit history found.</p> : null}
             {!auditModal.loading && auditModal.items.map((item) => (
               <div key={item.id} style={shell.auditCard}>
@@ -1622,29 +1624,29 @@ export default function Attendance() {
                 <p style={shell.footerNote}>Source: {item.source || '-'}</p>
                 {item.reason ? <p style={shell.footerNote}>Reason: {item.reason}</p> : null}
               </div>
-            ))}
+            ))}</div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
       {locationModal.open ? (
-        <div style={shell.modalBg}>
-          <div style={{ ...shell.modal, width: 'min(520px, 100%)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
+        createPortal(<div style={shell.modalBg}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={{ ...shell.modal, width: 'min(520px, 100%)' }}>
+            <div className="crm-modal-surface-header" style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
               <div>
                 <h3 style={shell.modalTitle}>{locationModal.title}</h3>
                 <p style={shell.auditMeta}>{locationModal.timestamp || '-'}</p>
               </div>
-              <button type="button" style={shell.actionBtn} onClick={() => setLocationModal({ open: false, title: '', address: '', timestamp: '', latitude: null, longitude: null, mapUrl: '' })}>Close</button>
+              <CRMModalCloseButton type="button" style={shell.actionBtn} onClick={() => setLocationModal({ open: false, title: '', address: '', timestamp: '', latitude: null, longitude: null, mapUrl: '' })} />
             </div>
-            <p style={shell.footerNote}>{locationModal.address || 'Address not captured by the app.'}</p>
-            <p style={shell.footerNote}>Coordinates: {locationModal.latitude ?? '-'}, {locationModal.longitude ?? '-'}</p>
+            <div className="crm-modal-surface-body"><p style={shell.footerNote}>{locationModal.address || 'Address not captured by the app.'}</p>
+            <p className="crm-modal-surface-footer" style={shell.footerNote}>Coordinates: {locationModal.latitude ?? '-'}, {locationModal.longitude ?? '-'}</p>
             {locationModal.mapUrl ? (
               <a href={locationModal.mapUrl} target="_blank" rel="noreferrer" style={{ ...shell.mapBtn, width: 'fit-content' }}>
                 <MapPinned size={12} /> Open in Maps
               </a>
-            ) : null}
+            ) : null}</div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { ChevronDown, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Settings, X } from 'lucide-react';
@@ -1002,22 +1003,15 @@ export default function ItemsDashboard() {
 
       {showAddModal ? createPortal(
         <div style={shell.modalOverlay}>
-          <form className="crm-modal-surface" style={modalStyle} onSubmit={handleAddItem}>
+          <form role="dialog" aria-modal="true" className="crm-modal-surface" style={modalStyle} onSubmit={handleAddItem}>
             <div className="crm-modal-surface-header" style={modalHeaderStyle}>
               <h3 style={shell.modalHeaderTitle}>{editingItemId ? 'Edit Item' : 'New Item'}</h3>
-              <button
-                type="button"
-                style={shell.modalCloseButton}
-                onClick={() => {
+              <CRMModalCloseButton type="button" style={shell.modalCloseButton} onClick={() => {
                   setShowAddModal(false);
                   setEditingItemId(null);
                   setSaveError('');
                   setForm(emptyForm);
-                }}
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
+                }} aria-label="Close" />
             </div>
 
             <div className="crm-modal-surface-body" style={shell.formContent}>
@@ -1126,7 +1120,7 @@ export default function ItemsDashboard() {
               >
                 Cancel
               </button>
-              <button type="submit" style={shell.saveButton} disabled={isSaving}>
+              <button data-modal-primary="true"    type="submit" style={shell.saveButton} disabled={isSaving}>
                 {isSaving ? 'Saving...' : editingItemId ? 'Update Item' : 'Save Item'}
               </button>
             </div>

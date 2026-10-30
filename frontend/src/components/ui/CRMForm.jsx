@@ -25,11 +25,11 @@ export function CRMModal({ as: Element = 'div', children, className, onKeyDown, 
   };
   return <Element {...props} ref={ref} role="dialog" aria-modal="true" className={classes('crm-modal-surface skuas-form-modal', className)} onKeyDown={handleKeyDown}>{children}</Element>;
 }
-export function CRMModalCloseButton({ className, ...props }) {
-  return <button {...props} type="button" aria-label="Close" title="Close" className={classes('skuas-modal-close', className)}><X size={22} aria-hidden="true" /></button>;
+export function CRMModalCloseButton({ className, 'aria-label': ariaLabel = 'Close', title = 'Close', ...props }) {
+  return <button {...props} type="button" aria-label={ariaLabel} title={title} className={classes('skuas-modal-close', className)}><X size={22} aria-hidden="true" /></button>;
 }
-export function CRMModalHeader({ title, subtitle, titleId, onClose, closeDisabled = false }) {
-  return <header className="crm-modal-surface-header skuas-modal-header"><div><h3 id={titleId}>{title}</h3>{subtitle ? <p>{subtitle}</p> : null}</div><CRMModalCloseButton onClick={onClose} disabled={closeDisabled} /></header>;
+export function CRMModalHeader({ title, subtitle, titleId, onClose, closeDisabled = false, icon: Icon }) {
+  return <header className="crm-modal-surface-header skuas-modal-header"><div className={Icon ? 'crm-form-heading' : undefined}>{Icon ? <Icon size={28} aria-hidden="true" /> : null}<div><h3 id={titleId}>{title}</h3>{subtitle ? <p>{subtitle}</p> : null}</div></div><CRMModalCloseButton onClick={onClose} disabled={closeDisabled} /></header>;
 }
 export function CRMModalBody({ children, className, ...props }) {
   return <div {...props} className={classes('crm-modal-surface-body skuas-modal-body', className)}>{children}</div>;
@@ -44,12 +44,12 @@ export function CRMFormSection({ title, children, className, ...props }) {
 export function CRMFormGrid({ children, className, ...props }) {
   return <div {...props} className={classes('skuas-form-grid', className)}>{children}</div>;
 }
-export function CRMFormField({ label, children, className, ...props }) {
+export function CRMFormField({ label, children, className, requiredHint, ...props }) {
   const id = useId();
   const control = Children.count(children) === 1 ? Children.only(children) : null;
   const native = isValidElement(control) && ['input', 'select', 'textarea'].includes(control.type);
   const controlId = native ? (control.props.id || `${id}-control`) : undefined;
-  return <div {...props} className={classes('skuas-form-field', className)}><label id={`${id}-label`} htmlFor={controlId}>{label}</label>{native ? cloneElement(control, { id: controlId }) : <div role="group" aria-labelledby={`${id}-label`}>{children}</div>}</div>;
+  return <div {...props} data-required-hint={requiredHint || undefined} className={classes('skuas-form-field', className)}><label id={`${id}-label`} htmlFor={controlId}>{label}</label>{native ? cloneElement(control, { id: controlId, ...(requiredHint ? { 'aria-required': true } : {}) }) : <div role="group" aria-labelledby={`${id}-label`}>{children}</div>}</div>;
 }
 export function CRMFormActions({ children, className, ...props }) {
   return <div {...props} className={classes('skuas-form-actions', className)}>{children}</div>;

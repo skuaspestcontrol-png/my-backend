@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { CRMModalCloseButton } from '../ui/CRMForm';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { X } from 'lucide-react';
@@ -216,12 +217,12 @@ export default function WhatsAppPreviewModal({
 
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(3, 7, 18, 0.62)', backdropFilter: 'blur(16px)', display: 'grid', placeItems: 'center', zIndex: 7100, padding: '16px' }}>
-      <div style={{ width: 'min(760px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'var(--surface-modal)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(148, 163, 184, 0.32)', boxShadow: '0 28px 70px rgba(0, 0, 0, 0.35)', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' }}>
-        <div style={{ background: 'var(--card-header-bg)', color: '#fff', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="crm-modal-surface" role="dialog" aria-modal="true" style={{ width: 'min(760px, 100%)', maxHeight: '92vh', overflow: 'hidden', background: 'var(--surface-modal)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRadius: '20px', border: '1px solid rgba(148, 163, 184, 0.32)', boxShadow: '0 28px 70px rgba(0, 0, 0, 0.35)', display: 'flex', flexDirection: 'column', color: 'var(--text-primary)' }}>
+        <div className="crm-modal-surface-header" style={{ background: 'var(--card-header-bg)', color: '#fff', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, letterSpacing: '-0.01em' }}>WhatsApp Preview</h3>
-          <button type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}><X size={22} /></button>
+          <CRMModalCloseButton type="button" onClick={onClose} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }} />
         </div>
-        <div style={{ padding: '14px 16px 16px', overflowY: 'auto', display: 'grid', gap: '12px', background: 'var(--surface-modal)' }}>
+        <div className="crm-modal-surface-body" style={{ padding: '14px 16px 16px', overflowY: 'auto', display: 'grid', gap: '12px', background: 'var(--surface-modal)' }}>
           {diagnostic?.text ? (
             <div style={{
               border: `1px solid ${diagnostic.tone === 'success' ? 'rgba(22,163,74,0.18)' : diagnostic.tone === 'danger' ? 'rgba(220,38,38,0.22)' : 'rgba(245,158,11,0.22)'}`,
@@ -350,9 +351,9 @@ export default function WhatsAppPreviewModal({
 
           {error ? <div style={{ color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{error}</div> : null}
         </div>
-        <div style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'var(--surface-modal)', backdropFilter: 'blur(10px)' }}>
-          <button type="button" onClick={onClose} style={{ minHeight: '40px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', padding: '0 14px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-          <button type="button" onClick={handleSend} disabled={busy || !isValidWhatsAppPhoneNumber(phoneValue) || !message.trim()} style={{ minHeight: '40px', borderRadius: '12px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 16px', fontWeight: 800, cursor: 'pointer' }}>{busy ? 'Sending...' : sendButtonLabel}</button>
+        <div className="crm-modal-surface-footer" style={{ borderTop: '1px solid rgba(148, 163, 184, 0.18)', padding: '12px 16px', display: 'flex', justifyContent: 'flex-end', gap: '8px', background: 'var(--surface-modal)', backdropFilter: 'blur(10px)' }}>
+          <button data-modal-primary="true" type="button" onClick={onClose} style={{ minHeight: '40px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', padding: '0 14px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+          <button data-modal-primary="true" type="button" onClick={handleSend} disabled={busy || !isValidWhatsAppPhoneNumber(phoneValue) || !message.trim()} style={{ minHeight: '40px', borderRadius: '12px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 16px', fontWeight: 800, cursor: 'pointer' }}>{busy ? 'Sending...' : sendButtonLabel}</button>
         </div>
       </div>
     </div>,

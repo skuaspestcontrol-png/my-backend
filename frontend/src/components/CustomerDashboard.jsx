@@ -3,11 +3,12 @@ import axios from 'axios';
 import useColumnResize from './table/useColumnResize';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X, UserRoundPlus, Building2, MapPin, FileText, ClipboardCheck } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
-import { CRMModal, CRMModalHeader, CRMModalBody, CRMModalFooter, CRMFormSection, CRMFormGrid, CRMFormField, CRMFormActions } from './ui/CRMForm';
+import { CRMModal, CRMModalHeader, CRMModalBody, CRMModalFooter, CRMFormSection, CRMFormGrid, CRMFormField, CRMFormActions, CRMModalCloseButton } from './ui/CRMForm';
+import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import SortChevronIcon from './ui/SortChevronIcon';
 import { triggerDashboardRefresh } from '../utils/dashboardRefresh';
@@ -2133,6 +2134,25 @@ export default function CustomerDashboard() {
     });
   };
 
+  // Step gates reuse the same rules and normalisers as the existing final save.
+  const validateCustomerStep = (step) => {
+    if (step === 0) {
+      if (!form.contactPersonName.trim() && !form.companyName.trim()) return { message: 'Please enter Contact Person Name or Company Name.', field: 'Company Name' };
+      if (toTenDigitNumber(form.mobileNumber).length !== 10) return { message: PHONE_VALIDATION_ERROR, field: 'Mobile Number' };
+      if (!form.whatsappSameAsMobile && toTenDigitNumber(form.whatsappNumber) && toTenDigitNumber(form.whatsappNumber).length !== 10) return { message: PHONE_VALIDATION_ERROR, field: 'WhatsApp Number' };
+      if (toTenDigitNumber(form.altNumber) && toTenDigitNumber(form.altNumber).length !== 10) return { message: PHONE_VALIDATION_ERROR, field: 'Alt Number' };
+    }
+    if (step === 1) {
+      if (!isValidPincode(toSixDigitPincode(form.billingPincode))) return { message: 'Billing Pin Code must be exactly 6 digits.' };
+      if (!isValidPincode(toSixDigitPincode(form.shippingPincode))) return { message: 'Shipping Pin Code must be exactly 6 digits.' };
+      const coordinateError = validateCoordinatePair('Billing', String(form.billingLatitude || form.latitude || '').trim(), String(form.billingLongitude || form.longitude || '').trim())
+        || validateCoordinatePair('Shipping', String(form.shippingLatitude || '').trim(), String(form.shippingLongitude || '').trim());
+      if (coordinateError) return { message: coordinateError };
+    }
+    if (step === 2 && form.hasGst && !gstinRegex.test(String(form.gstNumber || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))) return { message: 'Enter a valid 15-character GSTIN (e.g., 29ABCDE9999F1Z8).', field: 'GST Number' };
+    return null;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const contactName = form.contactPersonName.trim();
@@ -3103,9 +3123,9 @@ export default function CustomerDashboard() {
       </div>
 
       {showHistory ? (
-        <div style={shell.historyOverlay}>
-          <div style={historyModalStyle}>
-            <div style={historyHeaderStyle}>
+        createPortal(<div style={shell.historyOverlay}>
+          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={historyModalStyle}>
+            <div className="crm-modal-surface-header" style={historyHeaderStyle}>
               <div>
                 <h3 style={historyTitleTinyStyle}>
                   {selectedHistoryCustomer?.displayName || selectedHistoryCustomer?.name || 'Customer History'}
@@ -3129,12 +3149,10 @@ export default function CustomerDashboard() {
                 >
                   Edit
                 </button>
-                <button type="button" style={shell.historyClose} onClick={closeCustomerHistory} aria-label="Close history">
-                  <X size={18} />
-                </button>
+                <CRMModalCloseButton type="button" style={shell.historyClose} onClick={closeCustomerHistory} aria-label="Close history" />
               </div>
             </div>
-            <div style={shell.historyBody}>
+            <div className="crm-modal-surface-body" style={shell.historyBody}>
               <div style={shell.historyTabs}>
                 <button
                   type="button"
@@ -3409,15 +3427,34 @@ export default function CustomerDashboard() {
               )}
             </div>
           </div>
-        </div>
+        </div>, document.body)
       ) : null}
 
       {showModal ? createPortal(
         <div className="skuas-customer-form-overlay" style={modalOverlayStyle}>
-          <CRMModal as="form" className="customer-modal-surface" style={modalStyle} onSubmit={handleSubmit} aria-labelledby="customer-form-title">
-<CRMModalHeader title={editingId ? 'Edit Customer' : 'New Customer'} titleId="customer-form-title" subtitle="Contact information, addresses and service premises" onClose={closeModal} closeDisabled={isSaving} />
-<CRMModalBody>
-<CRMFormSection title="Customer details"><CRMFormGrid><CRMFormField label="Segment"><div style={shell.inlineChecks}>
+          <CRMFormModal className="customer-modal-surface" style={modalStyle}
+  title={editingId ? 'Edit Customer' : 'New Customer'} icon={UserRoundPlus}
+  subtitle="Manage customer contacts, addresses and service premises."
+  onClose={closeModal} onSubmit={handleSubmit} validateStep={validateCustomerStep} busy={isSaving} error={saveError}
+  cancelAction={<button
+                type="button"
+                style={shell.cancelButton}
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingId(null);
+                  setSaveError('');
+                  setDuplicateConflict(null);
+                  setForm(emptyForm);
+                }}
+              >
+                Cancel
+              </button>} submitAction={<button data-modal-primary="true" type="submit" style={shell.saveButton} disabled={isSaving}>
+                {isSaving ? 'Saving...' : editingId ? 'Update Customer' : 'Save Customer'}
+              </button>}>
+  <CRMFormStep title="Basic Information" description="Company and primary contact details" icon={Building2}>
+    <p className="crm-wizard-hint">Enter a company name or contact person. A 10-digit mobile number is required.</p>
+
+<CRMFormSection><CRMFormGrid><CRMFormField label="Segment"><div style={shell.inlineChecks}>
                 <label>
                   <input
                     type="radio"
@@ -3487,7 +3524,7 @@ export default function CustomerDashboard() {
                   onChange={(event) => setForm((prev) => ({ ...prev, positionCustom: event.target.value }))}
                 />
               </div></CRMFormField>
-<CRMFormField label="Mobile Number"><input
+<CRMFormField label="Mobile Number" requiredHint><input
                 style={shell.input}
                 value={form.mobileNumber}
                 inputMode="numeric"
@@ -3546,31 +3583,11 @@ export default function CustomerDashboard() {
                 value={form.emailId}
                 onChange={(event) => setForm((prev) => ({ ...prev, emailId: event.target.value }))}
               /></CRMFormField>
-<CRMFormField label="GST Number"><div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '8px' }}>
-                <label style={{ ...shell.inlineChecks, fontSize: '12px' }}>
-                  <input
-                    type="checkbox"
-                    checked={form.hasGst}
-                    onChange={(event) => setForm((prev) => ({ ...prev, hasGst: event.target.checked, gstNumber: event.target.checked ? prev.gstNumber : '' }))}
-                  />
-                  Yes
-                </label>
-                <input
-                  style={shell.input}
-                  placeholder="Enter GSTIN (e.g., 29ABCDE9999F1Z8)"
-                  disabled={!form.hasGst}
-                  value={form.gstNumber}
-                  inputMode="text"
-                  maxLength={15}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      gstNumber: event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15)
-                    }))
-                  }
-                />
-              </div></CRMFormField></CRMFormGrid></CRMFormSection>
-<CRMFormSection title="Addresses"><div className="skuas-address-search">{renderAddressSearchControls('billing')}</div><div className="skuas-address-grid" style={addressSplitStyle}>
+</CRMFormGrid></CRMFormSection>
+
+  </CRMFormStep>
+  <CRMFormStep title="Address Information" description="Billing and shipping addresses" icon={MapPin}>
+<CRMFormSection><div className="skuas-address-search">{renderAddressSearchControls('billing')}</div><div className="skuas-address-grid" style={addressSplitStyle}>
                 <div className="customer-modal-address-card" style={shell.addressCard}>
                   <div style={shell.addressHead}>
                     <h4 style={shell.addressTitle}>Billing Address</h4>
@@ -3632,7 +3649,33 @@ export default function CustomerDashboard() {
 <CRMFormField label="Pin Code"><input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(event) => updateShippingField('shippingPincode', event.target.value)} /></CRMFormField></CRMFormGrid>
                 </div>
               </div></CRMFormSection>
-<CRMFormSection title="Additional details"><CRMFormGrid><CRMFormField label="Area in sqft"><input
+
+  </CRMFormStep>
+  <CRMFormStep title="Additional Details" description="GST, area and service premises" icon={FileText}>
+<CRMFormSection><CRMFormGrid><CRMFormField label="GST Number"><div style={{ display: 'grid', gridTemplateColumns: '90px 1fr', gap: '8px' }}>
+                <label style={{ ...shell.inlineChecks, fontSize: '12px' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.hasGst}
+                    onChange={(event) => setForm((prev) => ({ ...prev, hasGst: event.target.checked, gstNumber: event.target.checked ? prev.gstNumber : '' }))}
+                  />
+                  Yes
+                </label>
+                <input
+                  style={shell.input}
+                  placeholder="Enter GSTIN (e.g., 29ABCDE9999F1Z8)"
+                  disabled={!form.hasGst}
+                  value={form.gstNumber}
+                  inputMode="text"
+                  maxLength={15}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      gstNumber: event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15)
+                    }))
+                  }
+                />
+              </div></CRMFormField><CRMFormField label="Area in sqft"><input
                 style={shell.input}
                 type="text"
                 inputMode="numeric"
@@ -3649,34 +3692,30 @@ export default function CustomerDashboard() {
                 pendingPremises={pendingPremises}
                 onPendingPremisesChange={setPendingPremises}
               />
-</CRMModalBody>
-<CRMModalFooter>{saveError ? (
-                <div role="alert" style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
-                  {saveError}
-                </div>
-              ) : null}<CRMFormActions><button
-                type="button"
-                style={shell.cancelButton}
-                onClick={() => {
-                  setShowModal(false);
-                  setEditingId(null);
-                  setSaveError('');
-                  setDuplicateConflict(null);
-                  setForm(emptyForm);
-                }}
-              >
-                Cancel
-              </button><button type="submit" style={shell.saveButton} disabled={isSaving}>
-                {isSaving ? 'Saving...' : editingId ? 'Update Customer' : 'Save Customer'}
-              </button></CRMFormActions></CRMModalFooter>
-</CRMModal>
+
+  </CRMFormStep>
+  <CRMFormStep title="Review" description="Check details before saving" icon={ClipboardCheck}>
+<CRMFormReview groups={[
+  { title: 'Basic Information', fields: [
+    ['Segment', form.segment], ['Company Name', form.companyName], ['Contact Person Name', form.contactPersonName],
+    ['Display Name', form.displayName || displayNameOptions[0]], ['Position', form.position === 'Edit type' ? form.positionCustom || 'Edit type' : form.position],
+    ['Mobile Number', form.mobileNumber], ['WhatsApp Number', form.whatsappSameAsMobile ? form.mobileNumber : form.whatsappNumber], ['Alt Number', form.altNumber], ['Email Id', form.emailId]
+  ] },
+  { title: 'Address Information', fields: [
+    ['Billing Attention', form.billingAttention], ['Billing Address', [form.billingStreet1, form.billingStreet2, form.billingArea, form.billingCity, form.billingState, form.billingPincode].filter(Boolean).join(', ')],
+    ['Shipping Attention', form.shippingAttention], ['Shipping Address', [form.shippingStreet1, form.shippingStreet2, form.shippingArea, form.shippingCity, form.shippingState, form.shippingPincode].filter(Boolean).join(', ')]
+  ] },
+  { title: 'Additional Details', fields: [['GST Number', form.hasGst ? form.gstNumber : 'Not registered'], ['Area in sqft', form.areaSqft], ['New premises prepared', pendingPremises.length]] }
+]} />
+  </CRMFormStep>
+</CRMFormModal>
         </div>,
         document.body
       ) : null}
 
       {duplicateConflict ? createPortal(
         <div style={duplicateConflictOverlayStyle}>
-          <div className="crm-modal-surface" style={duplicateConflictModalStyle}>
+          <div role="dialog" aria-modal="true" className="crm-modal-surface" style={duplicateConflictModalStyle}>
             <div className="crm-modal-surface-header" style={duplicateConflictHeaderStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -3684,9 +3723,7 @@ export default function CustomerDashboard() {
                   <h3 style={{ ...shell.modalHeaderTitle, fontSize: '16px', lineHeight: 1.2 }}>Exact Duplicate Detected</h3>
                 </div>
               </div>
-              <button type="button" style={shell.modalCloseButton} onClick={() => setDuplicateConflict(null)} aria-label="Close duplicate warning">
-                <X size={24} />
-              </button>
+              <CRMModalCloseButton type="button" style={shell.modalCloseButton} onClick={() => setDuplicateConflict(null)} aria-label="Close duplicate warning" />
             </div>
             <div className="crm-modal-surface-body" style={duplicateConflictBodyStyle}>
               <div style={{ display: 'grid', gap: '8px', alignContent: 'start' }}>
@@ -3772,7 +3809,7 @@ export default function CustomerDashboard() {
             </div>
             <div className="crm-modal-surface-footer" style={modalFooterStyle}>
               <button type="button" style={shell.cancelButton} onClick={reviewDuplicateConflictCustomer}>Review Existing Customer</button>
-              <button type="button" style={shell.cancelButton} onClick={openDuplicateConflictCustomerRecord}>Open Customer Record</button>
+              <button     type="button" style={shell.cancelButton} onClick={openDuplicateConflictCustomerRecord}>Open Customer Record</button>
               <button
                 type="button"
                 style={shell.cancelButton}
@@ -3784,7 +3821,7 @@ export default function CustomerDashboard() {
               >
                 Keep Editing
               </button>
-              <button
+              <button data-modal-primary="true"
                 type="button"
                 style={shell.saveButton}
                 onClick={saveDuplicateConflictOverride}
@@ -3810,8 +3847,8 @@ export default function CustomerDashboard() {
 
       {showDuplicateReport ? createPortal(
         <div style={modalOverlayStyle}>
-          <div className="crm-modal-surface" style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
-            <div className="crm-modal-surface-header" style={modalHeaderStyle}>Duplicate Report & Data Health</div>
+          <div role="dialog" aria-modal="true" className="crm-modal-surface" style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
+            <div className="crm-modal-surface-header" style={modalHeaderStyle}>Duplicate Report & Data Health<CRMModalCloseButton type="button" onClick={() => setShowDuplicateReport(false)} /></div>
             <div className="crm-modal-surface-body" style={duplicateModalBodyStyle}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', gridColumn: '1 / -1' }}>
                 <div style={{ border: '1px solid var(--color-primary-soft)', borderRadius: '10px', padding: '10px', background: '#fff' }}>
@@ -3861,7 +3898,7 @@ export default function CustomerDashboard() {
             <div className="crm-modal-surface-footer" style={modalFooterStyle}>
               <button type="button" style={shell.cancelButton} onClick={() => setShowDuplicateReport(false)}>Close</button>
               <button type="button" style={shell.cancelButton} onClick={() => exportDuplicateReport('csv')}>Export CSV</button>
-              <button type="button" style={shell.saveButton} onClick={() => exportDuplicateReport('pdf')}>Export PDF</button>
+              <button data-modal-primary="true" type="button" style={shell.saveButton} onClick={() => exportDuplicateReport('pdf')}>Export PDF</button>
             </div>
           </div>
         </div>,

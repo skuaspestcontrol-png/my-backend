@@ -338,8 +338,8 @@ export default function StockItems() {
 
       {error ? <AppCard><EmptyState title="Stock items error" message={error} /></AppCard> : null}
 
-      <AppCard title={form.id ? 'Edit Item' : 'Add Item'} className="crm-filter-card" style={{ ...panelStyle, ...formCardStyle }} bodyStyle={formBodyStyle}>
-        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0, ...formScrollStyle }}>
+      <AppCard title={form.id ? 'Edit Item' : 'Add Item'} className="crm-filter-card crm-form-surface" style={{ ...panelStyle, ...formCardStyle }} bodyStyle={formBodyStyle}>
+        <form className="crm-inline-form" onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0, ...formScrollStyle }}>
           <div style={formGridStyle}>
             <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required style={stockControlStyle} />
             <AppInput label="Item Code" value={form.itemCode} onChange={(e) => setForm({ ...form, itemCode: e.target.value })} style={stockControlStyle} />
@@ -392,9 +392,9 @@ export default function StockItems() {
               <option value="0">Inactive</option>
             </AppSelect>
           </div>
-          <div style={actionRowStyle}>
+          <div className="crm-form-actions" style={actionRowStyle}>
             {form.id ? <AppButton variant="outline" onClick={resetForm} type="button">Cancel Edit</AppButton> : null}
-            <AppButton type="submit" loading={saving} style={actionButtonStyle}>{form.id ? 'Update Item' : 'Save Item'}</AppButton>
+            <AppButton data-modal-primary="true" type="submit" loading={saving} style={actionButtonStyle}>{form.id ? 'Update Item' : 'Save Item'}</AppButton>
           </div>
         </form>
       </AppCard>

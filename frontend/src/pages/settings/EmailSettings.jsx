@@ -78,7 +78,7 @@ export default function EmailSettings() {
   return (
     <section style={{ display: 'grid', gap: '10px' }}>
       <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#111827' }}>Email API / SMTP Settings</h4>
-      <form onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '14px', padding: '12px', display: 'grid', gap: '8px' }}>
+      <form className="crm-inline-form crm-form-surface" onSubmit={save} style={{ border: '1px solid var(--color-border)', background: '#fff', borderRadius: '14px', padding: '12px', display: 'grid', gap: '8px' }}>
         <ResponsiveFormGrid style={{ display: 'grid', gap: '8px', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>Mail Provider<select value={form.mailProvider} onChange={(e) => setForm((p) => ({ ...p, mailProvider: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}><option>SMTP</option><option>Gmail SMTP</option><option>Custom API</option></select></label>
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>SMTP Host<input value={form.smtpHost} onChange={(e) => setForm((p) => ({ ...p, smtpHost: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
@@ -93,7 +93,7 @@ export default function EmailSettings() {
           <label style={{ display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 700 }}>Test Email Address<input value={form.testEmailAddress} autoComplete="off" onChange={(e) => setForm((p) => ({ ...p, testEmailAddress: e.target.value }))} style={{ minHeight: '36px', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }} /></label>
         </ResponsiveFormGrid>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button type="submit" disabled={busy} style={{ minHeight: '34px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>Save</button>
+          <button data-modal-primary="true" type="submit" disabled={busy} style={{ minHeight: '34px', borderRadius: '8px', border: 'none', background: 'var(--color-primary)', color: '#fff', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>Save</button>
           <button type="button" onClick={sendTest} disabled={busy} style={{ minHeight: '34px', borderRadius: '8px', border: '1px solid var(--brand-border-color)', background: 'var(--color-primary-light)', color: 'var(--brand-ink)', padding: '0 12px', fontWeight: 800, fontSize: '12px' }}>Send Test Email</button>
         </div>
         {status ? <p style={{ margin: 0, fontSize: '12px', color: '#334155', fontWeight: 700 }}>{status}</p> : null}

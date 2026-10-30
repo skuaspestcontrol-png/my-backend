@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Plus, Trash2, X } from 'lucide-react';
@@ -432,8 +433,8 @@ export default function VendorBillsDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeModal}>
-          <form className="crm-modal-surface" style={modalStyle} onSubmit={saveBill} onClick={(event) => event.stopPropagation()}>
-            <div className="crm-modal-surface-header" style={modalHeaderStyle}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><button type="button" style={shell.closeBtn} onClick={closeModal}><X size={24} /></button></div>
+          <form role="dialog" aria-modal="true" className="crm-modal-surface" style={modalStyle} onSubmit={saveBill} onClick={(event) => event.stopPropagation()}>
+            <div className="crm-modal-surface-header" style={modalHeaderStyle}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><CRMModalCloseButton type="button" style={shell.closeBtn} onClick={closeModal} /></div>
             <div className="crm-modal-surface-body" style={formBodyStyle}>
               <div style={row2Style}>
                 <label style={shell.label}>Vendor Name*</label>
@@ -557,7 +558,7 @@ export default function VendorBillsDashboard() {
             <div className="crm-modal-surface-footer" style={shell.modalFooter}>
               {saveError ? <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 700 }}>{saveError}</div> : null}
               <button type="button" style={shell.cancelButton} onClick={closeModal}>Cancel</button>
-              <button type="submit" style={shell.saveButton} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Bill'}</button>
+              <button data-modal-primary="true"    type="submit" style={shell.saveButton} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Bill'}</button>
             </div>
           </form>
         </div>,

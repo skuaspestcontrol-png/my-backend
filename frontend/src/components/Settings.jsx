@@ -2959,10 +2959,10 @@ export default function Settings({ modalMode = false }) {
   };
 
   return (
-    <section className="settings-page" style={pageStyle}>
+    <section className="settings-page crm-form-surface" style={pageStyle}>
       <div style={shell.workspaceShell}>
         <div style={panelStyle}>
-          <header data-brand-header="true" style={panelHeaderStyle}>
+          <header className="crm-form-page-header" data-brand-header="true" style={panelHeaderStyle}>
             <div
               style={{
                 width: '100%',
@@ -3033,7 +3033,7 @@ export default function Settings({ modalMode = false }) {
 
             <div ref={panelBodyRef} style={panelBodyStyle}>{renderSectionContent()}</div>
           </div>
-          <div data-brand-footer="true"
+          <div className="crm-form-actions" data-brand-footer="true"
             style={{
               borderTop: '1px solid var(--border)',
               padding: isCompactLayout ? '12px' : '14px 16px',
@@ -3059,6 +3059,7 @@ export default function Settings({ modalMode = false }) {
               <button
                 type="button"
                 style={{ ...topButtonStyle, ...shell.topButtonPrimary, minHeight: '34px', minWidth: '122px', borderRadius: '8px', padding: '0 12px', fontSize: '11px' }}
+                data-modal-primary="true"
                 onClick={saveAll}
                 disabled={isSaving}
               >
