@@ -171,9 +171,10 @@ html[data-theme] body .portal-design-system .sidebar {
   border-radius: 0 !important;
   box-shadow: none !important;
 }
-html[data-theme] body .portal-design-system .portal-brand-header { background: var(--ui-navy-deep) !important; }
-html[data-theme] body .portal-design-system .portal-brand-logo { filter: none !important; object-fit: contain !important; }
-html[data-theme] body .portal-design-system .portal-brand-header > a > div { background: var(--ui-navy-deep) !important; }
+html[data-theme] body .portal-design-system .portal-brand-header {
+  --brand-header-bg: var(--portal-main-header-bg);
+  --brand-header-text: var(--portal-main-header-text);
+}
 html[data-theme][data-branding] body .portal-design-system .topbar {
   --brand-header-bg: var(--portal-main-header-bg);
   --brand-header-text: var(--portal-main-header-text);

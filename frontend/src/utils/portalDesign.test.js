@@ -12,7 +12,6 @@ for (const [mode, colors] of Object.entries({ light, dark })) {
     for (const status of ['active','pending','danger','info']) assert.ok(brandingContrast(colors[`--status-${status}-text`],colors[`--status-${status}-bg`])>=4.5,status);
   });
 }
-test('portal width is fluid and exact logo artwork is not cropped or recoloured', () => {
+test('portal width is fluid', () => {
   assert.match(css, /\.dashboard-container\s*\{[^}]*max-width:\s*none !important/s);
-  assert.match(css, /\.portal-brand-logo\s*\{[^}]*filter:\s*none !important;[^}]*object-fit:\s*contain !important/s);
 });
