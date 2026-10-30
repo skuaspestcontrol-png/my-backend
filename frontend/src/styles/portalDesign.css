@@ -1,5 +1,11 @@
 /* SKUAS portal design system. Keep business state, values and module workflows in their owners. */
 :root {
+  /* Resolve saved branding at the root, before portal-local structural overrides. */
+  --portal-main-header-bg: var(--brand-header-bg);
+  --portal-main-header-text: var(--brand-header-text);
+  --portal-main-header-hover: var(--color-primary-dark);
+  --portal-main-header-hover-text: var(--brand-on-hover);
+  --portal-main-header-border: var(--border-soft);
   --ui-navy: #1b2342;
   --ui-navy-deep: #111b34;
   --ui-page: #f4f6fb;
@@ -169,12 +175,11 @@ html[data-theme] body .portal-design-system .portal-brand-header { background: v
 html[data-theme] body .portal-design-system .portal-brand-logo { filter: none !important; object-fit: contain !important; }
 html[data-theme] body .portal-design-system .portal-brand-header > a > div { background: var(--ui-navy-deep) !important; }
 html[data-theme][data-branding] body .portal-design-system .topbar {
-  --brand-header-text: var(--ui-text);
-  background: var(--ui-card) !important;
-  color: var(--ui-text) !important;
-  -webkit-text-fill-color: currentColor !important;
-  border-bottom: 1px solid var(--ui-border) !important;
-  box-shadow: 0 1px 3px rgb(17 27 52 / 3%) !important;
+  --brand-header-bg: var(--portal-main-header-bg);
+  --brand-header-text: var(--portal-main-header-text);
+  --color-primary-dark: var(--portal-main-header-hover);
+  --brand-on-hover: var(--portal-main-header-hover-text);
+  --border-soft: var(--portal-main-header-border);
 }
 html[data-theme][data-branding] body .portal-design-system .sidebar .sidebar-nav-item {
   min-height: 40px;
