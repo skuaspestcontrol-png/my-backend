@@ -1,0 +1,7 @@
+.crm-customer-combobox { position: relative; min-width: 0; width: 100%; }
+.crm-customer-combobox input { width: 100%; padding-right: 34px !important; }
+.crm-customer-combobox-chevron { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--ui-muted); pointer-events: none; }
+.crm-customer-suggestions { position: fixed; z-index: 20000; box-sizing: border-box; overflow: auto; overscroll-behavior: contain; padding: 5px; border: 1px solid var(--ui-border); border-radius: 10px; background: var(--ui-card); color: var(--ui-text); box-shadow: 0 12px 30px rgb(0 0 0 / 16%); }
+.crm-customer-suggestion { padding: 11px 12px; border-radius: 6px; font-size: 14px; line-height: 1.4; cursor: pointer; overflow-wrap: anywhere; }
+.crm-customer-suggestion:hover, .crm-customer-suggestion[aria-selected="true"] { background: var(--ui-action-soft); color: var(--ui-link); }
+.crm-customer-suggestions-empty { padding: 12px; font-size: 13px; line-height: 1.5; color: var(--ui-muted); }

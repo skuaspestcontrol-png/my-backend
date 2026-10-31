@@ -1,3 +1,4 @@
+import CustomerNameCombobox from './ui/CustomerNameCombobox';
 import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
 import { CRMFormField } from './ui/CRMForm';
 import { Layers3, CalendarDays, ClipboardCheck } from 'lucide-react';
@@ -1589,7 +1590,6 @@ export default function InvoiceDashboard() {
     [customerOptions, customers, renewalRows]
   );
   const customerNameOptions = form.customerType === 'Renewal' ? renewalCustomerOptions : customerOptions;
-  const customerNameDatalistId = 'invoice-customer-name-options';
   const selectedCustomer = useMemo(
     () => {
       const customer = customers.find((entry) => entry._id === form.customerId) || null;
@@ -3790,33 +3790,30 @@ export default function InvoiceDashboard() {
     padding: 0
   };
   const customerTypeRowStyle = customerRowStyle;
-  const customerTypeOptionsWrapStyle = isMobile
-    ? {
-      display: 'grid',
-      gridTemplateColumns: '1fr',
-      gap: '6px'
-    }
-    : {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-      gap: '8px',
-      alignItems: 'center'
-    };
+  const customerTypeOptionsWrapStyle = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    width: '100%',
+    gap: '6px',
+    alignItems: 'center'
+  };
   const customerTypeOptionStyle = (selected) => ({
-    minHeight: '28px',
-    height: '28px',
+    minHeight: '42px',
+    height: '42px',
     borderRadius: '10px',
     border: selected ? '1px solid var(--card-header-border)' : '1px solid var(--border)',
     background: selected ? 'var(--card-header-bg)' : 'var(--surface-card)',
     color: selected ? 'var(--card-header-text)' : 'var(--text-primary)',
-    padding: '0 10px',
-    fontSize: '12px',
+    padding: '0 6px',
+    minWidth: 0,
+    textAlign: 'center',
+    fontSize: '13px',
     fontWeight: 700,
     cursor: 'pointer',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '6px',
+    gap: 0,
     boxShadow: selected ? 'inset 0 0 0 1px rgba(255, 255, 255, 0.08)' : 'none'
   });
   const topGridStyle = isMobile ? { ...shell.topGrid, gridTemplateColumns: '1fr' } : shell.topGrid;
@@ -4332,34 +4329,30 @@ export default function InvoiceDashboard() {
                   {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
                 </button>)}>
  <CRMFormStep title="Customer & Contract Details" description="Customer, addresses and invoice information" icon={FileText}>
-  <div className="crm-wizard-field-grid"><CRMFormField label="Customer Type*"><div style={customerTypeOptionsWrapStyle}>
+  <div className="crm-wizard-field-grid"><CRMFormField label="Customer Type*"><div className="contract-customer-type-options" style={customerTypeOptionsWrapStyle}>
                   {contractCustomerTypeOptions.map((option) => {
                     const selected = form.customerType === option;
                     return (
                       <button
                         key={option}
                         type="button"
+                        className="contract-customer-type-option"
+                        aria-pressed={selected}
                         style={customerTypeOptionStyle(selected)}
                         onClick={() => setFormWithTotals((prev) => ({ ...prev, customerType: option }))}
                       >
-                        <Check size={14} style={{ opacity: selected ? 1 : 0, flexShrink: 0 }} />
                         <span>{option}</span>
                       </button>
                     );
                   })}
                 </div></CRMFormField>
-<CRMFormField label="Customer Name*"><input
-                  list={customerNameDatalistId}
+<CRMFormField label="Customer Name*"><CustomerNameCombobox
                   style={compactContractControlStyle}
                   value={form.customerName}
+                  options={customerNameOptions}
                   placeholder="Type to search or add a customer"
-                  onChange={(event) => handleCustomerChange(event.target.value)}
-                 aria-label="Customer Name" />
-<datalist id={customerNameDatalistId}>
-                  {customerNameOptions.map((customer) => (
-                    <option key={customer.id} value={customer.name} />
-                  ))}
-                </datalist></CRMFormField>
+                  onChange={handleCustomerChange}
+                  aria-label="Customer Name" /></CRMFormField>
 <CRMFormField label="Place of Supply*"><select
                   style={compactContractControlStyle}
                   value={form.placeOfSupply}

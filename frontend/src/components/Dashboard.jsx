@@ -1,3 +1,4 @@
+import { buildContractLeadSourceSeries } from '../utils/contractLeadSources';
 import { shouldAutoRefresh } from '../hooks/autoRefreshPolicy';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
@@ -123,10 +124,13 @@ const isOverdue = (dueDate) => {
 const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 const monthLabel = (date) => date.toLocaleString('en-IN', { month: 'short' });
 const normalizeLeadStatus = (value) => String(value || '').trim().toLowerCase();
-const normalizeLeadSource = (value) => String(value || '').trim();
-const leadSourceOrder = ['Website', 'Google Ads', 'Google Business Profile', 'Facebook', 'WhatsApp', 'Call', 'Referral'];
 const leadSourcePalette = {
   Website: '#4f6bed',
+  GoogleAds: '#10b981',
+  GMB: '#f59e0b',
+  Reference: '#f97316',
+  RPCI: '#06b6d4',
+  Telecalling: '#8b5cf6',
   'Google Ads': '#10b981',
   'Google Business Profile': '#f59e0b',
   Facebook: '#06b6d4',
@@ -135,27 +139,6 @@ const leadSourcePalette = {
   Referral: '#f97316',
   Other: '#94a3b8'
 };
-const mapLeadSourceLabel = (value) => {
-  const raw = normalizeLeadSource(value);
-  const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, '');
-  if (!compact) return 'Unknown';
-  if (['website', 'web', 'site'].includes(compact)) return 'Website';
-  if (['googleads', 'googlead', 'adwords', 'googleadvertising'].includes(compact)) return 'Google Ads';
-  if (['gmb', 'googlebusinessprofile', 'googlemybusiness', 'googlegbp', 'googlebusiness'].includes(compact)) return 'Google Business Profile';
-  if (['facebook', 'fb'].includes(compact)) return 'Facebook';
-  if (['whatsapp', 'wa'].includes(compact)) return 'WhatsApp';
-  if (['call', 'phone', 'telecall', 'telephone'].includes(compact)) return 'Call';
-  if (['referral', 'reference', 'rpci', 'refer', 'ref'].includes(compact)) return 'Referral';
-  return raw || 'Unknown';
-};
-
-const mapLeadSourceDisplayLabel = (value) => {
-  const raw = String(value || '').trim();
-  if (raw === 'Google Business Profile') return 'GMB';
-  if (raw === 'Existing Customer') return 'Existing';
-  return raw;
-};
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const hasLoadedRef = useRef(false);
@@ -627,18 +610,7 @@ export default function Dashboard() {
     const pipelineValue = selectedYearInvoices.reduce((sum, invoice) => sum + toNum(invoice.total || invoice.amount || invoice.totalAmount), 0);
     const avgDealValue = converted > 0 ? pipelineValue / converted : 0;
 
-    const sourceCounts = new Map();
-    selectedYearLeads.forEach((lead) => {
-      const key = mapLeadSourceLabel(lead.leadSource);
-      sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
-    });
-    const orderedSources = [
-      ...leadSourceOrder,
-      ...Array.from(sourceCounts.keys()).filter((name) => !leadSourceOrder.includes(name) && name !== 'Unknown').sort((a, b) => a.localeCompare(b))
-    ];
-    const sourceSeries = orderedSources
-      .map((name) => ({ name, count: sourceCounts.get(name) || 0 }))
-      .filter((entry) => entry.count > 0);
+    const sourceSeries = buildContractLeadSourceSeries(selectedYearInvoices);
     const sourceTotal = sourceSeries.reduce((sum, row) => sum + row.count, 0);
 
     return {
@@ -790,7 +762,7 @@ export default function Dashboard() {
     { label: 'Converted', value: leadPipeline.converted, color: '#18b985' }
   ];
   // Row height only: wrap every existing source label without dropping categories.
-  const sourceChartRowHeight = Math.max(52, ...leadPipeline.sourceSeries.map((entry) => Math.ceil(mapLeadSourceDisplayLabel(entry.name).length / (isMobile ? 12 : 16)) * 16 + 12));
+  const sourceChartRowHeight = Math.max(52, ...leadPipeline.sourceSeries.map((entry) => Math.ceil(entry.name.length / (isMobile ? 12 : 16)) * 16 + 12));
   // Adapt the existing monthly series for rendering; accounting totals stay above.
   const incomeExpenseChartData = selectedYearAnalytics.months.map((month, index) => ({
     label: month.label,
@@ -1105,7 +1077,7 @@ export default function Dashboard() {
           </div>
           <div className="dashboard-source-body dashboard-horizontal-sources" style={sourceBodyStyle}>
             {leadPipeline.sourceSeries.length === 0 ? (
-              <div style={{ color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800, fontSize: '13px' }}>No lead source data available.</div>
+              <div style={{ color: isDarkTheme ? darkDashboardMuted : '#334155', fontWeight: 800, fontSize: '13px' }}>No contract lead source data available.</div>
             ) : (
               <div className="dashboard-source-bars">
                 <ResponsiveContainer width="100%" height={Math.max(180, leadPipeline.sourceSeries.length * sourceChartRowHeight + 32)}>
@@ -1113,8 +1085,8 @@ export default function Dashboard() {
                     <CartesianGrid stroke={salesChartTheme.gridStroke} horizontal={false} />
                     <XAxis type="number" allowDecimals={false} {...getChartAxisProps({ mobile: isMobile })} />
                     <YAxis type="category" dataKey="name" width={isMobile ? 88 : 110} axisLine={false} tickLine={false} interval={0}
-                      tick={({ x, y, payload }) => <foreignObject x={0} y={y - sourceChartRowHeight / 2} width={Math.max(0, x - 6)} height={sourceChartRowHeight}><div className="dashboard-source-category" title={payload.value}>{mapLeadSourceDisplayLabel(payload.value)}</div></foreignObject>} />
-                    <Bar dataKey="count" name="Leads" radius={[0, 5, 5, 0]} maxBarSize={24} isAnimationActive={false}>
+                      tick={({ x, y, payload }) => <foreignObject x={0} y={y - sourceChartRowHeight / 2} width={Math.max(0, x - 6)} height={sourceChartRowHeight}><div className="dashboard-source-category" title={payload.value}>{payload.value}</div></foreignObject>} />
+                    <Bar dataKey="count" name="Contracts" radius={[0, 5, 5, 0]} maxBarSize={24} isAnimationActive={false}>
                       {leadPipeline.sourceSeries.map((entry) => <Cell key={entry.name} fill={leadSourcePalette[entry.name] || leadSourcePalette.Other} />)}
                       <LabelList dataKey="count" position="right" fill="var(--text-primary)" fontSize={12} fontWeight={700} />
                     </Bar>

@@ -1,9 +1,11 @@
-import { Children, cloneElement, useEffect, useId, useRef, useState } from 'react';
+import { Children, cloneElement, createContext, useEffect, useId, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { CRMModal, CRMModalHeader, CRMModalBody, CRMModalFooter, CRMFormActions } from './CRMForm';
 import '../../styles/crmFormWizard.css';
 
 export function CRMFormStep({ children }) { return children; }
+// Portalled/custom controls can mark a user edit before updating caller-owned values.
+export const CRMFormInteractionContext = createContext(() => {});
 
 export function CRMFormStepper({ steps, activeStep, reachedStep, disabled, onNavigate, id }) {
   return <nav className="crm-wizard-nav" aria-label="Form steps"><ol>
@@ -109,7 +111,7 @@ export function CRMFormModal({ children, title, subtitle, icon, onClose, onSubmi
   };
   return <CRMModal {...props} as="form" noValidate className={`crm-form-wizard ${className}`} onSubmit={submit} aria-labelledby={`${id}-title`} aria-busy={locked} onInputCapture={markInput} onChangeCapture={markInput} onClickCapture={markAction}>
     <CRMModalHeader title={title} subtitle={subtitle} icon={icon} titleId={`${id}-title`} onClose={requestClose} closeDisabled={locked} />
-    <div className="crm-wizard-workspace" ref={workspace}>
+    <CRMFormInteractionContext.Provider value={markInput}><div className="crm-wizard-workspace" ref={workspace}>
       <CRMFormStepper steps={steps.map(step => step.props)} activeStep={active} reachedStep={reached} disabled={locked} onNavigate={navigate} id={id} />
       <CRMModalBody className="crm-wizard-body">{steps.map((step, index) => {
         const Icon = step.props.icon;
@@ -119,7 +121,7 @@ export function CRMFormModal({ children, title, subtitle, icon, onClose, onSubmi
           </div>{inlineErrors && index === active && stepError ? <div className="crm-wizard-inline-error" role="alert">{stepError}</div> : null}{fieldsetContent ? <fieldset className="crm-wizard-content-fieldset" disabled={readOnly}>{step.props.children}</fieldset> : step.props.children}
         </section>;
       })}</CRMModalBody>
-    </div>
+    </div></CRMFormInteractionContext.Provider>
     <CRMModalFooter>
       {(!inlineErrors && stepError) || error ? <div className="crm-wizard-error" role="alert">{(!inlineErrors && stepError) || error}</div> : notice ? <div className="crm-wizard-notice" role="status">{notice}</div> : null}
       <CRMFormActions>
