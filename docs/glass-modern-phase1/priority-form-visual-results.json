@@ -1,0 +1,512 @@
+{
+  "results": [
+    {
+      "name": "customerform",
+      "path": "/sales/customers",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customerform",
+      "path": "/sales/customers",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customerform",
+      "path": "/sales/customers",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customerform",
+      "path": "/sales/customers",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customerform",
+      "path": "/sales/customers",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customerform",
+      "path": "/sales/customers",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customerform",
+      "path": "/sales/customers",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customerform",
+      "path": "/sales/customers",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "leadform",
+      "path": "/leads",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leadform",
+      "path": "/leads",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leadform",
+      "path": "/leads",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leadform",
+      "path": "/leads",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leadform",
+      "path": "/leads",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leadform",
+      "path": "/leads",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leadform",
+      "path": "/leads",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leadform",
+      "path": "/leads",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "itemform",
+      "path": "/items",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Items",
+      "tables": 1
+    },
+    {
+      "name": "itemform",
+      "path": "/items",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Items",
+      "tables": 1
+    },
+    {
+      "name": "itemform",
+      "path": "/items",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Items",
+      "tables": 1
+    },
+    {
+      "name": "itemform",
+      "path": "/items",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Items",
+      "tables": 1
+    },
+    {
+      "name": "itemform",
+      "path": "/items",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Items",
+      "tables": 1
+    },
+    {
+      "name": "itemform",
+      "path": "/items",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Items",
+      "tables": 1
+    },
+    {
+      "name": "itemform",
+      "path": "/items",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Items",
+      "tables": 1
+    },
+    {
+      "name": "itemform",
+      "path": "/items",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Items",
+      "tables": 1
+    },
+    {
+      "name": "employeeform",
+      "path": "/employees",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Employee Master",
+      "tables": 1
+    },
+    {
+      "name": "employeeform",
+      "path": "/employees",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Employee Master",
+      "tables": 1
+    },
+    {
+      "name": "employeeform",
+      "path": "/employees",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Employee Master",
+      "tables": 1
+    },
+    {
+      "name": "employeeform",
+      "path": "/employees",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Employee Master",
+      "tables": 1
+    },
+    {
+      "name": "employeeform",
+      "path": "/employees",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Employee Master",
+      "tables": 1
+    },
+    {
+      "name": "employeeform",
+      "path": "/employees",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Employee Master",
+      "tables": 1
+    },
+    {
+      "name": "employeeform",
+      "path": "/employees",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Employee Master",
+      "tables": 1
+    },
+    {
+      "name": "employeeform",
+      "path": "/employees",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "Employee Master",
+      "tables": 1
+    }
+  ],
+  "runtimeErrors": [],
+  "interceptedMutationAttempts": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/invoices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers/duplicates/report"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads/sources"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public/google-maps-config"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/items"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    }
+  ]
+}

@@ -1,0 +1,631 @@
+{
+  "frontend/src/App.jsx": [
+    "frontend/src/components/Attendance.jsx",
+    "frontend/src/components/ComplaintsDashboard.jsx",
+    "frontend/src/components/ContractDashboard.jsx",
+    "frontend/src/components/CreateQuote.jsx",
+    "frontend/src/components/CustomerDashboard.jsx",
+    "frontend/src/components/Dashboard.jsx",
+    "frontend/src/components/DashboardLayout.jsx",
+    "frontend/src/components/EmployeeMaster.jsx",
+    "frontend/src/components/ExportDataDashboard.jsx",
+    "frontend/src/components/HRDashboard.jsx",
+    "frontend/src/components/InvoiceDashboard.jsx",
+    "frontend/src/components/ItemsDashboard.jsx",
+    "frontend/src/components/LeadCapture.jsx",
+    "frontend/src/components/LeadFollowups.jsx",
+    "frontend/src/components/Login.jsx",
+    "frontend/src/components/ModuleWorkspace.jsx",
+    "frontend/src/components/OperationsPortal.jsx",
+    "frontend/src/components/PaymentReceivedDashboard.jsx",
+    "frontend/src/components/PayrollModule.jsx",
+    "frontend/src/components/QuotationDashboard.jsx",
+    "frontend/src/components/RenewalDashboard.jsx",
+    "frontend/src/components/SalesPortal.jsx",
+    "frontend/src/components/ScheduleJob.jsx",
+    "frontend/src/components/ServiceCalendar.jsx",
+    "frontend/src/components/Settings.jsx",
+    "frontend/src/components/TechnicianPortal.jsx",
+    "frontend/src/components/TrackTechnicians.jsx",
+    "frontend/src/components/VendorBillsDashboard.jsx",
+    "frontend/src/components/VendorDashboard.jsx",
+    "frontend/src/components/VendorPaymentDashboard.jsx",
+    "frontend/src/pages/CustomersPage.jsx",
+    "frontend/src/pages/Dashboard.jsx",
+    "frontend/src/pages/email/EmailLogs.jsx",
+    "frontend/src/pages/sales-performance/SalesPerformanceDashboard.jsx",
+    "frontend/src/pages/sales-performance/SalesPerformanceReports.jsx",
+    "frontend/src/pages/sales-performance/SalesTargets.jsx",
+    "frontend/src/pages/sales-performance/SalesTeamPerformance.jsx",
+    "frontend/src/pages/sales/WhatsAppCampaignDetails.jsx",
+    "frontend/src/pages/sales/WhatsAppMarketing.jsx",
+    "frontend/src/pages/settings/EmailSettings.jsx",
+    "frontend/src/pages/settings/EmailTemplates.jsx",
+    "frontend/src/pages/settings/WhatsAppSettings.jsx",
+    "frontend/src/pages/settings/WhatsAppTemplates.jsx",
+    "frontend/src/pages/stock-management/StockDashboard.jsx",
+    "frontend/src/pages/stock-management/StockIssueUsage.jsx",
+    "frontend/src/pages/stock-management/StockItems.jsx",
+    "frontend/src/pages/stock-management/StockPurchase.jsx",
+    "frontend/src/pages/stock-management/StockReports.jsx",
+    "frontend/src/pages/whatsapp/WhatsAppLogs.jsx",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/AppButton.jsx": [],
+  "frontend/src/components/Attendance.jsx": [
+    "frontend/src/components/Attendance.css",
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/utils/duration.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/ComplaintsDashboard.jsx": [
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js",
+    "frontend/src/utils/whatsapp.js"
+  ],
+  "frontend/src/components/ContractDashboard.jsx": [
+    "frontend/src/components/PdfPreviewModal.jsx",
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/ui/PortalPrimitives.jsx",
+    "frontend/src/components/ui/RupeeSymbol.jsx",
+    "frontend/src/components/ui/SortChevronIcon.jsx",
+    "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js",
+    "frontend/src/utils/contractPerformance.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/CreateQuote.jsx": [
+    "frontend/src/utils/phone.js"
+  ],
+  "frontend/src/components/CustomerDashboard.jsx": [
+    "frontend/src/components/CustomerImportDedupWizard.jsx",
+    "frontend/src/components/CustomerPremisesPanel.jsx",
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/ui/CRMFormWizard.jsx",
+    "frontend/src/components/ui/SortChevronIcon.jsx",
+    "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/utils/dashboardRefresh.js",
+    "frontend/src/utils/googleMaps.js",
+    "frontend/src/utils/googlePlaces.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js",
+    "frontend/src/utils/whatsapp.js"
+  ],
+  "frontend/src/components/CustomerImportDedupWizard.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/CustomerPremisesPanel.jsx": [
+    "frontend/src/utils/dashboardRefresh.js",
+    "frontend/src/utils/googleMaps.js",
+    "frontend/src/utils/googlePlaces.js",
+    "frontend/src/utils/phone.js"
+  ],
+  "frontend/src/components/Dashboard.jsx": [
+    "frontend/src/components/Dashboard.css",
+    "frontend/src/hooks/autoRefreshPolicy.js",
+    "frontend/src/pages/sales-performance/SalesChartPrimitives.jsx",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js",
+    "frontend/src/utils/contractLeadSources.js",
+    "frontend/src/utils/dashboardRefresh.js",
+    "frontend/src/utils/monthlyTargetSummary.js",
+    "frontend/src/utils/themePreference.js"
+  ],
+  "frontend/src/components/DashboardLayout.jsx": [
+    "frontend/src/components/ServiceCalendar.jsx",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/ui/RupeeSymbol.jsx",
+    "frontend/src/utils/brandingTheme.js",
+    "frontend/src/utils/portalAuth.js",
+    "frontend/src/utils/themePreference.js"
+  ],
+  "frontend/src/components/EmployeeMaster.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/ui/CRMFormWizard.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/styles/crmFourWizards.css",
+    "frontend/src/utils/dashboardRefresh.js",
+    "frontend/src/utils/phone.js"
+  ],
+  "frontend/src/components/ExportDataDashboard.jsx": [
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx"
+  ],
+  "frontend/src/components/HRDashboard.jsx": [
+    "frontend/src/components/HRDashboard.css",
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/InvoiceDashboard.jsx": [
+    "frontend/src/components/PdfPreviewModal.jsx",
+    "frontend/src/components/ServiceScheduleBuilder.jsx",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/ui/CRMFormWizard.jsx",
+    "frontend/src/components/ui/CustomerNameCombobox.jsx",
+    "frontend/src/components/ui/SortChevronIcon.jsx",
+    "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js",
+    "frontend/src/styles/crmFourWizards.css",
+    "frontend/src/utils/dashboardRefresh.js",
+    "frontend/src/utils/invoicePreferences.js",
+    "frontend/src/utils/leadSources.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js",
+    "frontend/src/utils/serviceScheduleBuilder.js"
+  ],
+  "frontend/src/components/ItemsDashboard.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/ui/CRMFormWizard.jsx",
+    "frontend/src/components/ui/SortChevronIcon.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/styles/crmFourWizards.css"
+  ],
+  "frontend/src/components/LeadCapture.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/ui/CRMFormWizard.jsx",
+    "frontend/src/components/ui/SortChevronIcon.jsx",
+    "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/styles/crmFourWizards.css",
+    "frontend/src/utils/dashboardRefresh.js",
+    "frontend/src/utils/googleMaps.js",
+    "frontend/src/utils/googlePlaces.js",
+    "frontend/src/utils/leadSources.js",
+    "frontend/src/utils/pestIssueCodes.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js",
+    "frontend/src/utils/whatsapp.js"
+  ],
+  "frontend/src/components/LeadFollowups.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/SortChevronIcon.jsx",
+    "frontend/src/hooks/useAutoRefresh.js"
+  ],
+  "frontend/src/components/Login.jsx": [
+    "frontend/src/utils/brandingTheme.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/ModuleWorkspace.jsx": [],
+  "frontend/src/components/OperationsPortal.jsx": [
+    "frontend/src/components/ModuleWorkspace.jsx"
+  ],
+  "frontend/src/components/PaymentReceivedDashboard.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/RupeeSymbol.jsx",
+    "frontend/src/components/ui/SortChevronIcon.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js"
+  ],
+  "frontend/src/components/PayrollModule.jsx": [
+    "frontend/src/components/PdfPreviewModal.jsx",
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/PdfPreviewModal.jsx": [
+    "frontend/src/components/ui/CRMForm.jsx"
+  ],
+  "frontend/src/components/QuotationDashboard.jsx": [
+    "frontend/src/components/PdfPreviewModal.jsx",
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/ActionMenu.jsx",
+    "frontend/src/components/ui/SortChevronIcon.jsx",
+    "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/utils/phone.js"
+  ],
+  "frontend/src/components/RenewalDashboard.jsx": [
+    "frontend/src/components/PdfPreviewModal.jsx",
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/ActionMenu.jsx",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js",
+    "frontend/src/utils/renewalCandidateGroups.js",
+    "frontend/src/utils/renewalFilters.js",
+    "frontend/src/utils/renewalLetterBatch.js"
+  ],
+  "frontend/src/components/SalesPortal.jsx": [
+    "frontend/src/components/ModuleWorkspace.jsx"
+  ],
+  "frontend/src/components/ScheduleJob.jsx": [
+    "frontend/src/components/PdfPreviewModal.jsx",
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/utils/dashboardRefresh.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js",
+    "frontend/src/utils/serviceScheduleBuilder.js"
+  ],
+  "frontend/src/components/ServiceCalendar.jsx": [
+    "frontend/src/components/ServiceCalendar.css",
+    "frontend/src/hooks/useAutoRefresh.js"
+  ],
+  "frontend/src/components/ServiceScheduleBuilder.jsx": [
+    "frontend/src/utils/serviceScheduleBuilder.js"
+  ],
+  "frontend/src/components/Settings.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/pages/email/EmailLogs.jsx",
+    "frontend/src/pages/settings/EmailSettings.jsx",
+    "frontend/src/pages/settings/EmailTemplates.jsx",
+    "frontend/src/pages/settings/GoogleIntegrationSettings.jsx",
+    "frontend/src/pages/settings/WhatsAppSettings.jsx",
+    "frontend/src/pages/settings/WhatsAppTemplates.jsx",
+    "frontend/src/pages/whatsapp/WhatsAppLogs.jsx",
+    "frontend/src/utils/brandingTheme.js",
+    "frontend/src/utils/invoicePreferences.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/TechnicianPortal.jsx": [
+    "frontend/src/components/PdfPreviewModal.jsx",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/utils/dashboardRefresh.js",
+    "frontend/src/utils/indiaTime.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/components/TrackTechnicians.jsx": [
+    "frontend/src/components/TrackTechnicians.css",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/utils/indiaTime.js"
+  ],
+  "frontend/src/components/VendorBillsDashboard.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/utils/dashboardRefresh.js"
+  ],
+  "frontend/src/components/VendorDashboard.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/hooks/useAutoRefresh.js",
+    "frontend/src/styles/theme.js",
+    "frontend/src/utils/phone.js"
+  ],
+  "frontend/src/components/VendorPaymentDashboard.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/RupeeSymbol.jsx",
+    "frontend/src/hooks/useAutoRefresh.js"
+  ],
+  "frontend/src/components/email/EmailPreviewModal.jsx": [
+    "frontend/src/components/ui/CRMForm.jsx"
+  ],
+  "frontend/src/components/table/ResizableTable.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx"
+  ],
+  "frontend/src/components/table/useColumnResize.js": [],
+  "frontend/src/components/ui/ActionMenu.jsx": [],
+  "frontend/src/components/ui/AppButton.jsx": [
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/styles/theme.js"
+  ],
+  "frontend/src/components/ui/AppCard.jsx": [],
+  "frontend/src/components/ui/AppInput.jsx": [
+    "frontend/src/components/ui/_helpers.js"
+  ],
+  "frontend/src/components/ui/AppSelect.jsx": [
+    "frontend/src/components/ui/_helpers.js"
+  ],
+  "frontend/src/components/ui/AppTable.jsx": [
+    "frontend/src/components/table/ResizableTable.jsx"
+  ],
+  "frontend/src/components/ui/AppTextarea.jsx": [
+    "frontend/src/components/ui/_helpers.js"
+  ],
+  "frontend/src/components/ui/CRMForm.jsx": [
+    "frontend/src/styles/crmForm.css"
+  ],
+  "frontend/src/components/ui/CRMFormWizard.jsx": [
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/styles/crmFormWizard.css"
+  ],
+  "frontend/src/components/ui/CustomerNameCombobox.jsx": [
+    "frontend/src/components/ui/CRMFormWizard.jsx",
+    "frontend/src/styles/customerNameCombobox.css"
+  ],
+  "frontend/src/components/ui/DashboardStatCard.jsx": [
+    "frontend/src/components/ui/AppCard.jsx"
+  ],
+  "frontend/src/components/ui/EmptyState.jsx": [],
+  "frontend/src/components/ui/IconButton.jsx": [
+    "frontend/src/styles/theme.js"
+  ],
+  "frontend/src/components/ui/LoadingSpinner.jsx": [
+    "frontend/src/styles/theme.js"
+  ],
+  "frontend/src/components/ui/Modal.jsx": [
+    "frontend/src/components/ui/CRMForm.jsx"
+  ],
+  "frontend/src/components/ui/PageHeader.jsx": [],
+  "frontend/src/components/ui/PortalPrimitives.jsx": [
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/Modal.jsx"
+  ],
+  "frontend/src/components/ui/RupeeSymbol.jsx": [],
+  "frontend/src/components/ui/SearchBar.jsx": [
+    "frontend/src/components/ui/AppInput.jsx"
+  ],
+  "frontend/src/components/ui/Sidebar.jsx": [],
+  "frontend/src/components/ui/SortChevronIcon.jsx": [],
+  "frontend/src/components/ui/StatusBadge.jsx": [
+    "frontend/src/styles/theme.js"
+  ],
+  "frontend/src/components/ui/_helpers.js": [],
+  "frontend/src/components/ui/index.js": [
+    "frontend/src/components/ui/ActionMenu.jsx",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppTable.jsx",
+    "frontend/src/components/ui/DashboardStatCard.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/components/ui/PortalPrimitives.jsx",
+    "frontend/src/components/ui/SearchBar.jsx",
+    "frontend/src/components/ui/StatusBadge.jsx"
+  ],
+  "frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx": [
+    "frontend/src/components/ui/CRMForm.jsx",
+    "frontend/src/utils/phone.js"
+  ],
+  "frontend/src/hooks/autoRefreshPolicy.js": [],
+  "frontend/src/hooks/autoRefreshPolicy.test.js": [
+    "frontend/src/hooks/autoRefreshPolicy.js"
+  ],
+  "frontend/src/hooks/useAutoRefresh.js": [
+    "frontend/src/hooks/autoRefreshPolicy.js"
+  ],
+  "frontend/src/main.jsx": [
+    "frontend/src/App.jsx",
+    "frontend/src/index.css",
+    "frontend/src/styles/crmForm.css",
+    "frontend/src/styles/portalDesign.css",
+    "frontend/src/utils/brandingTheme.js",
+    "frontend/src/utils/firebaseAppCheck.js",
+    "frontend/src/utils/portalAuth.js",
+    "frontend/src/utils/themePreference.js"
+  ],
+  "frontend/src/pages/CustomersPage.jsx": [
+    "frontend/src/components/ui/ActionMenu.jsx",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppTable.jsx",
+    "frontend/src/components/ui/DashboardStatCard.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/components/ui/SearchBar.jsx",
+    "frontend/src/components/ui/StatusBadge.jsx"
+  ],
+  "frontend/src/pages/Dashboard.jsx": [
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppTable.jsx",
+    "frontend/src/components/ui/DashboardStatCard.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/components/ui/StatusBadge.jsx"
+  ],
+  "frontend/src/pages/email/EmailLogs.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/utils/indiaTime.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/pages/sales/WhatsAppCampaignDetails.jsx": [
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/hooks/useAutoRefresh.js"
+  ],
+  "frontend/src/pages/sales/WhatsAppMarketing.jsx": [
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/pages/sales-performance/SalesChartPrimitives.jsx": [
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js"
+  ],
+  "frontend/src/pages/sales-performance/SalesPerformanceDashboard.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppInput.jsx",
+    "frontend/src/components/ui/AppSelect.jsx",
+    "frontend/src/components/ui/DashboardStatCard.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/pages/sales-performance/SalesChartPrimitives.jsx",
+    "frontend/src/pages/sales-performance/salesPerformance.css",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js"
+  ],
+  "frontend/src/pages/sales-performance/SalesPerformanceReports.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppInput.jsx",
+    "frontend/src/components/ui/AppSelect.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/pages/sales-performance/SalesChartPrimitives.jsx",
+    "frontend/src/pages/sales-performance/salesPerformance.css",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js"
+  ],
+  "frontend/src/pages/sales-performance/SalesTargets.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppInput.jsx",
+    "frontend/src/components/ui/AppSelect.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/pages/sales-performance/salesPerformance.css",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js"
+  ],
+  "frontend/src/pages/sales-performance/SalesTeamPerformance.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppInput.jsx",
+    "frontend/src/components/ui/AppSelect.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/pages/sales-performance/SalesChartPrimitives.jsx",
+    "frontend/src/pages/sales-performance/salesPerformance.css",
+    "frontend/src/pages/sales-performance/salesPerformanceApi.js"
+  ],
+  "frontend/src/pages/sales-performance/salesPerformanceApi.js": [],
+  "frontend/src/pages/settings/EmailSettings.jsx": [
+    "frontend/src/components/ui/PortalPrimitives.jsx",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/pages/settings/EmailTemplates.jsx": [
+    "frontend/src/components/table/useColumnResize.js"
+  ],
+  "frontend/src/pages/settings/GoogleIntegrationSettings.jsx": [],
+  "frontend/src/pages/settings/WhatsAppSettings.jsx": [
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/pages/settings/WhatsAppTemplates.jsx": [
+    "frontend/src/components/table/useColumnResize.js"
+  ],
+  "frontend/src/pages/stock-management/StockDashboard.jsx": [
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/DashboardStatCard.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/components/ui/PortalPrimitives.jsx",
+    "frontend/src/pages/stock-management/stockApi.js"
+  ],
+  "frontend/src/pages/stock-management/StockIssueUsage.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppInput.jsx",
+    "frontend/src/components/ui/AppSelect.jsx",
+    "frontend/src/components/ui/AppTextarea.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/pages/stock-management/stockApi.js"
+  ],
+  "frontend/src/pages/stock-management/StockItems.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppInput.jsx",
+    "frontend/src/components/ui/AppSelect.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/pages/stock-management/stockApi.js",
+    "frontend/src/styles/theme.js"
+  ],
+  "frontend/src/pages/stock-management/StockPurchase.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppInput.jsx",
+    "frontend/src/components/ui/AppSelect.jsx",
+    "frontend/src/components/ui/AppTextarea.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/pages/stock-management/stockApi.js"
+  ],
+  "frontend/src/pages/stock-management/StockReports.jsx": [
+    "frontend/src/components/ui/AppButton.jsx",
+    "frontend/src/components/ui/AppCard.jsx",
+    "frontend/src/components/ui/AppInput.jsx",
+    "frontend/src/components/ui/AppSelect.jsx",
+    "frontend/src/components/ui/EmptyState.jsx",
+    "frontend/src/components/ui/LoadingSpinner.jsx",
+    "frontend/src/components/ui/PageHeader.jsx",
+    "frontend/src/pages/stock-management/stockApi.js"
+  ],
+  "frontend/src/pages/stock-management/stockApi.js": [],
+  "frontend/src/pages/whatsapp/WhatsAppLogs.jsx": [
+    "frontend/src/components/table/useColumnResize.js",
+    "frontend/src/utils/indiaTime.js",
+    "frontend/src/utils/phone.js",
+    "frontend/src/utils/portalAuth.js"
+  ],
+  "frontend/src/styles/theme.js": [],
+  "frontend/src/utils/brandingTheme.js": [
+    "frontend/src/utils/themePreference.js"
+  ],
+  "frontend/src/utils/brandingTheme.test.js": [
+    "frontend/src/utils/brandingTheme.js"
+  ],
+  "frontend/src/utils/contractLeadSources.js": [
+    "frontend/src/utils/leadSources.js"
+  ],
+  "frontend/src/utils/contractLeadSources.test.js": [
+    "frontend/src/utils/contractLeadSources.js"
+  ],
+  "frontend/src/utils/contractPerformance.js": [],
+  "frontend/src/utils/contractPerformance.test.js": [
+    "frontend/src/utils/contractPerformance.js"
+  ],
+  "frontend/src/utils/dashboardRefresh.js": [],
+  "frontend/src/utils/duration.js": [],
+  "frontend/src/utils/duration.test.js": [
+    "frontend/src/utils/duration.js"
+  ],
+  "frontend/src/utils/firebaseAppCheck.js": [],
+  "frontend/src/utils/googleMaps.js": [],
+  "frontend/src/utils/googlePlaces.js": [
+    "frontend/src/utils/firebaseAppCheck.js"
+  ],
+  "frontend/src/utils/indiaTime.js": [],
+  "frontend/src/utils/invoicePreferences.js": [],
+  "frontend/src/utils/leadSources.js": [],
+  "frontend/src/utils/monthlyTargetSummary.js": [],
+  "frontend/src/utils/monthlyTargetSummary.test.js": [
+    "frontend/src/utils/monthlyTargetSummary.js"
+  ],
+  "frontend/src/utils/pestIssueCodes.js": [],
+  "frontend/src/utils/phone.js": [],
+  "frontend/src/utils/portalAuth.js": [],
+  "frontend/src/utils/portalDesign.test.js": [
+    "frontend/src/utils/brandingTheme.js"
+  ],
+  "frontend/src/utils/renewalCandidateGroups.js": [],
+  "frontend/src/utils/renewalCandidateGroups.test.js": [
+    "frontend/src/utils/renewalCandidateGroups.js"
+  ],
+  "frontend/src/utils/renewalFilters.js": [],
+  "frontend/src/utils/renewalFilters.test.js": [
+    "frontend/src/utils/renewalFilters.js"
+  ],
+  "frontend/src/utils/renewalLetterBatch.js": [],
+  "frontend/src/utils/serviceScheduleBuilder.js": [],
+  "frontend/src/utils/themePreference.js": [],
+  "frontend/src/utils/whatsapp.js": []
+}

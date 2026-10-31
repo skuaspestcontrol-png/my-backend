@@ -1,0 +1,84 @@
+file,line,kind,name
+frontend/src/components/Attendance.jsx,691,conditional UI state; verify render branch,auditModal
+frontend/src/components/Attendance.jsx,692,conditional UI state; verify render branch,locationModal
+frontend/src/components/ComplaintsDashboard.jsx,79,conditional UI state; verify render branch,showNew
+frontend/src/components/ContractDashboard.jsx,694,conditional UI state; verify render branch,showCustomize
+frontend/src/components/ContractDashboard.jsx,713,conditional UI state; verify render branch,pdfPreview
+frontend/src/components/CustomerDashboard.jsx,667,conditional UI state; verify render branch,showMoreMenu
+frontend/src/components/CustomerDashboard.jsx,670,conditional UI state; verify render branch,showCustomize
+frontend/src/components/CustomerDashboard.jsx,671,conditional UI state; verify render branch,showImportWizard
+frontend/src/components/CustomerDashboard.jsx,672,conditional UI state; verify render branch,showDuplicateReport
+frontend/src/components/CustomerDashboard.jsx,676,conditional UI state; verify render branch,showPossibleDuplicatesOnly
+frontend/src/components/CustomerDashboard.jsx,677,conditional UI state; verify render branch,showModal
+frontend/src/components/CustomerDashboard.jsx,679,conditional UI state; verify render branch,showHistory
+frontend/src/components/CustomerDashboard.jsx,3454,wizard step,Basic Information
+frontend/src/components/CustomerDashboard.jsx,3589,wizard step,Address Information
+frontend/src/components/CustomerDashboard.jsx,3654,wizard step,Additional Details
+frontend/src/components/CustomerDashboard.jsx,3697,wizard step,Review
+frontend/src/components/CustomerImportDedupWizard.jsx,132,conditional UI state; verify render branch,rowPreview
+frontend/src/components/DashboardLayout.jsx,202,conditional UI state; verify render branch,leadsMenuOpen
+frontend/src/components/DashboardLayout.jsx,203,conditional UI state; verify render branch,salesMenuOpen
+frontend/src/components/DashboardLayout.jsx,204,conditional UI state; verify render branch,salesPerformanceMenuOpen
+frontend/src/components/DashboardLayout.jsx,205,conditional UI state; verify render branch,purchaseMenuOpen
+frontend/src/components/DashboardLayout.jsx,206,conditional UI state; verify render branch,fieldOpsMenuOpen
+frontend/src/components/DashboardLayout.jsx,207,conditional UI state; verify render branch,stockMenuOpen
+frontend/src/components/DashboardLayout.jsx,209,conditional UI state; verify render branch,sidebarOpen
+frontend/src/components/DashboardLayout.jsx,210,conditional UI state; verify render branch,sidebarPinnedOpen
+frontend/src/components/DashboardLayout.jsx,213,conditional UI state; verify render branch,notificationsOpen
+frontend/src/components/DashboardLayout.jsx,217,conditional UI state; verify render branch,serviceCalendarOpen
+frontend/src/components/EmployeeMaster.jsx,398,conditional UI state; verify render branch,showModal
+frontend/src/components/EmployeeMaster.jsx,404,conditional UI state; verify render branch,showPortalPassword
+frontend/src/components/EmployeeMaster.jsx,971,wizard step,Personal Information
+frontend/src/components/EmployeeMaster.jsx,1063,wizard step,Employment Details
+frontend/src/components/EmployeeMaster.jsx,1110,wizard step,Contact & Address
+frontend/src/components/EmployeeMaster.jsx,1161,wizard step,Additional Details & Review
+frontend/src/components/InvoiceDashboard.jsx,1292,conditional UI state; verify render branch,showMoreMenu
+frontend/src/components/InvoiceDashboard.jsx,1293,conditional UI state; verify render branch,showCustomize
+frontend/src/components/InvoiceDashboard.jsx,1294,conditional UI state; verify render branch,showBillingAddressPicker
+frontend/src/components/InvoiceDashboard.jsx,1295,conditional UI state; verify render branch,showShippingAddressPicker
+frontend/src/components/InvoiceDashboard.jsx,1299,conditional UI state; verify render branch,showModal
+frontend/src/components/InvoiceDashboard.jsx,1300,conditional UI state; verify render branch,modalOpenedFromContract
+frontend/src/components/InvoiceDashboard.jsx,1308,conditional UI state; verify render branch,showInvoiceNumberPrefs
+frontend/src/components/InvoiceDashboard.jsx,1328,conditional UI state; verify render branch,pdfPreview
+frontend/src/components/InvoiceDashboard.jsx,4331,wizard step,Customer & Contract Details
+frontend/src/components/InvoiceDashboard.jsx,4508,wizard step,Services & Pricing
+frontend/src/components/InvoiceDashboard.jsx,4821,wizard step,Contract Schedule & Terms
+frontend/src/components/InvoiceDashboard.jsx,5001,wizard step,Review & Save
+frontend/src/components/ItemsDashboard.jsx,487,conditional UI state; verify render branch,showMoreMenu
+frontend/src/components/ItemsDashboard.jsx,488,conditional UI state; verify render branch,showCustomize
+frontend/src/components/ItemsDashboard.jsx,489,conditional UI state; verify render branch,showAddModal
+frontend/src/components/ItemsDashboard.jsx,1034,wizard step,Basic Information
+frontend/src/components/ItemsDashboard.jsx,1060,wizard step,Service / Product Details
+frontend/src/components/ItemsDashboard.jsx,1093,wizard step,Pricing & Tax
+frontend/src/components/ItemsDashboard.jsx,1098,wizard step,Review & Save
+frontend/src/components/LeadCapture.jsx,658,conditional UI state; verify render branch,show
+frontend/src/components/LeadCapture.jsx,664,conditional UI state; verify render branch,showSearchSuggestions
+frontend/src/components/LeadCapture.jsx,666,conditional UI state; verify render branch,showReferencePicker
+frontend/src/components/LeadCapture.jsx,667,conditional UI state; verify render branch,showMoreMenu
+frontend/src/components/LeadCapture.jsx,669,conditional UI state; verify render branch,showCustomize
+frontend/src/components/LeadCapture.jsx,3075,wizard step,Customer Information
+frontend/src/components/LeadCapture.jsx,3204,wizard step,Property & Service Details
+frontend/src/components/LeadCapture.jsx,3337,wizard step,Assignment & Follow-Up
+frontend/src/components/LeadCapture.jsx,3364,wizard step,Review & Submit
+frontend/src/components/Login.jsx,45,conditional UI state; verify render branch,forgotOpen
+frontend/src/components/Login.jsx,54,conditional UI state; verify render branch,showPassword
+frontend/src/components/PayrollModule.jsx,440,conditional UI state; verify render branch,paymentModal
+frontend/src/components/PayrollModule.jsx,441,conditional UI state; verify render branch,adjustModal
+frontend/src/components/PdfPreviewModal.jsx,176,conditional UI state; verify render branch,previewUrl
+frontend/src/components/PdfPreviewModal.jsx,179,conditional UI state; verify render branch,showRawSettings
+frontend/src/components/QuotationDashboard.jsx,279,conditional UI state; verify render branch,pdfPreview
+frontend/src/components/RenewalDashboard.jsx,463,conditional UI state; verify render branch,modal
+frontend/src/components/RenewalDashboard.jsx,469,conditional UI state; verify render branch,pdfPreview
+frontend/src/components/ScheduleJob.jsx,283,conditional UI state; verify render branch,pdfPreview
+frontend/src/components/TechnicianPortal.jsx,1130,conditional UI state; verify render branch,pdfPreview
+frontend/src/components/TechnicianPortal.jsx,1144,conditional UI state; verify render branch,showCostModal
+frontend/src/components/TechnicianPortal.jsx,1145,conditional UI state; verify render branch,costModalSaving
+frontend/src/components/TechnicianPortal.jsx,1146,conditional UI state; verify render branch,costModalError
+frontend/src/components/VendorBillsDashboard.jsx,169,conditional UI state; verify render branch,showModal
+frontend/src/components/VendorDashboard.jsx,212,conditional UI state; verify render branch,showModal
+frontend/src/components/VendorDashboard.jsx,213,conditional UI state; verify render branch,showCustomize
+frontend/src/components/ui/ActionMenu.jsx,8,conditional UI state; verify render branch,open
+frontend/src/components/ui/CustomerNameCombobox.jsx,11,conditional UI state; verify render branch,open
+frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx,33,conditional UI state; verify render branch,resolvedPreviewData
+frontend/src/components/whatsapp/WhatsAppPreviewModal.jsx,40,conditional UI state; verify render branch,showRawSettings
+frontend/src/pages/sales/WhatsAppMarketing.jsx,458,conditional UI state; verify render branch,audiencePreview

@@ -1,0 +1,1853 @@
+{
+  "results": [
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "SKUAS Pest Control Private Limited",
+      "tables": 0
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "SKUAS Pest Control Private Limited",
+      "tables": 0
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "SKUAS Pest Control Private Limited",
+      "tables": 0
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "SKUAS Pest Control Private Limited",
+      "tables": 0
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "SKUAS Pest Control Private Limited",
+      "tables": 0
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "SKUAS Pest Control Private Limited",
+      "tables": 0
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "SKUAS Pest Control Private Limited",
+      "tables": 0
+    },
+    {
+      "name": "dashboard",
+      "path": "/dashboard",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "SKUAS Pest Control Private Limited",
+      "tables": 0
+    },
+    {
+      "name": "leads",
+      "path": "/leads",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leads",
+      "path": "/leads",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leads",
+      "path": "/leads",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leads",
+      "path": "/leads",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leads",
+      "path": "/leads",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leads",
+      "path": "/leads",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leads",
+      "path": "/leads",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "leads",
+      "path": "/leads",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Lead Overview Summary",
+      "tables": 1
+    },
+    {
+      "name": "customers",
+      "path": "/sales/customers",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customers",
+      "path": "/sales/customers",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customers",
+      "path": "/sales/customers",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customers",
+      "path": "/sales/customers",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customers",
+      "path": "/sales/customers",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customers",
+      "path": "/sales/customers",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customers",
+      "path": "/sales/customers",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "customers",
+      "path": "/sales/customers",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Active Customers",
+      "tables": 1
+    },
+    {
+      "name": "contracts",
+      "path": "/sales/contracts",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Contracts",
+      "tables": 1
+    },
+    {
+      "name": "contracts",
+      "path": "/sales/contracts",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Contracts",
+      "tables": 1
+    },
+    {
+      "name": "contracts",
+      "path": "/sales/contracts",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Contracts",
+      "tables": 1
+    },
+    {
+      "name": "contracts",
+      "path": "/sales/contracts",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Contracts",
+      "tables": 1
+    },
+    {
+      "name": "contracts",
+      "path": "/sales/contracts",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Contracts",
+      "tables": 1
+    },
+    {
+      "name": "contracts",
+      "path": "/sales/contracts",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Contracts",
+      "tables": 1
+    },
+    {
+      "name": "contracts",
+      "path": "/sales/contracts",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Contracts",
+      "tables": 1
+    },
+    {
+      "name": "contracts",
+      "path": "/sales/contracts",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Contracts",
+      "tables": 1
+    },
+    {
+      "name": "invoices",
+      "path": "/sales/invoices",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "invoices",
+      "path": "/sales/invoices",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "invoices",
+      "path": "/sales/invoices",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "invoices",
+      "path": "/sales/invoices",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "invoices",
+      "path": "/sales/invoices",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "invoices",
+      "path": "/sales/invoices",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "invoices",
+      "path": "/sales/invoices",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "invoices",
+      "path": "/sales/invoices",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "payments",
+      "path": "/sales/payment-received",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payment Received Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "payments",
+      "path": "/sales/payment-received",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payment Received Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "payments",
+      "path": "/sales/payment-received",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payment Received Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "payments",
+      "path": "/sales/payment-received",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payment Received Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "payments",
+      "path": "/sales/payment-received",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payment Received Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "payments",
+      "path": "/sales/payment-received",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payment Received Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "payments",
+      "path": "/sales/payment-received",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payment Received Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "payments",
+      "path": "/sales/payment-received",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payment Received Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "targets",
+      "path": "/sales-performance/targets",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Targets",
+      "tables": 0
+    },
+    {
+      "name": "targets",
+      "path": "/sales-performance/targets",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Targets",
+      "tables": 0
+    },
+    {
+      "name": "targets",
+      "path": "/sales-performance/targets",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Targets",
+      "tables": 0
+    },
+    {
+      "name": "targets",
+      "path": "/sales-performance/targets",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Targets",
+      "tables": 0
+    },
+    {
+      "name": "targets",
+      "path": "/sales-performance/targets",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Targets",
+      "tables": 0
+    },
+    {
+      "name": "targets",
+      "path": "/sales-performance/targets",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Targets",
+      "tables": 0
+    },
+    {
+      "name": "targets",
+      "path": "/sales-performance/targets",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Targets",
+      "tables": 0
+    },
+    {
+      "name": "targets",
+      "path": "/sales-performance/targets",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Targets",
+      "tables": 0
+    },
+    {
+      "name": "vendors",
+      "path": "/purchase/vendors",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Vendors Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "vendors",
+      "path": "/purchase/vendors",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Vendors Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "vendors",
+      "path": "/purchase/vendors",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Vendors Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "vendors",
+      "path": "/purchase/vendors",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Vendors Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "vendors",
+      "path": "/purchase/vendors",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Vendors Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "vendors",
+      "path": "/purchase/vendors",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Vendors Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "vendors",
+      "path": "/purchase/vendors",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Vendors Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "vendors",
+      "path": "/purchase/vendors",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Vendors Dashboard",
+      "tables": 1
+    },
+    {
+      "name": "stock",
+      "path": "/stock/items",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Items",
+      "tables": 0
+    },
+    {
+      "name": "stock",
+      "path": "/stock/items",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Items",
+      "tables": 0
+    },
+    {
+      "name": "stock",
+      "path": "/stock/items",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Items",
+      "tables": 0
+    },
+    {
+      "name": "stock",
+      "path": "/stock/items",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Items",
+      "tables": 0
+    },
+    {
+      "name": "stock",
+      "path": "/stock/items",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Items",
+      "tables": 0
+    },
+    {
+      "name": "stock",
+      "path": "/stock/items",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Items",
+      "tables": 0
+    },
+    {
+      "name": "stock",
+      "path": "/stock/items",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Items",
+      "tables": 0
+    },
+    {
+      "name": "stock",
+      "path": "/stock/items",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Items",
+      "tables": 0
+    },
+    {
+      "name": "attendance",
+      "path": "/attendance",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Attendance",
+      "tables": 1
+    },
+    {
+      "name": "attendance",
+      "path": "/attendance",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Attendance",
+      "tables": 1
+    },
+    {
+      "name": "attendance",
+      "path": "/attendance",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Attendance",
+      "tables": 1
+    },
+    {
+      "name": "attendance",
+      "path": "/attendance",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Attendance",
+      "tables": 1
+    },
+    {
+      "name": "attendance",
+      "path": "/attendance",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Attendance",
+      "tables": 1
+    },
+    {
+      "name": "attendance",
+      "path": "/attendance",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Attendance",
+      "tables": 1
+    },
+    {
+      "name": "attendance",
+      "path": "/attendance",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Attendance",
+      "tables": 1
+    },
+    {
+      "name": "attendance",
+      "path": "/attendance",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Attendance",
+      "tables": 1
+    },
+    {
+      "name": "payroll",
+      "path": "/payroll",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payroll",
+      "tables": 0
+    },
+    {
+      "name": "payroll",
+      "path": "/payroll",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payroll",
+      "tables": 0
+    },
+    {
+      "name": "payroll",
+      "path": "/payroll",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payroll",
+      "tables": 0
+    },
+    {
+      "name": "payroll",
+      "path": "/payroll",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payroll",
+      "tables": 0
+    },
+    {
+      "name": "payroll",
+      "path": "/payroll",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payroll",
+      "tables": 0
+    },
+    {
+      "name": "payroll",
+      "path": "/payroll",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payroll",
+      "tables": 0
+    },
+    {
+      "name": "payroll",
+      "path": "/payroll",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payroll",
+      "tables": 0
+    },
+    {
+      "name": "payroll",
+      "path": "/payroll",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "Payroll",
+      "tables": 0
+    },
+    {
+      "name": "marketing",
+      "path": "/sales/whatsapp-marketing",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "WhatsApp Marketing",
+      "tables": 0
+    },
+    {
+      "name": "marketing",
+      "path": "/sales/whatsapp-marketing",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "WhatsApp Marketing",
+      "tables": 0
+    },
+    {
+      "name": "marketing",
+      "path": "/sales/whatsapp-marketing",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "WhatsApp Marketing",
+      "tables": 0
+    },
+    {
+      "name": "marketing",
+      "path": "/sales/whatsapp-marketing",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "WhatsApp Marketing",
+      "tables": 0
+    },
+    {
+      "name": "marketing",
+      "path": "/sales/whatsapp-marketing",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "WhatsApp Marketing",
+      "tables": 0
+    },
+    {
+      "name": "marketing",
+      "path": "/sales/whatsapp-marketing",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "WhatsApp Marketing",
+      "tables": 0
+    },
+    {
+      "name": "marketing",
+      "path": "/sales/whatsapp-marketing",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "WhatsApp Marketing",
+      "tables": 0
+    },
+    {
+      "name": "marketing",
+      "path": "/sales/whatsapp-marketing",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "WhatsApp Marketing",
+      "tables": 0
+    },
+    {
+      "name": "settings",
+      "path": "/settings",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "",
+      "tables": 0
+    },
+    {
+      "name": "settings",
+      "path": "/settings",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "",
+      "tables": 0
+    },
+    {
+      "name": "settings",
+      "path": "/settings",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "",
+      "tables": 0
+    },
+    {
+      "name": "settings",
+      "path": "/settings",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "",
+      "tables": 0
+    },
+    {
+      "name": "settings",
+      "path": "/settings",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "",
+      "tables": 0
+    },
+    {
+      "name": "settings",
+      "path": "/settings",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "",
+      "tables": 0
+    },
+    {
+      "name": "settings",
+      "path": "/settings",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "",
+      "tables": 0
+    },
+    {
+      "name": "settings",
+      "path": "/settings",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": null,
+      "failedModule": false,
+      "title": "",
+      "tables": 0
+    },
+    {
+      "name": "contractform",
+      "path": "/sales/invoices?openNewInvoice=1&fromContract=1",
+      "theme": "light",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "contractform",
+      "path": "/sales/invoices?openNewInvoice=1&fromContract=1",
+      "theme": "light",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "contractform",
+      "path": "/sales/invoices?openNewInvoice=1&fromContract=1",
+      "theme": "light",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "contractform",
+      "path": "/sales/invoices?openNewInvoice=1&fromContract=1",
+      "theme": "light",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "contractform",
+      "path": "/sales/invoices?openNewInvoice=1&fromContract=1",
+      "theme": "dark",
+      "width": 1440,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "contractform",
+      "path": "/sales/invoices?openNewInvoice=1&fromContract=1",
+      "theme": "dark",
+      "width": 1024,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "contractform",
+      "path": "/sales/invoices?openNewInvoice=1&fromContract=1",
+      "theme": "dark",
+      "width": 768,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    },
+    {
+      "name": "contractform",
+      "path": "/sales/invoices?openNewInvoice=1&fromContract=1",
+      "theme": "dark",
+      "width": 390,
+      "pageOverflow": 0,
+      "mainOverflow": 0,
+      "modalFits": true,
+      "failedModule": false,
+      "title": "All Invoices",
+      "tables": 1
+    }
+  ],
+  "runtimeErrors": [],
+  "interceptedMutationAttempts": [
+    {
+      "method": "POST",
+      "path": "/api/settings/save"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-marketing/audience/preview"
+    },
+    {
+      "method": "POST",
+      "path": "/api/settings/save"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/summary"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/invoices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/vendor-bills"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sales-performance/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sales-performance/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sales-performance/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads/sources"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/invoices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers/duplicates/report"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/invoices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/service-schedules"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payment-received"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/invoices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/items"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/renewals"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/whatsapp"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads/sources"
+    },
+    {
+      "method": "POST",
+      "path": "/api/settings/save"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payment-received"
+    },
+    {
+      "method": "GET",
+      "path": "/api/invoices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/sales-performance/targets"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/vendors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stock/items"
+    },
+    {
+      "method": "GET",
+      "path": "/api/vendors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/attendance"
+    },
+    {
+      "method": "GET",
+      "path": "/api/attendance"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payroll/meta"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payroll/salary-structures"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payroll/holidays"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payroll/advances"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payroll/dashboard"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payroll/items"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payroll/items"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp/templates"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-marketing/campaigns"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp/logs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-marketing/audience/options"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-marketing/audience-presets"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-marketing/audience/preview"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/quotation-prefixes"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me"
+    },
+    {
+      "method": "GET",
+      "path": "/api/invoices"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payments"
+    },
+    {
+      "method": "GET",
+      "path": "/api/customers"
+    },
+    {
+      "method": "GET",
+      "path": "/api/items"
+    },
+    {
+      "method": "GET",
+      "path": "/api/employees"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/renewals"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings/whatsapp"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads/sources"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads"
+    },
+    {
+      "method": "GET",
+      "path": "/api/jobs"
+    },
+    {
+      "method": "POST",
+      "path": "/api/settings/save"
+    }
+  ]
+}

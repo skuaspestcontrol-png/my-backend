@@ -1,0 +1,333 @@
+=== build.log ===
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 2473 modules transformed.
+rendering chunks...
+computing gzip size...
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/index.html                                      0.78 kB │ gzip:   0.38 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/TrackTechnicians-Ra1Puerz.css            0.15 kB │ gzip:   0.12 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/InvoiceDashboard-BhY73f6m.css            0.89 kB │ gzip:   0.43 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/crmFourWizards-CwTTjS3P.css              2.78 kB │ gzip:   0.83 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/CRMFormWizard-BxpYT5ba.css               5.68 kB │ gzip:   1.47 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/HRDashboard-BPHBAeL8.css                 6.20 kB │ gzip:   1.45 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/salesPerformance-yU7tuwSG.css           12.60 kB │ gzip:   1.89 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ServiceCalendar-D0bxoti7.css            16.26 kB │ gzip:   2.58 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/Attendance-Dqdf4BXM.css                 19.81 kB │ gzip:   4.09 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/Dashboard-kByNTSYC.css                  31.08 kB │ gzip:   4.72 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/index-BO702PWr.css                     242.97 kB │ gzip:  28.28 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/autoRefreshPolicy-DFVphehn.js            0.13 kB │ gzip:   0.13 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/EmptyState-CWoTqtL3.js                   0.29 kB │ gzip:   0.23 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/indiaTime-CLCv9rLb.js                    0.32 kB │ gzip:   0.24 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/leadSources-CpADX49U.js                  0.36 kB │ gzip:   0.28 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/LoadingSpinner-CRZWYvcD.js               0.39 kB │ gzip:   0.30 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/PageHeader-CJeNFAGc.js                   0.44 kB │ gzip:   0.24 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/RupeeSymbol-ByQ3ED6o.js                  0.44 kB │ gzip:   0.32 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/dashboardRefresh-Bdm26b56.js             0.44 kB │ gzip:   0.25 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/whatsapp-SdaEO-Xh.js                     0.51 kB │ gzip:   0.30 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/SortChevronIcon-DSoTkIHh.js              0.67 kB │ gzip:   0.40 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/phone-DELAV10v.js                        0.68 kB │ gzip:   0.34 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/rolldown-runtime-hePW80VL.js             0.71 kB │ gzip:   0.42 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/AppSelect-BlNsqGHG.js                    0.80 kB │ gzip:   0.45 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/AppTextarea-DsXg3lTT.js                  0.82 kB │ gzip:   0.48 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/AppCard-CPA0ZNtI.js                      0.84 kB │ gzip:   0.46 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/useAutoRefresh-Cpp5Ncky.js               1.00 kB │ gzip:   0.54 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/theme-C724TMl5.js                        1.08 kB │ gzip:   0.49 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/DashboardStatCard-DyyWIwVh.js            1.10 kB │ gzip:   0.59 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/AppInput-CTh9Yvc3.js                     1.19 kB │ gzip:   0.65 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/PortalPrimitives-BOtVouHS.js             1.22 kB │ gzip:   0.48 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/SalesPortal-BQOzdbej.js                  1.30 kB │ gzip:   0.69 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/OperationsPortal-B5c3Odbc.js             1.39 kB │ gzip:   0.72 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/invoicePreferences-Bur9TDwn.js           1.57 kB │ gzip:   0.68 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/AppButton-BuHfTeW0.js                    1.66 kB │ gzip:   0.87 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/Dashboard-C0QJ7A5T.js                    2.95 kB │ gzip:   1.12 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/useColumnResize-CQwYPcDR.js              3.13 kB │ gzip:   1.20 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/SalesChartPrimitives-DC9I3EFl.js         3.19 kB │ gzip:   1.43 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/CRMForm-BC10Cx8a.js                      3.20 kB │ gzip:   1.26 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/StatusBadge-B8D-g4W9.js                  3.26 kB │ gzip:   1.26 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/CustomersPage-BxqELNwf.js                3.43 kB │ gzip:   1.48 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ActionMenu-BYxCtokY.js                   3.56 kB │ gzip:   1.57 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/salesPerformanceApi-BjrSd-Is.js          3.79 kB │ gzip:   1.41 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/stockApi-Bgy9vRp1.js                     3.90 kB │ gzip:   1.61 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/WhatsAppLogs--5By2LLF.js                 4.73 kB │ gzip:   1.77 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/EmailLogs-BQXtxX2R.js                    5.42 kB │ gzip:   1.82 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/WhatsAppCampaignDetails-BsVXTbZF.js      6.00 kB │ gzip:   2.11 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/EmailSettings-CjYd02kn.js                6.03 kB │ gzip:   1.60 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/StockDashboard-Dn8FTkZw.js               6.35 kB │ gzip:   2.09 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/CRMFormWizard-xCSm6tb-.js                6.41 kB │ gzip:   2.50 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/WhatsAppSettings-DHZvVnsG.js             6.60 kB │ gzip:   2.04 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/EmailTemplates-DbN_wr6i.js               6.95 kB │ gzip:   2.14 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/WhatsAppTemplates-xE7kSafu.js            7.17 kB │ gzip:   2.19 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/StockPurchase-CzAPzg9E.js                8.44 kB │ gzip:   3.03 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/PdfPreviewModal-DyZwj6kU.js              8.77 kB │ gzip:   3.09 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/VendorPaymentDashboard-DPenh4Rr.js       9.56 kB │ gzip:   3.42 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/serviceScheduleBuilder-GBoKT5Qj.js      10.19 kB │ gzip:   3.18 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/WhatsAppPreviewModal-Cklp-yCP.js        10.92 kB │ gzip:   3.61 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/SalesPerformanceDashboard-Di8UQa4Z.js   11.31 kB │ gzip:   3.82 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/StockIssueUsage-BMKhobWm.js             12.53 kB │ gzip:   3.49 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/StockReports-CvR2nOj5.js                12.76 kB │ gzip:   3.23 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/SalesTeamPerformance-TkQgd2Bm.js        13.07 kB │ gzip:   3.75 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/googleMaps-CnHEHKWF.js                  14.38 kB │ gzip:   4.60 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ServiceCalendar-q5zym9H0.js             14.43 kB │ gzip:   4.24 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/PaymentReceivedDashboard-DIF4ssku.js    14.71 kB │ gzip:   4.84 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/StockItems-Cts4sCF3.js                  14.95 kB │ gzip:   4.46 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/SalesTargets-B0SxZNIy.js                18.60 kB │ gzip:   4.79 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/SalesPerformanceReports-tcWdNTZb.js     19.22 kB │ gzip:   4.68 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/LeadFollowups-CO8DAgpj.js               19.72 kB │ gzip:   5.66 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/QuotationDashboard-DNDZX1G4.js          20.00 kB │ gzip:   6.26 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/VendorDashboard-CvEQM10P.js             22.38 kB │ gzip:   6.18 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/VendorBillsDashboard-qgThj0Ky.js        23.46 kB │ gzip:   6.13 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ItemsDashboard-BzTEYTQ1.js              24.77 kB │ gzip:   6.95 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ComplaintsDashboard-D8bWXzqR.js         26.99 kB │ gzip:   6.14 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ui-vendor-C_rwGooD.js                   28.55 kB │ gzip:   9.28 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/CreateQuote-B_T503r9.js                 30.56 kB │ gzip:   7.80 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/TrackTechnicians-CjEJ1Lw1.js            31.22 kB │ gzip:   9.42 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ExportDataDashboard-CCxZVLfu.js         31.43 kB │ gzip:   8.36 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ScheduleJob-BGa3GHwD.js                 34.23 kB │ gzip:  10.02 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/HRDashboard-DsS88g_u.js                 35.76 kB │ gzip:   9.54 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/DashboardLayout-AG-4u9Uw.js             36.27 kB │ gzip:   8.03 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/Dashboard-CdrCNcPs.js                   40.30 kB │ gzip:  10.69 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/EmployeeMaster-B_5IzlUV.js              42.21 kB │ gzip:  10.07 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/WhatsAppMarketing-D7elTdC1.js           46.36 kB │ gzip:  10.32 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/index-Cc0NfFxI.js                       48.71 kB │ gzip:  14.16 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/Attendance-BC_dkGrc.js                  49.61 kB │ gzip:  13.04 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/ContractDashboard-BKx1s-cl.js           80.18 kB │ gzip:  19.91 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/TechnicianPortal-CcifIWXV.js            83.72 kB │ gzip:  19.15 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/Settings-iCGoM0Lw.js                    86.28 kB │ gzip:  17.43 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/LeadCapture-B2PtCTC4.js                 88.93 kB │ gzip:  22.37 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/PayrollModule-Dhlxfelq.js               91.19 kB │ gzip:  17.03 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/RenewalDashboard-Dof23K0B.js            95.46 kB │ gzip:  23.32 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/CustomerDashboard-BJfE_s4V.js          146.37 kB │ gzip:  34.13 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/InvoiceDashboard-CHKR5PXf.js           146.55 kB │ gzip:  36.23 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/react-vendor-B6oa7Fn3.js               162.03 kB │ gzip:  53.29 kB
+../../../../private/tmp/skuas-glass-phase1-2026-10-31/baseline-build/assets/vendor-Cul0omhy.js                     462.35 kB │ gzip: 138.97 kB
+
+✓ built in 796ms
+
+
+=== tests.log ===
+TAP version 13
+# Subtest: visible first refresh runs; hidden/in-flight work does not
+ok 1 - visible first refresh runs; hidden/in-flight work does not
+  ---
+  duration_ms: 2.879861
+  ...
+# Subtest: focus/visibility bursts coalesce, later refresh remains eligible
+ok 2 - focus/visibility bursts coalesce, later refresh remains eligible
+  ---
+  duration_ms: 0.247404
+  ...
+# Subtest: clock correction and explicit custom gap do not permanently stall refresh
+ok 3 - clock correction and explicit custom gap do not permanently stall refresh
+  ---
+  duration_ms: 0.303534
+  ...
+# Subtest: arbitrary saved colours drive all headers, footers and actions from the same source
+ok 4 - arbitrary saved colours drive all headers, footers and actions from the same source
+  ---
+  duration_ms: 10.462811
+  ...
+# Subtest: text remains readable through the colour spectrum, including midtone colours
+ok 5 - text remains readable through the colour spectrum, including midtone colours
+  ---
+  duration_ms: 30.282322
+  ...
+# Subtest: short custom colours normalize and invalid/missing colours use the existing default
+ok 6 - short custom colours normalize and invalid/missing colours use the existing default
+  ---
+  duration_ms: 1.344376
+  ...
+# Subtest: cached settings and theme toggling preserve the chosen brand across reloads
+ok 7 - cached settings and theme toggling preserve the chosen brand across reloads
+  ---
+  duration_ms: 0.865014
+  ...
+# Subtest: counts saved contract source values without collapsing separate selector categories
+ok 8 - counts saved contract source values without collapsing separate selector categories
+  ---
+  duration_ms: 3.163047
+  ...
+# Subtest: retains custom saved sources and omits empty sources without inventing counts
+ok 9 - retains custom saved sources and omits empty sources without inventing counts
+  ---
+  duration_ms: 0.305806
+  ...
+# Subtest: unchanged full snapshots retain state identity; nested changes are never ignored
+ok 10 - unchanged full snapshots retain state identity; nested changes are never ignored
+  ---
+  duration_ms: 2.646861
+  ...
+# Subtest: snapshot comparison detects deletions, additions, reordering and null/missing changes
+ok 11 - snapshot comparison detects deletions, additions, reordering and null/missing changes
+  ---
+  duration_ms: 0.325987
+  ...
+# Subtest: all sort keys/directions preserve legacy order, stable ties and input rows
+ok 12 - all sort keys/directions preserve legacy order, stable ties and input rows
+  ---
+  duration_ms: 92.045457
+  ...
+# Subtest: sort parses a date only once per row
+ok 13 - sort parses a date only once per row
+  ---
+  duration_ms: 0.467716
+  ...
+# Subtest: formatDurationHours converts decimal hours to human-readable hours and minutes
+ok 14 - formatDurationHours converts decimal hours to human-readable hours and minutes
+  ---
+  duration_ms: 4.366193
+  ...
+# Subtest: formatDurationHours handles floating point minute rollover without 60m output
+ok 15 - formatDurationHours handles floating point minute rollover without 60m output
+  ---
+  duration_ms: 2.676436
+  ...
+# Subtest: monthly target formulas handle no sales, below, exact and overachievement
+ok 16 - monthly target formulas handle no sales, below, exact and overachievement
+  ---
+  duration_ms: 3.131449
+  ...
+# Subtest: missing target preserves actual sales without invented target, pending or percentage
+ok 17 - missing target preserves actual sales without invented target, pending or percentage
+  ---
+  duration_ms: 0.330936
+  ...
+# Subtest: an explicitly configured zero target has zero pending and no division
+ok 18 - an explicitly configured zero target has zero pending and no division
+  ---
+  duration_ms: 0.431415
+  ...
+# Subtest: older API metadata is handled honestly, without labelling unknown zero as configured or missing
+ok 19 - older API metadata is handled honestly, without labelling unknown zero as configured or missing
+  ---
+  duration_ms: 1.384555
+  ...
+# Subtest: missing or invalid financial data fails rather than presenting fabricated zeroes
+ok 20 - missing or invalid financial data fails rather than presenting fabricated zeroes
+  ---
+  duration_ms: 0.677816
+  ...
+# Subtest: decimal inputs preserve calculation precision while currency displays whole rupees
+ok 21 - decimal inputs preserve calculation precision while currency displays whole rupees
+  ---
+  duration_ms: 32.81137
+  ...
+# Subtest: India defaults cross December to January independently of the browser timezone
+ok 22 - India defaults cross December to January independently of the browser timezone
+  ---
+  duration_ms: 9.460816
+  ...
+# Subtest: monthly percentages match the API decimal rounding convention, including halfway values
+ok 23 - monthly percentages match the API decimal rounding convention, including halfway values
+  ---
+  duration_ms: 0.97917
+  ...
+# Subtest: percentage rounding never invents progress for missing or zero targets
+ok 24 - percentage rounding never invents progress for missing or zero targets
+  ---
+  duration_ms: 0.246154
+  ...
+# Subtest: light body, secondary text, actions and status badges meet normal-text contrast
+ok 25 - light body, secondary text, actions and status badges meet normal-text contrast
+  ---
+  duration_ms: 5.99895
+  ...
+# Subtest: dark body, secondary text, actions and status badges meet normal-text contrast
+ok 26 - dark body, secondary text, actions and status badges meet normal-text contrast
+  ---
+  duration_ms: 1.717498
+  ...
+# Subtest: portal width is fluid
+ok 27 - portal width is fluid
+  ---
+  duration_ms: 0.386243
+  ...
+# Subtest: one invoice group retains every service/period candidate and exact allocation/version/key
+ok 28 - one invoice group retains every service/period candidate and exact allocation/version/key
+  ---
+  duration_ms: 2.400801
+  ...
+# Subtest: service search retains the whole invoice group rather than concealing other services
+ok 29 - service search retains the whole invoice group rather than concealing other services
+  ---
+  duration_ms: 0.19307
+  ...
+# Subtest: distinct canonical invoice IDs sharing a number stay distinct and labelled
+ok 30 - distinct canonical invoice IDs sharing a number stay distinct and labelled
+  ---
+  duration_ms: 0.186894
+  ...
+# Subtest: only exact duplicate payload copies are removed, never separate periods or versions
+ok 31 - only exact duplicate payload copies are removed, never separate periods or versions
+  ---
+  duration_ms: 0.243424
+  ...
+# Subtest: selected group remains available while searching, with empty/no-match states preserved
+ok 32 - selected group remains available while searching, with empty/no-match states preserved
+  ---
+  duration_ms: 0.426394
+  ...
+# Subtest: mixed periods/statuses are not mislabelled as a single active contract
+ok 33 - mixed periods/statuses are not mislabelled as a single active contract
+  ---
+  duration_ms: 0.37086
+  ...
+# Subtest: sales identity includes employee ID, database ID and employee code while deduplicating legacy options
+ok 34 - sales identity includes employee ID, database ID and employee code while deduplicating legacy options
+  ---
+  duration_ms: 2.782821
+  ...
+# Subtest: different employees sharing a name remain separate without guessing name-only ownership
+ok 35 - different employees sharing a name remain separate without guessing name-only ownership
+  ---
+  duration_ms: 0.414981
+  ...
+# Subtest: assignment choices survive empty filtered results and repeated responses
+ok 36 - assignment choices survive empty filtered results and repeated responses
+  ---
+  duration_ms: 0.269927
+  ...
+# Subtest: clearing Sales Person clears all aliases; other filters are forwarded unchanged
+ok 37 - clearing Sales Person clears all aliases; other filters are forwarded unchanged
+  ---
+  duration_ms: 0.211073
+  ...
+# Subtest: report drilldown aliases resolve to the same canonical salesperson and filter set
+ok 38 - report drilldown aliases resolve to the same canonical salesperson and filter set
+  ---
+  duration_ms: 0.247439
+  ...
+1..38
+# tests 38
+# suites 0
+# pass 38
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 329.527943
+
+
+=== browser.log ===
+dashboard baseline captured
+leads baseline captured
+customers baseline captured
+contracts baseline captured
+invoices baseline captured
+payments baseline captured
+targets baseline captured
+vendors baseline captured
+stock baseline captured
+attendance baseline captured
+payroll baseline captured
+marketing baseline captured
+settings baseline captured
+contractform baseline captured
+{"screenshots":112,"routeViews":14,"errors":0,"pageOverflow":0,"mainOverflow":0}
+
+
+=== forms-browser.log ===
+customerform baseline captured
+leadform baseline captured
+itemform baseline captured
+employeeform baseline captured
+{"screenshots":32,"routeViews":4,"errors":0,"pageOverflow":0,"mainOverflow":0}

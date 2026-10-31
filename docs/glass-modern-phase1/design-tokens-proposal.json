@@ -1,0 +1,63 @@
+{
+  "status": "PROPOSAL ONLY; not imported or applied to application",
+  "light": {
+    "--ui-navy": "#1C2547",
+    "--ui-navy-deep": "#111B34",
+    "--ui-action": "#0866FF",
+    "--ui-action-hover": "#0052D9",
+    "--ui-page": "#F3F6FC",
+    "--ui-card": "rgba(255,255,255,0.85)",
+    "--ui-card-opaque": "#FFFFFF",
+    "--ui-elevated": "#F7FAFF",
+    "--ui-border": "rgba(170,190,225,0.30)",
+    "--ui-text": "#1E293B",
+    "--ui-muted": "#64748B",
+    "--ui-link": "#0866FF",
+    "--ui-sidebar": "#1C2547",
+    "--ui-shadow": "0 8px 24px rgba(28,37,71,0.08)"
+  },
+  "dark": {
+    "--ui-navy": "#111B34",
+    "--ui-navy-deep": "#0C1428",
+    "--ui-action": "#287CFF",
+    "--ui-action-hover": "#4A92FF",
+    "--ui-page": "#0B1224",
+    "--ui-card": "rgba(22,33,58,0.94)",
+    "--ui-card-opaque": "#16213A",
+    "--ui-elevated": "#1D2C48",
+    "--ui-border": "rgba(150,175,220,0.22)",
+    "--ui-text": "#E8EEF9",
+    "--ui-muted": "#A8B7CD",
+    "--ui-link": "#8CBDFF",
+    "--ui-sidebar": "#101A31",
+    "--ui-shadow": "0 8px 24px rgba(0,0,0,0.18)"
+  },
+  "geometry": {
+    "spacing_px": [
+      4,
+      8,
+      12,
+      16,
+      24,
+      32
+    ],
+    "radius_control_px": 8,
+    "radius_card_px": 12,
+    "radius_modal_px": 16,
+    "control_height_px": 42,
+    "dense_table_control_height_px": 34,
+    "blur_px": 10,
+    "max_blur_px": 12,
+    "table_row_min_height_px": 44
+  },
+  "safeguards": [
+    "Reuse existing semantic --ui-* family and maintain legacy aliases during migration.",
+    "Keep table rows, input interiors, PDF/print surfaces and contrast-critical content opaque.",
+    "Use glass on a limited number of card/modal surfaces with an opaque @supports fallback.",
+    "Do not blur table rows/cells, maps, all ancestor containers or animated scrolling content.",
+    "Do not overwrite saved branding, --portal-main-header-* slots, logo source/dimensions/objectFit or current main-header arrangement.",
+    "Apply module styling explicitly; do not turn every legacy page on by replacing global CSS.",
+    "Respect reduced motion, nested popovers and portal stacking.",
+    "Token additions such as --ui-card-opaque are proposed compatibility extensions, not a second theme system."
+  ]
+}

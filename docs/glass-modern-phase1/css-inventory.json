@@ -1,0 +1,93 @@
+[
+  {
+    "file": "frontend/src/App.css",
+    "lines": 503,
+    "important": 88,
+    "backdrop_filters": 0,
+    "root_blocks": 3
+  },
+  {
+    "file": "frontend/src/index.css",
+    "lines": 6131,
+    "important": 1485,
+    "backdrop_filters": 1,
+    "root_blocks": 7
+  },
+  {
+    "file": "frontend/src/styles/crmFormWizard.css",
+    "lines": 61,
+    "important": 12,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/styles/crmForm.css",
+    "lines": 275,
+    "important": 207,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/styles/customerNameCombobox.css",
+    "lines": 7,
+    "important": 1,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/styles/crmFourWizards.css",
+    "lines": 25,
+    "important": 11,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/styles/portalDesign.css",
+    "lines": 355,
+    "important": 97,
+    "backdrop_filters": 0,
+    "root_blocks": 1
+  },
+  {
+    "file": "frontend/src/components/Attendance.css",
+    "lines": 1002,
+    "important": 75,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/components/Dashboard.css",
+    "lines": 373,
+    "important": 153,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/components/TrackTechnicians.css",
+    "lines": 5,
+    "important": 2,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/components/HRDashboard.css",
+    "lines": 316,
+    "important": 3,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/components/ServiceCalendar.css",
+    "lines": 411,
+    "important": 191,
+    "backdrop_filters": 1,
+    "root_blocks": 0
+  },
+  {
+    "file": "frontend/src/pages/sales-performance/salesPerformance.css",
+    "lines": 464,
+    "important": 81,
+    "backdrop_filters": 0,
+    "root_blocks": 0
+  }
+]
