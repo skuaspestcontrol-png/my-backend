@@ -1,3 +1,6 @@
+import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
+import { Target, ClipboardCheck } from 'lucide-react';
+import '../styles/crmFourWizards.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
@@ -2240,6 +2243,16 @@ export default function LeadCapture() {
     }
   };
 
+  const validateWizardStep = (step) => {
+    if (step === 0) {
+      if (form.mobile.length !== 10) return {message: PHONE_VALIDATION_ERROR, field:'Mobile'};
+      if (form.whatsappNumber && form.whatsappNumber.length !== 10) return {message: PHONE_VALIDATION_ERROR, field:'Whatsapp Number'};
+      if (form.leadSource === 'Reference' && !form.referenceCustomerId) return {message:'Please select the reference customer.',selector:'[data-wizard-reference-picker]'};
+    }
+    if (step === 1 && normalizePincode(form.pincode) && normalizePincode(form.pincode).length !== 6) return {message:'Pincode must be exactly 6 digits.',field:'Pincode'};
+    return null;
+  };
+
   const save = async (e) => {
     e.preventDefault();
     if (form.mobile.length !== 10) {
@@ -3051,16 +3064,16 @@ export default function LeadCapture() {
 
       {show && (
         createPortal(<div style={leadOverlayStyle}>
-          <form role="dialog" aria-modal="true" className="crm-modal-surface" style={leadModalStyle} onSubmit={save}>
-            <div className="crm-modal-surface-header" style={leadModalHeadStyle}>
-              <span>{editingLeadId ? 'Edit Lead Form' : 'Lead Entry Form'}</span>
-              <CRMModalCloseButton onClick={resetForm} />
-            </div>
-
-            <div className="crm-modal-surface-body" style={leadModalCompactBodyStyle}>
-              <div style={leadSectionStyle}>
-                <div style={s.sectionTitle}><User size={14} /> Customer Details</div>
-                <div style={leadGridStyle}>
+          <CRMFormModal className="crm-four-wizard lead-form-wizard" style={leadModalStyle}
+ title={editingLeadId ? 'Edit Lead Form' : 'Lead Entry Form'} subtitle="Manage enquiries, services and follow-up information." icon={Target}
+ onClose={resetForm} onSubmit={save} validateStep={validateWizardStep} dirtyKey={JSON.stringify(form)} trackSubmission inlineErrors associateLabels
+ cancelAction={<button type="button" onClick={resetForm} style={{ marginRight: '10px', minHeight: '40px', padding: '0 16px', border: '1px solid rgba(17,17,17,0.1)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 700 }}>
+                Cancel
+              </button>} submitAction={<button data-modal-primary="true"   type="submit" style={{ minHeight: '40px', background: 'var(--color-primary)', color: '#fff', border: 'none', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                {editingLeadId ? 'Update' : 'Submit'}
+              </button>}>
+ <CRMFormStep title="Customer Information" description="Enquiry and contact information" icon={User}>
+  <div style={leadGridStyle}>
                   <div>
                     <label style={s.lb}>Date</label>
                     <input
@@ -3145,12 +3158,51 @@ export default function LeadCapture() {
                     <label style={s.lb}>Email Id</label>
                     <input type="email" value={form.emailId} style={s.in} onChange={(e) => updateForm('emailId', e.target.value)} />
                   </div>
-                </div>
-              </div>
-
-              <div style={leadSectionStyle}>
-                <div style={s.sectionTitle}><MapPin size={14} /> Property Details</div>
-                <div style={leadGridStyle}>
+                </div><div className="crm-wizard-field-grid"><div>
+                    <label style={s.lb}>Lead Source</label>
+                    <select value={form.leadSource} style={s.in} onChange={(e) => handleLeadSourceChange(e.target.value)}>
+                      {leadSourceOptions.map((source) => <option key={source} value={source}>{source}</option>)}
+                    </select>
+                  </div>
+{form.leadSource === 'Reference' ? (
+                    <div>
+                      <label style={s.lb}>Reference Customer</label>
+                      <button
+                        type="button" data-wizard-reference-picker="true"
+                        style={{ ...s.smallButton, width: '100%', padding: '10px 12px', textAlign: 'left' }}
+                        onClick={() => setShowReferencePicker((current) => !current)}
+                      >
+                        {showReferencePicker ? 'Close Customer Picker' : 'Open Customer Picker'}
+                      </button>
+                      <div style={s.referenceHint}>Link this lead to an existing customer from Customer module.</div>
+                    </div>
+                  ) : null}
+{form.leadSource === 'Reference' && showReferencePicker ? (
+                    <div style={leadFieldHalfStyle}>
+                      <label style={s.lb}>Select Existing Customer</label>
+                      <select
+                        value={form.referenceCustomerId}
+                        style={s.in}
+                        onChange={(e) => handleReferenceCustomerSelect(e.target.value)}
+                      >
+                        <option value="">Select Customer</option>
+                        {referenceCustomers.map((customer) => (
+                          <option key={customer._id} value={customer._id}>
+                            {getCustomerName(customer)} {getCustomerMobile(customer) ? `- ${getCustomerMobile(customer)}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {form.referenceCustomerName ? (
+                        <div style={s.referenceBadge}>
+                          <div><strong>Referred By:</strong> {form.referenceCustomerName}</div>
+                          <div><strong>Customer Since:</strong> {form.referenceCustomerDate || 'N/A'}</div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}</div>
+ </CRMFormStep>
+ <CRMFormStep title="Property & Service Details" description="Address and service requirements" icon={MapPin}>
+  <div style={leadGridStyle}>
                   <div style={leadFieldWideStyle}>
                     <label style={s.lb}>Search Address</label>
                     <div style={mapsRowStyle}>
@@ -3249,13 +3301,7 @@ export default function LeadCapture() {
                     <label style={s.lb}>Pincode</label>
                     <input value={form.pincode} style={s.in} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" onChange={(e) => updatePincode(e.target.value)} />
                   </div>
-                </div>
-              </div>
-
-              <div style={leadSectionStyle}>
-                <div style={s.sectionTitle}><ClipboardList size={14} /> Lead Details</div>
-                <div style={leadGridStyle}>
-                  <div className="field">
+                </div><div className="crm-wizard-field-grid"><div className="field">
                     <label style={s.lb}>Pest Issue</label>
                     <select
                       value={form.pestIssue}
@@ -3269,7 +3315,7 @@ export default function LeadCapture() {
                       ))}
                     </select>
                   </div>
-                  <div>
+<div>
                     <label style={s.lb}>Quotation Value</label>
                     <input
                       type="number"
@@ -3281,67 +3327,25 @@ export default function LeadCapture() {
                       onChange={(e) => updateForm('quotationValue', e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label style={s.lb}>Lead Source</label>
-                    <select value={form.leadSource} style={s.in} onChange={(e) => handleLeadSourceChange(e.target.value)}>
-                      {leadSourceOptions.map((source) => <option key={source} value={source}>{source}</option>)}
-                    </select>
-                  </div>
-                  {form.leadSource === 'Reference' ? (
-                    <div>
-                      <label style={s.lb}>Reference Customer</label>
-                      <button
-                        type="button"
-                        style={{ ...s.smallButton, width: '100%', padding: '10px 12px', textAlign: 'left' }}
-                        onClick={() => setShowReferencePicker((current) => !current)}
-                      >
-                        {showReferencePicker ? 'Close Customer Picker' : 'Open Customer Picker'}
-                      </button>
-                      <div style={s.referenceHint}>Link this lead to an existing customer from Customer module.</div>
-                    </div>
-                  ) : null}
-
-                  {form.leadSource === 'Reference' && showReferencePicker ? (
-                    <div style={leadFieldHalfStyle}>
-                      <label style={s.lb}>Select Existing Customer</label>
-                      <select
-                        value={form.referenceCustomerId}
-                        style={s.in}
-                        onChange={(e) => handleReferenceCustomerSelect(e.target.value)}
-                      >
-                        <option value="">Select Customer</option>
-                        {referenceCustomers.map((customer) => (
-                          <option key={customer._id} value={customer._id}>
-                            {getCustomerName(customer)} {getCustomerMobile(customer) ? `- ${getCustomerMobile(customer)}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      {form.referenceCustomerName ? (
-                        <div style={s.referenceBadge}>
-                          <div><strong>Referred By:</strong> {form.referenceCustomerName}</div>
-                          <div><strong>Customer Since:</strong> {form.referenceCustomerDate || 'N/A'}</div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  <div>
+<div>
                     <label style={s.lb}>Property Type</label>
                     <select value={form.propertyType} style={s.in} onChange={(e) => updateForm('propertyType', e.target.value)}>
                       {PROPERTY_TYPES.map((type) => <option key={type}>{type}</option>)}
                     </select>
-                  </div>
-                  <div>
+                  </div></div>
+ </CRMFormStep>
+ <CRMFormStep title="Assignment & Follow-Up" description="Salesperson, status and notes" icon={ClipboardList}>
+  <div className="crm-wizard-field-grid"><div>
                     <label style={s.lb}>Lead Status</label>
                     <select value={form.status} style={s.in} onChange={(e) => updateForm('status', e.target.value)}>
                       {LEAD_STATUSES.map((status) => <option key={status}>{status}</option>)}
                     </select>
                   </div>
-                  <div>
+<div>
                     <label style={s.lb}>Followup Date</label>
                     <input type="date" value={form.followupDate} style={s.in} onChange={(e) => updateForm('followupDate', e.target.value)} />
                   </div>
-                  <div>
+<div>
                     <label style={s.lb}>Assigned To Sales Team</label>
                     <select value={form.assignedTo} style={s.in} onChange={(e) => updateForm('assignedTo', e.target.value)}>
                       <option value="">Select Sales Person</option>
@@ -3352,23 +3356,19 @@ export default function LeadCapture() {
                       ))}
                     </select>
                   </div>
-                  <div style={leadFieldWideStyle}>
+<div style={leadFieldWideStyle}>
                     <label style={s.lb}>Remarks</label>
                     <textarea value={form.remarks} style={s.ta} onChange={(e) => updateForm('remarks', e.target.value)} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="crm-modal-surface-footer" style={{ padding: '12px 24px', textAlign: 'right', background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.99))', borderTop: '1px solid rgba(148, 163, 184, 0.18)', position: 'sticky', bottom: 0, backdropFilter: 'blur(10px)' }}>
-              <button type="button" onClick={resetForm} style={{ marginRight: '10px', minHeight: '40px', padding: '0 16px', border: '1px solid rgba(17,17,17,0.1)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 700 }}>
-                Cancel
-              </button>
-              <button data-modal-primary="true"   type="submit" style={{ minHeight: '40px', background: 'var(--color-primary)', color: '#fff', border: 'none', padding: '0 16px', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: 800, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                {editingLeadId ? 'Update' : 'Submit'}
-              </button>
-            </div>
-          </form>
+                  </div></div>
+ </CRMFormStep>
+ <CRMFormStep title="Review & Submit" description="Check the enquiry before submitting" icon={ClipboardCheck}>
+  <CRMFormReview groups={[
+   {title:'Customer Information',fields:[['Date',form.date],['Customer Option',form.customerOption],['Customer Name',form.customerName],['Mobile',form.mobile],['WhatsApp',form.whatsappNumber],['Email',form.emailId],['Lead Source',form.leadSource],['Reference Customer',form.referenceCustomerName]]},
+   {title:'Property & Service Details',fields:[['Address',[form.address,form.areaName,form.city,form.state,form.pincode].filter(Boolean).join(', ')],['Property Type',form.propertyType],['Service',pestIssueLabel(form.pestIssue)],['Quotation Value',form.quotationValue]]},
+   {title:'Assignment & Follow-Up',fields:[['Lead Status',form.status],['Follow-up Date',form.followupDate],['Salesperson',form.assignedTo],['Remarks',form.remarks]]}
+  ]} />
+ </CRMFormStep>
+</CRMFormModal>
         </div>, document.body)
       )}
 

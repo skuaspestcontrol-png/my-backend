@@ -1,3 +1,6 @@
+import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
+import { UserRound, BriefcaseBusiness, MapPin, ClipboardCheck } from 'lucide-react';
+import '../styles/crmFourWizards.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
@@ -661,6 +664,18 @@ export default function EmployeeMaster() {
     setProfilePhotoFile(null);
   };
 
+  const validateWizardStep = (step) => {
+    if (step === 0 && !form.firstName.trim()) return {message:'First name and mobile number are required.',field:'First Name'};
+    if (step === 2) {
+      if (toTenDigitNumber(form.mobile).length !== 10) return {message:PHONE_VALIDATION_ERROR,field:'Mobile Number'};
+      if (form.emergencyContactNumber && toTenDigitNumber(form.emergencyContactNumber).length !== 10) return {message:PHONE_VALIDATION_ERROR,field:'Emergency Contact Number'};
+      const pincode = toSixDigitPincode(form.pincode);
+      if (pincode && pincode.length !== 6) return {message:'PIN Code must be exactly 6 digits.',field:'PIN Code'};
+    }
+    if (step === 3 && (isPortalEligibleRole(form.role) || form.appAccessEnabled || form.webPortalAccessEnabled) && !String(form.portalPassword || '').trim() && (!editingId || !form.hasPortalPassword)) return {message:'Password is required when App/Web portal access is enabled.',field:'Portal Password'};
+    return null;
+  };
+
   const handleSave = async (event) => {
     event.preventDefault();
 
@@ -946,114 +961,62 @@ export default function EmployeeMaster() {
 
       {showModal ? createPortal(
         <div style={shell.modalOverlay}>
-          <form role="dialog" aria-modal="true" className="crm-modal-surface employee-master-modal" style={shell.modal} onSubmit={handleSave}>
-            <div className="crm-modal-surface-header" style={shell.modalHeader}>
-              <span>{editingId ? 'Edit Employee' : 'Add Employee'} - {form.empCode || 'Auto'}</span>
-              <CRMModalCloseButton type="button" onClick={closeModal} style={{ border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }} />
-            </div>
-
-            <div className="crm-modal-surface-body" style={shell.modalBody}>
-              <div style={shell.section}>
-                <h3 style={shell.sectionTitle}>Employee Basics</h3>
-                <div style={grid2Style}>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Date of Joining</label>
-                    <input type="date" style={dateInputStyle} value={form.dateOfJoining} onChange={(event) => updateField('dateOfJoining', event.target.value)} />
-                  </div>
-                  <div style={shell.field}>
+          <CRMFormModal className="crm-four-wizard employee-master-modal" style={shell.modal}
+ title={editingId ? 'Edit Employee' : 'Add Employee'} subtitle="Manage employee information, employment and access." icon={UserRound}
+ onClose={closeModal} onSubmit={handleSave} validateStep={validateWizardStep} busy={isSaving} error={/failed|error/i.test(status) ? status : ''} notice={!/failed|error/i.test(status) ? status : ''} trackSubmission inlineErrors associateLabels
+ dirtyKey={JSON.stringify([form, profilePhotoFile && {name:profilePhotoFile.name,size:profilePhotoFile.size,lastModified:profilePhotoFile.lastModified}])}
+ cancelAction={<button type="button" style={shell.cancelBtn} onClick={closeModal}>Cancel</button>} submitAction={<button data-modal-primary="true"   type="submit" style={shell.saveBtn} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : editingId ? 'Update Employee' : 'Submit'}
+                </button>}>
+ <CRMFormStep title="Personal Information" description="Identity, personal details and photo" icon={UserRound}>
+  <div className="crm-wizard-field-grid"><div style={shell.field}>
                     <label style={shell.label}>Employee Code (Auto)</label>
                     <input style={shell.input} value={form.empCode} onChange={(event) => updateField('empCode', event.target.value)} />
                   </div>
-                </div>
-                <div style={{ ...grid3Style, marginTop: '12px' }}>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Employment Status</label>
-                    <select style={shell.input} value={form.employmentStatus} onChange={(event) => updateField('employmentStatus', event.target.value)}>
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                      <option value="Resigned">Resigned</option>
-                    </select>
-                  </div>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Resignation Date</label>
-                    <input
-                      type="date"
-                      style={dateInputStyle}
-                      value={form.resignationDate}
-                      onChange={(event) => updateField('resignationDate', event.target.value)}
-                      disabled={normalizeEmploymentStatus(form.employmentStatus, 'Active') !== 'Resigned'}
-                    />
-                  </div>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Employment Note</label>
-                    <input
-                      style={shell.input}
-                      value={normalizeEmploymentStatus(form.employmentStatus, 'Active') === 'Resigned' ? 'Add reason in notes if needed' : 'Currently employed'}
-                      readOnly
-                    />
-                  </div>
-                </div>
-                <p style={{ ...shell.helper, marginTop: '8px' }}>Employee code is auto-generated from Settings prefix for new records.</p>
-                <div style={{ ...grid3Style, marginTop: '12px' }}>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>First Name *</label>
                     <input style={shell.input} required value={form.firstName} onChange={(event) => updateField('firstName', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Last Name</label>
                     <input style={shell.input} value={form.lastName} onChange={(event) => updateField('lastName', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Gender</label>
                     <select style={shell.input} value={form.gender} onChange={(event) => updateField('gender', event.target.value)}>
                       {genderOptions.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
                     </select>
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Father's Name</label>
                     <input style={shell.input} value={form.fatherName} onChange={(event) => updateField('fatherName', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Mother Name</label>
                     <input style={shell.input} value={form.motherName} onChange={(event) => updateField('motherName', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Date of Birth</label>
                     <input type="date" style={dateInputStyle} value={form.dateOfBirth} onChange={(event) => updateField('dateOfBirth', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Employee Role</label>
-                    <select style={shell.input} value={form.role} onChange={(event) => updateField('role', event.target.value)}>
-                      {roles.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
-                    </select>
-                  </div>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Role Name (Manual)</label>
-                    <input style={shell.input} value={form.roleName} onChange={(event) => updateField('roleName', event.target.value)} placeholder="Type designation" />
-                  </div>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Mobile Number *</label>
-                    <input style={shell.input} inputMode="numeric" required value={form.mobile} onChange={(event) => updateField('mobile', event.target.value)} />
-                  </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Martial Status</label>
                     <select style={shell.input} value={form.maritalStatus} onChange={(event) => updateField('maritalStatus', event.target.value)}>
                       {maritalOptions.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
                     </select>
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Blood Group</label>
                     <select style={shell.input} value={form.bloodGroup} onChange={(event) => updateField('bloodGroup', event.target.value)}>
                       <option value="">Select</option>
                       {bloodGroups.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
                     </select>
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Degree</label>
                     <input style={shell.input} value={form.degree} onChange={(event) => updateField('degree', event.target.value)} />
                   </div>
-                </div>
-                <div style={{ ...shell.field, marginTop: '12px' }}>
+<div style={{ ...shell.field, marginTop: '12px' }}>
                   <label style={shell.label}>Profile Photo</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <label style={shell.uploadBtn}>
@@ -1095,34 +1058,80 @@ export default function EmployeeMaster() {
                       ) : null}
                     </>
                   ) : null}
-                </div>
-              </div>
-
-              <div style={shell.section}>
-                <h3 style={shell.sectionTitle}>Contact & Address</h3>
-                <div style={grid3Style}>
-                  <div style={shell.field}>
+                </div></div>
+ </CRMFormStep>
+ <CRMFormStep title="Employment Details" description="Employment status, role and salary" icon={BriefcaseBusiness}>
+  <div className="crm-wizard-field-grid"><div style={shell.field}>
+                    <label style={shell.label}>Date of Joining</label>
+                    <input type="date" style={dateInputStyle} value={form.dateOfJoining} onChange={(event) => updateField('dateOfJoining', event.target.value)} />
+                  </div>
+<div style={shell.field}>
+                    <label style={shell.label}>Employment Status</label>
+                    <select style={shell.input} value={form.employmentStatus} onChange={(event) => updateField('employmentStatus', event.target.value)}>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Resigned">Resigned</option>
+                    </select>
+                  </div>
+<div style={shell.field}>
+                    <label style={shell.label}>Resignation Date</label>
+                    <input
+                      type="date"
+                      style={dateInputStyle}
+                      value={form.resignationDate}
+                      onChange={(event) => updateField('resignationDate', event.target.value)}
+                      disabled={normalizeEmploymentStatus(form.employmentStatus, 'Active') !== 'Resigned'}
+                    />
+                  </div>
+<div style={shell.field}>
+                    <label style={shell.label}>Employment Note</label>
+                    <input
+                      style={shell.input}
+                      value={normalizeEmploymentStatus(form.employmentStatus, 'Active') === 'Resigned' ? 'Add reason in notes if needed' : 'Currently employed'}
+                      readOnly
+                    />
+                  </div>
+<div style={shell.field}>
+                    <label style={shell.label}>Employee Role</label>
+                    <select style={shell.input} value={form.role} onChange={(event) => updateField('role', event.target.value)}>
+                      {roles.map((entry) => <option key={entry} value={entry}>{entry}</option>)}
+                    </select>
+                  </div>
+<div style={shell.field}>
+                    <label style={shell.label}>Role Name (Manual)</label>
+                    <input style={shell.input} value={form.roleName} onChange={(event) => updateField('roleName', event.target.value)} placeholder="Type designation" />
+                  </div>
+<div style={shell.field}>
+                    <label style={shell.label}>Salary Per Month</label>
+                    <input type="number" step="0.01" style={shell.input} value={form.salaryPerMonth} onChange={(event) => updateField('salaryPerMonth', event.target.value)} />
+                    <p style={shell.helper}>Annually Auto Calculate: {formatCurrency(annualSalary)}</p>
+                  </div></div>
+ </CRMFormStep>
+ <CRMFormStep title="Contact & Address" description="Contact numbers and addresses" icon={MapPin}>
+  <div className="crm-wizard-field-grid"><div style={shell.field}>
+                    <label style={shell.label}>Mobile Number *</label>
+                    <input style={shell.input} inputMode="numeric" required value={form.mobile} onChange={(event) => updateField('mobile', event.target.value)} />
+                  </div>
+<div style={shell.field}>
                     <label style={shell.label}>Emergency Person Name</label>
                     <input style={shell.input} value={form.emergencyPersonName} onChange={(event) => updateField('emergencyPersonName', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Emergency Contact Number</label>
                     <input style={shell.input} inputMode="numeric" value={form.emergencyContactNumber} onChange={(event) => updateField('emergencyContactNumber', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>Email ID</label>
                     <input type="email" style={shell.input} value={form.email} onChange={(event) => updateField('email', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>City</label>
                     <input style={shell.input} value={form.city} onChange={(event) => updateField('city', event.target.value)} />
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>PIN Code</label>
                     <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.pincode} onChange={(event) => updateField('pincode', event.target.value)} />
-                  </div>
-                </div>
-                <div style={{ marginTop: '16px' }}>
+                  </div></div><div style={{ marginTop: '16px' }}>
                   <label style={shell.checkItem}>
                     <input
                       type="checkbox"
@@ -1138,7 +1147,7 @@ export default function EmployeeMaster() {
                     Present Address same as above Permanent Address
                   </label>
                 </div>
-                <div style={{ ...grid2Style, marginTop: '10px' }}>
+<div style={{ ...grid2Style, marginTop: '10px' }}>
                   <div style={isCompactModal ? shell.field : { ...shell.field, ...shell.fieldSpan2 }}>
                     <label style={shell.label}>Permanent Address</label>
                     <textarea style={shell.textArea} value={form.permanentAddress} onChange={(event) => updateField('permanentAddress', event.target.value)} />
@@ -1148,12 +1157,9 @@ export default function EmployeeMaster() {
                     <textarea style={shell.textArea} value={form.presentAddress} onChange={(event) => updateField('presentAddress', event.target.value)} disabled={sameAsPermanentAddress} />
                   </div>
                 </div>
-              </div>
-
-              <div style={shell.section}>
-                <h3 style={shell.sectionTitle}>ID & Salary</h3>
-                <div style={grid3Style}>
-                  <div style={shell.field}>
+ </CRMFormStep>
+ <CRMFormStep title="Additional Details & Review" description="Documents, access, bank details and review" icon={ClipboardCheck}>
+  <div className="crm-wizard-field-grid"><div style={shell.field}>
                     <label style={shell.label}>Aadhar Card Number</label>
                     <input style={shell.input} value={form.aadharCardNumber} onChange={(event) => updateField('aadharCardNumber', event.target.value)} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1172,7 +1178,7 @@ export default function EmployeeMaster() {
                       </div>
                     ) : null}
                   </div>
-                  <div style={shell.field}>
+<div style={shell.field}>
                     <label style={shell.label}>PAN Card Number</label>
                     <input style={shell.input} value={form.panCardNumber} onChange={(event) => updateField('panCardNumber', event.target.value.toUpperCase())} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1190,16 +1196,7 @@ export default function EmployeeMaster() {
                         <button type="button" onClick={() => removeUploadedFile('panCardFileUrl', 'PAN file')} style={{ ...shell.rowActionBtn, color: '#dc2626' }} title="Delete PAN"><Trash2 size={16} /></button>
                       </div>
                     ) : null}
-                  </div>
-                  <div style={shell.field}>
-                    <label style={shell.label}>Salary Per Month</label>
-                    <input type="number" step="0.01" style={shell.input} value={form.salaryPerMonth} onChange={(event) => updateField('salaryPerMonth', event.target.value)} />
-                    <p style={shell.helper}>Annually Auto Calculate: {formatCurrency(annualSalary)}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div style={shell.section}>
+                  </div></div><div style={shell.section}>
                 <h3 style={shell.sectionTitle}>Portal Access</h3>
                 {isPortalEligibleRole(form.role) ? (
                   <p style={{ ...shell.helper, marginBottom: '10px' }}>
@@ -1246,9 +1243,7 @@ export default function EmployeeMaster() {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div style={shell.section}>
+              </div><div style={shell.section}>
                 <h3 style={shell.sectionTitle}>Bank Details</h3>
                 <div style={grid3Style}>
                   <div style={shell.field}>
@@ -1283,18 +1278,14 @@ export default function EmployeeMaster() {
                   ) : null}
                 </div>
               </div>
-            </div>
-
-            <div className="crm-modal-surface-footer" style={shell.footer}>
-              <span style={{ ...shell.helper, color: status.toLowerCase().includes('failed') ? '#ef4444' : 'var(--text-secondary)' }}>{status || 'Fill employee details and submit.'}</span>
-              <div style={shell.footerActions}>
-                <button type="button" style={shell.cancelBtn} onClick={closeModal}>Cancel</button>
-                <button data-modal-primary="true"   type="submit" style={shell.saveBtn} disabled={isSaving}>
-                  {isSaving ? 'Saving...' : editingId ? 'Update Employee' : 'Submit'}
-                </button>
-              </div>
-            </div>
-          </form>
+  <CRMFormReview groups={[
+    {title:'Personal Information',fields:[['Employee Code',form.empCode],['First Name',form.firstName],['Last Name',form.lastName],['Gender',form.gender],['Date of Birth',form.dateOfBirth],['Father Name',form.fatherName],['Mother Name',form.motherName],['Marital Status',form.maritalStatus],['Blood Group',form.bloodGroup],['Degree',form.degree],['Photo',profilePhotoFile?.name || (form.employeePhotoUrl ? 'Current photo' : '')]]},
+    {title:'Employment Details',fields:[['Joining Date',form.dateOfJoining],['Status',form.employmentStatus],['Resignation Date',form.resignationDate],['Role',form.role],['Designation',form.roleName],['Monthly Salary',formatCurrency(form.salaryPerMonth)],['Annual Salary',formatCurrency(annualSalary)]]},
+    {title:'Contact & Address',fields:[['Mobile',form.mobile],['Email',form.email],['Emergency Person',form.emergencyPersonName],['Emergency Number',form.emergencyContactNumber],['Permanent Address',form.permanentAddress],['Present Address',form.presentAddress],['City',form.city],['PIN Code',form.pincode]]},
+    {title:'Additional Details',fields:[['App Access',isPortalEligibleRole(form.role) || form.appAccessEnabled ? 'Enabled' : 'Disabled'],['Web Access',isPortalEligibleRole(form.role) || form.webPortalAccessEnabled ? 'Enabled' : 'Disabled'],['Portal Password',form.portalPassword || form.hasPortalPassword ? 'Configured' : 'Not configured'],['Bank Name',form.bankName],['Bank Number',form.bankNo],['IFSC',form.ifsc],['Aadhar',form.aadharCardNumber],['PAN',form.panCardNumber],['Documents',form.additionalDocumentsUrl ? 'Uploaded' : 'Not uploaded']]}
+  ]} />
+ </CRMFormStep>
+</CRMFormModal>
         </div>,
         document.body
       ) : null}

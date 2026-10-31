@@ -1,3 +1,7 @@
+import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
+import { CRMFormField } from './ui/CRMForm';
+import { Layers3, CalendarDays, ClipboardCheck } from 'lucide-react';
+import '../styles/crmFourWizards.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
@@ -3335,6 +3339,22 @@ export default function InvoiceDashboard() {
     }));
   };
 
+  const validateWizardStep = (step) => {
+    if (contractViewOnly) return null;
+    if (step === 0 && !form.customerName.trim()) return {message:'Customer Name is required.',field:'Customer Name'};
+    if (step === 1) {
+      if (!form.items.some(line => line.itemName && parseDecimalNumber(line.quantity,0) > 0)) return {message:'Add at least one item in Item Table.',selector:'select'};
+      const total = Number(form.total || computeTotals(form.items,form.invoiceType).total || 0);
+      if (!Number.isFinite(total) || total < 0) return {message:'Amount must be a valid number.'};
+    }
+    if (step === 2) {
+      const splits = Array.isArray(form.paymentSplits) ? form.paymentSplits : [];
+      if (splits.some(split => !Number.isFinite(Number(split?.amount || 0)) || Number(split?.amount || 0) < 0)) return {message:'Amount Received must be a valid number.'};
+      if (form.paymentReceivedEnabled && sumPaymentSplits(splits) > Number(form.total || 0) + 0.0001) return {message:'Amount received cannot be more than total amount.'};
+    }
+    return null;
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!form.customerName.trim()) {
@@ -4287,29 +4307,32 @@ export default function InvoiceDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayLockedStyle}>
-          <form role="dialog" aria-modal="true" className="crm-modal-surface" style={modalStyle} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()}>
-            <div className="crm-modal-surface-header" style={modalHeaderStyle}>
-              <h3 style={shell.modalHeaderTitle}>{contractViewOnly ? 'View Contract' : editingId ? 'Edit Contract' : 'New Contract'}</h3>
-              <CRMModalCloseButton type="button" style={shell.modalCloseButton} onClick={closeInvoiceModal} aria-label="Close" />
-            </div>
-            <fieldset
-              disabled={contractViewOnly}
-              style={{
-                border: 'none',
-                margin: 0,
-                padding: 0,
-                minWidth: 0,
-                minHeight: 0,
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden'
-              }}
-            >
-            <div className="crm-modal-surface-body" style={formBodyStyle}>
-              <div style={customerTypeRowStyle}>
-                <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Type*</label>
-                <div style={customerTypeOptionsWrapStyle}>
+          <CRMFormModal className="crm-four-wizard contract-form-wizard" style={modalStyle}
+ title={contractViewOnly ? 'View Contract' : editingId ? 'Edit Contract' : 'New Contract'} subtitle="Manage customer, services, pricing and service schedules." icon={FileText}
+ onClose={closeInvoiceModal} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()} validateStep={validateWizardStep}
+ busy={isSaving} error={saveError} trackSubmission inlineErrors associateLabels fieldsetContent readOnly={contractViewOnly}
+ dirtyKey={contractViewOnly ? undefined : JSON.stringify([form, serviceScheduleDraft, serviceScheduleRows, serviceScheduleTime])}
+ cancelAction={<button
+                type="button"
+                style={isMobile ? { ...shell.cancelButton, width: '100%' } : shell.cancelButton}
+                onClick={closeInvoiceModal}
+              >
+                {contractViewOnly ? 'Close' : 'Cancel'}
+              </button>} submitAction={contractViewOnly ? (<button
+                  type="button"
+                  style={isMobile ? { ...shell.saveButton, width: '100%' } : shell.saveButton}
+                  onClick={openContractForEditing}
+                >
+                  Edit Contract
+                </button>) : (<button data-modal-primary="true"
+                  type="submit"
+                  style={isMobile ? { ...shell.saveButton, width: '100%' } : shell.saveButton}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
+                </button>)}>
+ <CRMFormStep title="Customer & Contract Details" description="Customer, addresses and invoice information" icon={FileText}>
+  <div className="crm-wizard-field-grid"><CRMFormField label="Customer Type*"><div style={customerTypeOptionsWrapStyle}>
                   {contractCustomerTypeOptions.map((option) => {
                     const selected = form.customerType === option;
                     return (
@@ -4324,26 +4347,89 @@ export default function InvoiceDashboard() {
                       </button>
                     );
                   })}
-                </div>
-              </div>
-
-              <div style={customerRowStyle}>
-                <label style={{ ...shell.label, ...shell.labelRequired }}>Customer Name*</label>
-                <input
+                </div></CRMFormField>
+<CRMFormField label="Customer Name*"><input
                   list={customerNameDatalistId}
                   style={compactContractControlStyle}
                   value={form.customerName}
                   placeholder="Type to search or add a customer"
                   onChange={(event) => handleCustomerChange(event.target.value)}
-                />
-                <datalist id={customerNameDatalistId}>
+                 aria-label="Customer Name" />
+<datalist id={customerNameDatalistId}>
                   {customerNameOptions.map((customer) => (
                     <option key={customer.id} value={customer.name} />
                   ))}
-                </datalist>
-              </div>
-
-              {isTiny ? (
+                </datalist></CRMFormField>
+<CRMFormField label="Place of Supply*"><select
+                  style={compactContractControlStyle}
+                  value={form.placeOfSupply}
+                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, placeOfSupply: event.target.value }))}
+                 aria-label="Place of Supply" >
+                  <option value="">Select GST state</option>
+                  {gstStateOptions.map((state) => {
+                    const label = getGstStateLabel(state);
+                    return (
+                      <option key={state.code} value={label}>{label}</option>
+                    );
+                  })}
+                </select></CRMFormField>
+<CRMFormField label="Lead Source"><select
+                  style={compactContractControlStyle}
+                  value={form.leadSource}
+                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, leadSource: event.target.value }))}
+                 aria-label="Lead Source" >
+                  <option value="">Select lead source</option>
+                  {leadSourceOptions.map((source) => (
+                    <option key={source} value={source}>{source}</option>
+                  ))}
+                </select></CRMFormField>
+<CRMFormField label="Invoice#*"><div style={shell.inputWithAction}>
+                  <input
+                    style={{ ...compactContractControlStyle, ...shell.inputMainWithButton }}
+                    value={form.invoiceNumber}
+                    onChange={(event) => {
+                      invoiceNumberManuallyEditedRef.current = true;
+                      setFormWithTotals((prev) => ({ ...prev, invoiceNumber: event.target.value }));
+                    }}
+                   aria-label="Invoice Number" />
+                  <button
+                    type="button"
+                    style={compactContractButtonStyle}
+                    onClick={openInvoiceNumberPrefs}
+                    title="Configure invoice number"
+                  >
+                    <Settings size={20} />
+                  </button>
+                </div></CRMFormField>
+<CRMFormField label="Invoice Date*"><CompactCalendarDateInput
+                  style={compactContractDateStyle}
+                  value={form.date}
+                  onChange={(event) => handleDateChange(event.target.value)}
+                  ariaLabel="invoice date"
+                /></CRMFormField>
+<CRMFormField label="Sales Person"><select
+                  style={compactContractControlStyle}
+                  value={form.salesperson}
+                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, salesperson: event.target.value }))}
+                 aria-label="Sales Person" >
+                  <option value="">Select Sales Team Member</option>
+                  {form.salesperson && !salespersonOptions.includes(form.salesperson) ? (
+                    <option value={form.salesperson}>{form.salesperson}</option>
+                  ) : null}
+                  {salespersonOptions.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select></CRMFormField>
+<CRMFormField label="Invoice Type"><select
+                  style={compactContractControlStyle}
+                  value={form.invoiceType}
+                  onChange={(event) => handleInvoiceTypeChange(event.target.value)}
+                 aria-label="Invoice Type" >
+                  <option value="GST">GST Invoice</option>
+                  <option value="NON GST">Non GST Invoice</option>
+                </select></CRMFormField>
+</div>
+  {isTiny ? (
                 <div style={addressStackStyle}>
                   <div style={addressStackSectionStyle}>
                     <div style={shell.addressHead}>
@@ -4414,113 +4500,7 @@ export default function InvoiceDashboard() {
                     <p style={addressTextStyle}>{getAddressDisplayText(selectedShippingAddress, form.shippingAddressText || form.premiseAddress)}</p>
                   </div>
                 </div>
-              )}
-
-              <div style={supplyRowStyle}>
-                <label style={{ ...shell.label, ...shell.labelRequired }}>Place of Supply*</label>
-                <select
-                  style={compactContractControlStyle}
-                  value={form.placeOfSupply}
-                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, placeOfSupply: event.target.value }))}
-                >
-                  <option value="">Select GST state</option>
-                  {gstStateOptions.map((state) => {
-                    const label = getGstStateLabel(state);
-                    return (
-                      <option key={state.code} value={label}>{label}</option>
-                    );
-                  })}
-                </select>
-                <label style={shell.label}>Lead Source</label>
-                <select
-                  style={compactContractControlStyle}
-                  value={form.leadSource}
-                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, leadSource: event.target.value }))}
-                >
-                  <option value="">Select lead source</option>
-                  {leadSourceOptions.map((source) => (
-                    <option key={source} value={source}>{source}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={topGridStyle}>
-                <label style={{ ...shell.label, ...shell.labelRequired }}>Invoice#*</label>
-                <div style={shell.inputWithAction}>
-                  <input
-                    style={{ ...compactContractControlStyle, ...shell.inputMainWithButton }}
-                    value={form.invoiceNumber}
-                    onChange={(event) => {
-                      invoiceNumberManuallyEditedRef.current = true;
-                      setFormWithTotals((prev) => ({ ...prev, invoiceNumber: event.target.value }));
-                    }}
-                  />
-                  <button
-                    type="button"
-                    style={compactContractButtonStyle}
-                    onClick={openInvoiceNumberPrefs}
-                    title="Configure invoice number"
-                  >
-                    <Settings size={20} />
-                  </button>
-                </div>
-
-                <label style={{ ...shell.label, ...shell.labelRequired }}>Invoice Date*</label>
-                <CompactCalendarDateInput
-                  style={compactContractDateStyle}
-                  value={form.date}
-                  onChange={(event) => handleDateChange(event.target.value)}
-                  ariaLabel="invoice date"
-                />
-
-                <label style={shell.label}>Terms</label>
-                <select
-                  style={compactContractControlStyle}
-                  value={form.terms}
-                  onChange={(event) => handleTermsChange(event.target.value)}
-                >
-                  {termsOptions.map((terms) => (
-                    <option key={terms} value={terms}>{terms}</option>
-                  ))}
-                </select>
-
-                <label style={shell.label}>Due Date</label>
-                <CompactCalendarDateInput
-                  style={compactContractDateStyle}
-                  value={form.dueDate}
-                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, dueDate: event.target.value }))}
-                  ariaLabel="due date"
-                />
-              </div>
-
-              <div style={secondGridStyle}>
-                <label style={shell.label}>Sales Person</label>
-                <select
-                  style={compactContractControlStyle}
-                  value={form.salesperson}
-                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, salesperson: event.target.value }))}
-                >
-                  <option value="">Select Sales Team Member</option>
-                  {form.salesperson && !salespersonOptions.includes(form.salesperson) ? (
-                    <option value={form.salesperson}>{form.salesperson}</option>
-                  ) : null}
-                  {salespersonOptions.map((name) => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-                <label style={shell.label}>Invoice Type</label>
-                <select
-                  style={compactContractControlStyle}
-                  value={form.invoiceType}
-                  onChange={(event) => handleInvoiceTypeChange(event.target.value)}
-                >
-                  <option value="GST">GST Invoice</option>
-                  <option value="NON GST">Non GST Invoice</option>
-                </select>
-
-              </div>
-
-              {!modalOpenedFromContract ? (
+              )}{!modalOpenedFromContract ? (
                 <div style={subjectRowStyle}>
                   <label style={shell.label}>Subject</label>
                   <input
@@ -4531,8 +4511,9 @@ export default function InvoiceDashboard() {
                   />
                 </div>
               ) : null}
-
-              <div style={shell.itemSection}>
+ </CRMFormStep>
+ <CRMFormStep title="Services & Pricing" description="Services, periods, taxes and totals" icon={Layers3}>
+  <div style={shell.itemSection}>
                 <div style={itemTableWrapStyle}>
                   <table style={itemTableStyle}>
                     <thead>
@@ -4564,7 +4545,7 @@ export default function InvoiceDashboard() {
                                   style={compactItemInputStyle}
                                   value={line.itemId}
                                   onChange={(event) => handleItemSelect(index, event.target.value)}
-                                >
+                                 aria-label="Item / Service" >
                                   <option value="">Type or click to select an item.</option>
                                   {sortedItemsCatalog.map((item) => (
                                     <option key={item._id} value={item._id}>{item.name}</option>
@@ -4575,13 +4556,13 @@ export default function InvoiceDashboard() {
                                   placeholder="Frequency"
                                   value={line.frequency || ''}
                                   onChange={(event) => updateLine(index, { frequency: event.target.value })}
-                                />
+                                 aria-label="Frequency / Description" />
                                 <span style={shell.tinyText}>
                                   {line.itemType?.toUpperCase() || 'SERVICE'} SAC: {line.sac || '-'}
                                 </span>
-	                                <div style={itemMetaGridStyle}>
+	                                <div className="crm-wizard-line-meta" style={itemMetaGridStyle}>
 	                                  <div style={itemMetaFieldStyle}>
-	                                    <span style={itemMetaLabelStyle}>Service Relationship</span>
+	                                    <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Service Relationship</span>
 	                                    <select
 	                                      style={compactItemMetaInputStyle}
 	                                      value={line.serviceRelationshipType || 'ONE_TIME'}
@@ -4589,7 +4570,7 @@ export default function InvoiceDashboard() {
 	                                        serviceRelationshipType: event.target.value,
 	                                        renewalEligible: event.target.value === 'CONTRACT'
 	                                      })}
-	                                    >
+	                                     aria-label="Service Relationship" >
 	                                      {line.serviceRelationshipType && !serviceRelationshipOptions.some((option) => option.value === line.serviceRelationshipType) ? (
 	                                        <option value={line.serviceRelationshipType} disabled hidden>Existing relationship (unchanged)</option>
 	                                      ) : null}
@@ -4599,12 +4580,12 @@ export default function InvoiceDashboard() {
 	                                    </select>
 	                                  </div>
 	                                  <div style={itemMetaFieldStyle}>
-	                                    <span style={itemMetaLabelStyle}>Contract Period</span>
+	                                    <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Contract Period</span>
                                     <select
                                       style={compactItemMetaInputStyle}
                                       value={line.contractPeriod || ''}
                                       onChange={(event) => updateLine(index, { contractPeriod: event.target.value })}
-                                    >
+                                     aria-label="Contract Period" >
                                       <option value="">Select period</option>
                                       {contractPeriodOptions.map((option) => (
                                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -4612,7 +4593,7 @@ export default function InvoiceDashboard() {
                                     </select>
                                   </div>
                                   <div style={itemMetaFieldStyle}>
-                                    <span style={itemMetaLabelStyle}>Contract Start Date</span>
+                                    <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Contract Start Date</span>
                                     <CompactCalendarDateInput
                                       style={compactContractDateInputStyle}
                                       value={line.contractStartDate || ''}
@@ -4621,7 +4602,7 @@ export default function InvoiceDashboard() {
                                     />
                                   </div>
 	                                  <div style={itemMetaFieldStyle}>
-	                                    <span style={itemMetaLabelStyle}>Contract End Date</span>
+	                                    <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Contract End Date</span>
                                     <CompactCalendarDateInput
                                       style={compactContractDateInputStyle}
                                       value={line.contractEndDate || ''}
@@ -4632,7 +4613,7 @@ export default function InvoiceDashboard() {
 	                                  {line.serviceRelationshipType === 'CONTRACT' ? (
 	                                    <>
 	                                      <div style={itemMetaFieldStyle}>
-	                                        <span style={itemMetaLabelStyle}>Renewal Eligible</span>
+	                                        <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Renewal Eligible</span>
 	                                        <select
 	                                          style={compactItemMetaInputStyle}
 	                                          value={line.renewalEligible ? 'yes' : 'no'}
@@ -4645,7 +4626,7 @@ export default function InvoiceDashboard() {
 	                                    </>
 	                                  ) : null}
 	                                  <div style={itemMetaFieldStyle}>
-	                                    <span style={itemMetaLabelStyle}>Renewal Date</span>
+	                                    <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Renewal Date</span>
                                     <CompactCalendarDateInput
                                       style={compactContractDateInputStyle}
                                       value={line.renewalDate || ''}
@@ -4654,12 +4635,12 @@ export default function InvoiceDashboard() {
                                     />
                                   </div>
                                   <div style={itemMetaFieldStyle}>
-                                    <span style={itemMetaLabelStyle}>Service Frequency</span>
+                                    <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Service Frequency</span>
                                     <select
                                       style={compactItemMetaInputStyle}
                                       value={line.serviceFrequency || ''}
                                       onChange={(event) => updateLine(index, { serviceFrequency: event.target.value })}
-                                    >
+                                     aria-label="Service Frequency" >
                                       <option value="">Select frequency</option>
                                       {serviceFrequencyOptions.map((option) => (
                                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -4667,31 +4648,31 @@ export default function InvoiceDashboard() {
                                     </select>
                                   </div>
                                   <div style={itemMetaFieldStyle}>
-                                    <span style={itemMetaLabelStyle}>Preferred Day</span>
+                                    <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Preferred Day</span>
                                     <select
                                       style={compactItemMetaInputStyle}
                                       value={line.serviceWeekday || ''}
                                       onChange={(event) => updateLine(index, { serviceWeekday: event.target.value })}
-                                    >
+                                     aria-label="Preferred Day" >
                                       {serviceSchedulePreferredDayOptions.map((option) => (
                                         <option key={option.value} value={option.value}>{option.label}</option>
                                       ))}
                                     </select>
                                   </div>
                                   <div style={itemMetaFieldStyle}>
-                                    <span style={itemMetaLabelStyle}>Total Services</span>
+                                    <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Total Services</span>
                                     <input
                                       style={compactItemMetaInputStyle}
                                       value={line.totalServices || ''}
                                       readOnly
-                                    />
+                                     aria-label="Total Services" />
                                   </div>
                                 </div>
                                 {isMobile ? (
                                   <>
-                                    <div style={mobileItemInlineGridStyle}>
+                                    <div className="crm-wizard-line-numbers" style={mobileItemInlineGridStyle}>
                                       <div style={itemMetaFieldStyle}>
-                                        <span style={itemMetaLabelStyle}>Quantity</span>
+                                        <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Quantity</span>
                                         <input
                                           style={{ ...compactItemMetaInputStyle, ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
                                           type="text"
@@ -4699,10 +4680,10 @@ export default function InvoiceDashboard() {
                                           pattern="[0-9]*[.,]?[0-9]*"
                                           value={line.quantity}
                                           onChange={(event) => updateLine(index, { quantity: sanitizeDecimalInput(event.target.value) })}
-                                        />
+                                         aria-label="Quantity" />
                                       </div>
                                       <div style={itemMetaFieldStyle}>
-                                        <span style={itemMetaLabelStyle}>Rate</span>
+                                        <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Rate</span>
                                         <input
                                           style={compactItemMetaInputStyle}
                                           type="text"
@@ -4710,26 +4691,26 @@ export default function InvoiceDashboard() {
                                           pattern="[0-9]*[.,]?[0-9]*"
                                           value={line.rate}
                                           onChange={(event) => updateLine(index, { rate: sanitizeDecimalInput(event.target.value) })}
-                                        />
+                                         aria-label="Rate" />
                                       </div>
                                     </div>
-                                    <div style={mobileItemInlineGridStyle}>
+                                    <div className="crm-wizard-line-numbers" style={mobileItemInlineGridStyle}>
                                       <div style={itemMetaFieldStyle}>
-                                        <span style={itemMetaLabelStyle}>Tax</span>
+                                        <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Tax</span>
                                         <select
                                           style={compactItemMetaInputStyle}
                                           value={line.taxRate}
                                           onChange={(event) => updateLine(index, { taxRate: event.target.value })}
                                           disabled={form.invoiceType === 'NON GST'}
-                                        >
+                                         aria-label="Tax Rate" >
                                           {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
                                             <option key={tax} value={String(tax)}>{tax}%</option>
                                           ))}
                                         </select>
                                       </div>
                                       <div style={itemMetaFieldStyle}>
-                                        <span style={itemMetaLabelStyle}>Amount</span>
-                                        <div style={amountActionRowStyle}>
+                                        <span className="crm-wizard-meta-label" style={itemMetaLabelStyle}>Amount</span>
+                                        <div className="crm-wizard-line-amount" style={amountActionRowStyle}>
                                           <div style={compactItemAmountBoxStyle}>
                                             <strong style={compactItemAmountValueStyle}>{formatINR(amount)}</strong>
                                           </div>
@@ -4753,7 +4734,7 @@ export default function InvoiceDashboard() {
                                     pattern="[0-9]*[.,]?[0-9]*"
                                     value={line.quantity}
                                     onChange={(event) => updateLine(index, { quantity: sanitizeDecimalInput(event.target.value) })}
-                                  />
+                                   aria-label="Quantity" />
                                 </td>
                                 <td style={numericItemCellStyle}>
                                   <input
@@ -4763,7 +4744,7 @@ export default function InvoiceDashboard() {
                                     pattern="[0-9]*[.,]?[0-9]*"
                                     value={line.rate}
                                     onChange={(event) => updateLine(index, { rate: sanitizeDecimalInput(event.target.value) })}
-                                  />
+                                   aria-label="Rate" />
                                 </td>
                                 <td style={numericItemCellStyle}>
                                   <select
@@ -4771,14 +4752,14 @@ export default function InvoiceDashboard() {
                                     value={line.taxRate}
                                     onChange={(event) => updateLine(index, { taxRate: event.target.value })}
                                     disabled={form.invoiceType === 'NON GST'}
-                                  >
+                                   aria-label="Tax Rate" >
                                     {(form.invoiceType === 'NON GST' ? [0] : taxOptions).map((tax) => (
                                       <option key={tax} value={String(tax)}>{tax}%</option>
                                     ))}
                                   </select>
                                 </td>
                                 <td style={{ ...numericItemCellStyle, fontWeight: 700, verticalAlign: 'top' }}>
-                                  <div style={amountActionRowStyle}>
+                                  <div className="crm-wizard-line-amount" style={amountActionRowStyle}>
                                     <div style={compactItemAmountBoxStyle}>
                                       <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
                                     </div>
@@ -4795,12 +4776,9 @@ export default function InvoiceDashboard() {
                     </tbody>
                   </table>
                 </div>
-              </div>
-              <div style={shell.itemActionsRow}>
+              </div><div style={shell.itemActionsRow}>
                 <button type="button" style={shell.addRowBtn} onClick={addLine}>Add New Row</button>
-              </div>
-
-              <div style={totalsWrapStyle}>
+              </div><div style={totalsWrapStyle}>
                 <div style={shell.totalRow}><span>Sub Total</span><strong>{formatINR(form.subtotal)}</strong></div>
                 {form.invoiceType === 'GST' ? (
                   <div style={shell.gstRowsWrap}>
@@ -4828,7 +4806,7 @@ export default function InvoiceDashboard() {
                     pattern="[0-9]*[.,]?[0-9]*"
                     value={form.discount}
                     onChange={(event) => setFormWithTotals((prev) => ({ ...prev, discount: sanitizeDecimalInput(event.target.value) }))}
-                  />
+                   aria-label="Discount" />
                 </div>
                 <div style={shell.totalRow}>
                   <span>Round Off</span>
@@ -4839,15 +4817,31 @@ export default function InvoiceDashboard() {
                     pattern="[+-]?[0-9]*[.,]?[0-9]*"
                     value={form.roundOff}
                     onChange={(event) => setFormWithTotals((prev) => ({ ...prev, roundOff: sanitizeSignedDecimalInput(event.target.value) }))}
-                  />
+                   aria-label="Round Off" />
                 </div>
                 <div style={shell.totalSummaryRow}>
                   <span style={shell.totalLast}>Total ( ₹ )</span>
                   <strong style={shell.totalLast}>{formatINR(form.total)}</strong>
                 </div>
               </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+ </CRMFormStep>
+ <CRMFormStep title="Contract Schedule & Terms" description="Payment terms, service dates and allocations" icon={CalendarDays}>
+  <div className="crm-wizard-field-grid"><CRMFormField label="Terms"><select
+                  style={compactContractControlStyle}
+                  value={form.terms}
+                  onChange={(event) => handleTermsChange(event.target.value)}
+                 aria-label="Terms" >
+                  {termsOptions.map((terms) => (
+                    <option key={terms} value={terms}>{terms}</option>
+                  ))}
+                </select></CRMFormField>
+<CRMFormField label="Due Date"><CompactCalendarDateInput
+                  style={compactContractDateStyle}
+                  value={form.dueDate}
+                  onChange={(event) => setFormWithTotals((prev) => ({ ...prev, dueDate: event.target.value }))}
+                  ariaLabel="due date"
+                /></CRMFormField>
+</div><div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={shell.label}>Terms & Conditions</label>
                   <textarea
@@ -4855,7 +4849,7 @@ export default function InvoiceDashboard() {
                     placeholder="Enter the terms and conditions of your business"
                     value={form.termsAndConditions}
                     onChange={(event) => setFormWithTotals((prev) => ({ ...prev, termsAndConditions: event.target.value, termsAndConditionsEdited: true }))}
-                  />
+                   aria-label="Terms & Conditions" />
                   {!editingId && settingsHydrated && String(form.termsAndConditions || '').trim() && String(form.termsAndConditions || '').trim() === getDefaultTermsForInvoiceType(form.invoiceType) ? (
                     <span style={shell.helperText}>Loaded from Settings</span>
                   ) : null}
@@ -4951,7 +4945,7 @@ export default function InvoiceDashboard() {
                                     style={shell.paymentInput}
                                     value={split.mode || 'Cheque'}
                                     onChange={(event) => updatePaymentSplit(index, { mode: event.target.value })}
-                                  >
+                                   aria-label="Payment Mode" >
                                     {paymentModeOptions.map((mode) => (
                                       <option key={mode} value={mode}>{mode}</option>
                                     ))}
@@ -4976,7 +4970,7 @@ export default function InvoiceDashboard() {
                                     style={{ ...shell.paymentInput, textAlign: 'right' }}
                                     value={split.amount ?? '0'}
                                     onChange={(event) => updatePaymentSplit(index, { amount: sanitizeDecimalInput(event.target.value) })}
-                                  />
+                                   aria-label="Amount Received" />
                                 </td>
                               </tr>
                             ))}
@@ -5010,42 +5004,17 @@ export default function InvoiceDashboard() {
                   ) : null}
                 </div>
               </div>
-            </div>
-            </fieldset>
-
-            <div className={[`crm-modal-surface-footer${isMobile ? ' crm-modal-surface-footer-compact' : ''}`, "crm-modal-surface-footer"].filter(Boolean).join(' ')} style={modalFooterStyle}>
-              {saveError ? (
-                <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
-                  {saveError}
-                </div>
-              ) : null}
-              <button
-                type="button"
-                style={isMobile ? { ...shell.cancelButton, width: '100%' } : shell.cancelButton}
-                onClick={closeInvoiceModal}
-              >
-                {contractViewOnly ? 'Close' : 'Cancel'}
-              </button>
-              {contractViewOnly ? (
-                <button
-                  type="button"
-                  style={isMobile ? { ...shell.saveButton, width: '100%' } : shell.saveButton}
-                  onClick={openContractForEditing}
-                >
-                  Edit Contract
-                </button>
-              ) : null}
-              {contractViewOnly ? null : (
-                <button data-modal-primary="true"
-                  type="submit"
-                  style={isMobile ? { ...shell.saveButton, width: '100%' } : shell.saveButton}
-                  disabled={isSaving}
-                >
-                  {isSaving ? 'Saving...' : editingId ? 'Update Contract' : 'Save Contract'}
-                </button>
-              )}
-            </div>
-          </form>
+ </CRMFormStep>
+ <CRMFormStep title="Review & Save" description="Review actual contract values and schedule" icon={ClipboardCheck}>
+  <CRMFormReview groups={[
+   {title:'Customer & Contract Details',fields:[['Customer',form.customerName],['Customer Type',form.customerType],['Invoice Number',form.invoiceNumber],['Invoice Type',form.invoiceType],['Date',form.date],['Salesperson',form.salesperson],['Place of Supply',form.placeOfSupply],['Lead Source',form.leadSource],['Billing Address',getAddressDisplayText(selectedBillingAddress,form.billingAddressText)],['Shipping Address',getAddressDisplayText(selectedShippingAddress,form.shippingAddressText || form.premiseAddress)]]},
+   {title:'GST & Final Amount',fields:[['Subtotal',formatINR(form.subtotal)],['GST',formatINR(form.totalTax)],...(form.invoiceType === 'GST' ? [['CGST',formatINR(gstDisplay.cgstAmount)],['SGST',formatINR(gstDisplay.sgstAmount)]] : []),...(Number(form.withholdingAmount || 0) ? [['Withholding',formatINR(form.withholdingAmount)]] : []),['Discount',formatINR(form.discount)],['Round Off',form.roundOff],['Final Payable',formatINR(form.total)],['Amount Received',formatINR(paymentSummary.receivedAmount)],['Balance Due',formatINR(form.balanceDue)]]},
+   {title:'Terms',fields:[['Payment Terms',form.terms],['Due Date',form.dueDate],['Terms & Conditions',form.termsAndConditions]]}
+  ]} />
+  <section className="crm-wizard-review-lines"><h4>Itemized Services</h4>{form.items.filter(line => line.itemName && parseDecimalNumber(line.quantity,0) > 0).map((line,index) => <CRMFormReview key={index} groups={[{title:line.itemName,fields:[['Description',line.frequency || line.description],['Quantity',line.quantity],['Rate',formatINR(line.rate)],['Tax Rate',form.invoiceType === 'NON GST' ? '0%' : String(line.taxRate) + '%'],['Line Total',formatINR(computeTotals([line],form.invoiceType).total)],['Relationship',line.serviceRelationshipType],['Start',line.contractStartDate],['End',line.contractEndDate],['Total Services',line.totalServices],['Preferred Day',serviceSchedulePreferredDayOptions.find(option => option.value === line.serviceWeekday)?.label || line.serviceWeekday],['Service Frequency',serviceFrequencyOptions.find(option => option.value === line.serviceFrequency)?.label || line.serviceFrequency],['Contract Period',contractPeriodOptions.find(option => option.value === line.contractPeriod)?.label || line.contractPeriod]]}]} />)}</section>
+  <section className="crm-wizard-review-lines"><h4>Schedule Preview</h4>{(Array.isArray(serviceScheduleRows) && serviceScheduleRows.length > 0 ? serviceScheduleRows : liveMultiItemScheduleRows).map((row,index) => <div className="crm-wizard-schedule-row" key={index}><strong>{row.itemName}</strong><span>{row.serviceDate} {row.serviceTime}</span><span>{row.status || 'Scheduled'}</span></div>)}</section>
+ </CRMFormStep>
+</CRMFormModal>
         </div>,
         document.body
       ) : null}

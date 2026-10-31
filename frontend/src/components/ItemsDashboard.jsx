@@ -1,3 +1,7 @@
+import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
+import { CRMFormField } from './ui/CRMForm';
+import { Package, FileText, Receipt, ClipboardCheck } from 'lucide-react';
+import '../styles/crmFourWizards.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
@@ -738,6 +742,8 @@ export default function ItemsDashboard() {
     setShowMoreMenu(false);
   };
 
+  const validateWizardStep = (step) => step === 0 && !form.name.trim() ? {message:'Item name is required.',field:'Name'} : null;
+
   const handleAddItem = async (event) => {
     event.preventDefault();
     if (!form.name.trim()) return;
@@ -1003,21 +1009,30 @@ export default function ItemsDashboard() {
 
       {showAddModal ? createPortal(
         <div style={shell.modalOverlay}>
-          <form role="dialog" aria-modal="true" className="crm-modal-surface" style={modalStyle} onSubmit={handleAddItem}>
-            <div className="crm-modal-surface-header" style={modalHeaderStyle}>
-              <h3 style={shell.modalHeaderTitle}>{editingItemId ? 'Edit Item' : 'New Item'}</h3>
-              <CRMModalCloseButton type="button" style={shell.modalCloseButton} onClick={() => {
+          <CRMFormModal className="crm-four-wizard item-form-wizard" style={modalStyle}
+ title={editingItemId ? 'Edit Item' : 'New Item'} subtitle="Manage item and service information." icon={Package}
+ onClose={() => {
                   setShowAddModal(false);
                   setEditingItemId(null);
                   setSaveError('');
                   setForm(emptyForm);
-                }} aria-label="Close" />
-            </div>
-
-            <div className="crm-modal-surface-body" style={shell.formContent}>
-              <div style={topGridStyle}>
-                <label style={shell.label}>Type</label>
-                <div style={shell.typeRadios}>
+                }} onSubmit={handleAddItem} validateStep={validateWizardStep} busy={isSaving} error={saveError} trackSubmission inlineErrors associateLabels dirtyKey={JSON.stringify(form)}
+ cancelAction={<button
+                type="button"
+                style={shell.cancelButton}
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingItemId(null);
+                  setSaveError('');
+                  setForm(emptyForm);
+                }}
+              >
+                Cancel
+              </button>} submitAction={<button data-modal-primary="true"    type="submit" style={shell.saveButton} disabled={isSaving}>
+                {isSaving ? 'Saving...' : editingItemId ? 'Update Item' : 'Save Item'}
+              </button>}>
+ <CRMFormStep title="Basic Information" description="Item type and identification" icon={Package}>
+  <div className="crm-wizard-field-grid"><CRMFormField label="Type"><div style={shell.typeRadios}>
                   <label>
                     <input
                       type="radio"
@@ -1036,95 +1051,58 @@ export default function ItemsDashboard() {
                     />{' '}
                     Service
                   </label>
-                </div>
-
-                <label style={{ ...shell.label, ...shell.requiredLabel }}>Name*</label>
-                <input style={shell.input} required value={form.name} onChange={(event) => updateForm('name', event.target.value)} />
-
-                {form.itemType === 'service' ? (
-                  <>
-                    <label style={shell.label}>About Pest</label>
-                    <textarea
-                      style={shell.textArea}
-                      value={form.aboutPest}
-                      onChange={(event) => updateForm('aboutPest', event.target.value)}
-                    />
-
-                    <label style={shell.label}>Pests Covered</label>
-                    <input
-                      style={shell.input}
-                      value={form.pestsCovered}
-                      onChange={(event) => updateForm('pestsCovered', event.target.value)}
-                    />
-
-                    <label style={shell.label}>Treatment Methodology</label>
-                    <input
-                      style={shell.input}
-                      value={form.treatmentMethod}
-                      onChange={(event) => updateForm('treatmentMethod', event.target.value)}
-                    />
-
-                    <label style={shell.label}>Service Description</label>
-                    <textarea
-                      style={shell.textArea}
-                      value={form.serviceDescription}
-                      onChange={(event) => updateForm('serviceDescription', event.target.value)}
-                    />
-
-                    <label style={shell.label}>Frequency</label>
-                    <input
-                      style={shell.input}
-                      value={form.frequency}
-                      onChange={(event) => updateForm('frequency', event.target.value)}
-                    />
-
-                    <label style={shell.label}>What We Do?</label>
-                    <textarea
-                      style={shell.textArea}
-                      value={form.whatWeDo}
-                      onChange={(event) => updateForm('whatWeDo', event.target.value)}
-                    />
-                  </>
-                ) : null}
-
-                <label style={shell.label}>Unit</label>
-                <select style={shell.input} value={form.unit} onChange={(event) => updateForm('unit', event.target.value)}>
+                </div></CRMFormField><CRMFormField label="Name*"><input style={shell.input} required value={form.name} onChange={(event) => updateForm('name', event.target.value)} /></CRMFormField><CRMFormField label="Unit"><select style={shell.input} value={form.unit} onChange={(event) => updateForm('unit', event.target.value)}>
                   {units.map((unit) => (
                     <option key={unit.value} value={unit.value}>{unit.label}</option>
                   ))}
-                </select>
-
-                <label style={shell.label}>SAC</label>
-                <div style={{ display: 'block' }}>
+                </select></CRMFormField></div>
+ </CRMFormStep>
+ <CRMFormStep title="Service / Product Details" description="Description and treatment information" icon={FileText}>
+  {form.itemType === 'service' ? <div className="crm-wizard-field-grid"><CRMFormField label="About Pest"><textarea
+                      style={shell.textArea}
+                      value={form.aboutPest}
+                      onChange={(event) => updateForm('aboutPest', event.target.value)}
+                    /></CRMFormField>
+<CRMFormField label="Pests Covered"><input
+                      style={shell.input}
+                      value={form.pestsCovered}
+                      onChange={(event) => updateForm('pestsCovered', event.target.value)}
+                    /></CRMFormField>
+<CRMFormField label="Treatment Methodology"><input
+                      style={shell.input}
+                      value={form.treatmentMethod}
+                      onChange={(event) => updateForm('treatmentMethod', event.target.value)}
+                    /></CRMFormField>
+<CRMFormField label="Service Description"><textarea
+                      style={shell.textArea}
+                      value={form.serviceDescription}
+                      onChange={(event) => updateForm('serviceDescription', event.target.value)}
+                    /></CRMFormField>
+<CRMFormField label="Frequency"><input
+                      style={shell.input}
+                      value={form.frequency}
+                      onChange={(event) => updateForm('frequency', event.target.value)}
+                    /></CRMFormField>
+<CRMFormField label="What We Do?"><textarea
+                      style={shell.textArea}
+                      value={form.whatWeDo}
+                      onChange={(event) => updateForm('whatWeDo', event.target.value)}
+                    /></CRMFormField>
+</div> : <p className="crm-wizard-summary-note">No additional service details are needed for goods.</p>}
+ </CRMFormStep>
+ <CRMFormStep title="Pricing & Tax" description="Tax classification details" icon={Receipt}>
+  <div className="crm-wizard-field-grid"><CRMFormField label="SAC"><div style={{ display: 'block' }}>
                   <input style={shell.input} value={form.sac} onChange={(event) => updateForm('sac', event.target.value)} />
-                </div>
-              </div>
-
-            </div>
-
-            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
-              {saveError ? (
-                <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>
-                  {saveError}
-                </div>
-              ) : null}
-              <button
-                type="button"
-                style={shell.cancelButton}
-                onClick={() => {
-                  setShowAddModal(false);
-                  setEditingItemId(null);
-                  setSaveError('');
-                  setForm(emptyForm);
-                }}
-              >
-                Cancel
-              </button>
-              <button data-modal-primary="true"    type="submit" style={shell.saveButton} disabled={isSaving}>
-                {isSaving ? 'Saving...' : editingItemId ? 'Update Item' : 'Save Item'}
-              </button>
-            </div>
-          </form>
+                </div></CRMFormField></div>
+ </CRMFormStep>
+ <CRMFormStep title="Review & Save" description="Check item details before saving" icon={ClipboardCheck}>
+  <CRMFormReview groups={[
+   {title:'Basic Information',fields:[['Type',form.itemType === 'service' ? 'Service' : 'Goods'],['Name',form.name],['Unit',form.unit]]},
+   ...(form.itemType === 'service' ? [{title:'Service Details',fields:[['About Pest',form.aboutPest],['Pests Covered',form.pestsCovered],['Treatment Methodology',form.treatmentMethod],['Service Description',form.serviceDescription],['Frequency',form.frequency],['What We Do?',form.whatWeDo]]}] : []),
+   {title:'Pricing & Tax',fields:[['SAC / HSN',form.sac],['Rate',form.rate]]}
+  ]} />
+ </CRMFormStep>
+</CRMFormModal>
         </div>,
         document.body
       ) : null}
