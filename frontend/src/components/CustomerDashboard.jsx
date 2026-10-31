@@ -1,9 +1,17 @@
+import AppButton from './ui/AppButton';
+import EmptyState from './ui/EmptyState';
+import { LoadingState, ErrorState } from './ui/PortalPrimitives';
+import AppCard from './ui/AppCard';
+import StatusBadge from './ui/StatusBadge';
+import RecordAvatar from './ui/RecordAvatar';
+import '../styles/glassContent.css';
+import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import useColumnResize from './table/useColumnResize';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AlertTriangle, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X, UserRoundPlus, Building2, MapPin, FileText, ClipboardCheck } from 'lucide-react';
+import { Download, RefreshCw, Users, Pencil, Trash2, AlertTriangle, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Search, Settings, X, UserRoundPlus, Building2, MapPin, FileText, ClipboardCheck } from 'lucide-react';
 import CustomerImportDedupWizard from './CustomerImportDedupWizard';
 import CustomerPremisesPanel from './CustomerPremisesPanel';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
@@ -660,6 +668,7 @@ export default function CustomerDashboard() {
   const location = useLocation();
   const cachedCustomerState = useMemo(() => readCustomerDashboardCache(), []);
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [customerLoadState, setCustomerLoadState] = useState('ready');
   const [customers, setCustomers] = useState(() => cachedCustomerState?.customers || []);
   const [invoices, setInvoices] = useState(() => cachedCustomerState?.invoices || []);
   const [payments, setPayments] = useState(() => cachedCustomerState?.payments || []);
@@ -799,14 +808,17 @@ export default function CustomerDashboard() {
   const loadCustomers = async (options = {}) => {
     if (customersLoadRef.current) return;
     customersLoadRef.current = true;
+    setCustomerLoadState('loading');
     try {
       const res = await axios.get(`${API_BASE_URL}/api/customers`);
       const nextCustomers = sanitizeCustomerRows(res.data);
       setCustomers(nextCustomers);
+      setCustomerLoadState('ready');
       if (!options.preserveSelection) setSelectedIds([]);
       writeCustomerDashboardCache({ customers: nextCustomers, visibleColumns });
     } catch (error) {
       console.error('Failed to load customers', error);
+      setCustomerLoadState('error');
       setCustomers([]);
       if (!options.preserveSelection) setSelectedIds([]);
     } finally {
@@ -1353,7 +1365,9 @@ export default function CustomerDashboard() {
     }
     const width = getColumnWidth(columnKey);
     if (!width) return {};
-    return { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` };
+    // Preserve saved width proportions while fitting desktop columns and actions.
+    const totalWidth = visibleColumnDefs.reduce((sum, column) => sum + (getColumnWidth(column.key) || 120), 0);
+    return { width: `calc((100% - 190px) * ${width / Math.max(totalWidth, 1)})`, minWidth: 0 };
   };
 
   const copyBillingToShipping = (source) => ({
@@ -2830,34 +2844,14 @@ export default function CustomerDashboard() {
   };
 
   return (
-    <section className="crm-page crm-section customer-dashboard-page" style={shell.page}>
-      <div data-page-toolbar="true" style={topbarStyle}>
-        <div style={shell.titleWrap}>
-          <h1 style={titleStyle}>Active Customers</h1>
-        </div>
-        <div style={{ width: '100%', minWidth: 0, justifySelf: isMobile ? 'stretch' : 'center' }}>
-          <div style={customerSearchBarStyle}>
-            <Search size={14} style={customerSearchIconStyle} />
-            <input
-              type="search"
-              style={customerSearchInputStyle}
-              value={customerSearchInput}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                setCustomerSearchInput(nextValue);
-                setCustomerSearchQuery(nextValue.trim());
-                setCurrentPage(1);
-              }}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter') return;
-                event.preventDefault();
-                applyCustomerSearch();
-              }}
-              placeholder="Search company, contact, display name, mobile, alt number, email, or GST"
-            />
-          </div>
+    <section className="crm-page crm-section customer-dashboard-page glass-content" style={shell.page}>
+      <div className="portal-page-toolbar glass-header" data-page-toolbar="true" style={topbarStyle}>
+        <div className="portal-page-title-slot" style={shell.titleWrap}>
+          <PageHeaderTitle kind="customers" title="Active Customers" subtitle="Manage customer contacts, addresses and service premises." />
         </div>
         <div style={topActionsStyle}>
+          <AppButton variant="outline" size="sm" aria-label="Refresh customers" iconLeft={<RefreshCw size={14} />} loading={customerLoadState === 'loading'} onClick={() => loadCustomers()}>Refresh</AppButton>
+          <AppButton variant="outline" size="sm" aria-label="Export customers" iconLeft={<Download size={14} />} onClick={exportData}>Export</AppButton>
           <button type="button" style={primaryButtonStyle} onClick={openNewForm}>
             <Plus size={16} />
             New Customer
@@ -2865,57 +2859,16 @@ export default function CustomerDashboard() {
           <button
             ref={moreMenuButtonRef}
             type="button"
-            style={toolbarIconButtonStyle}
+            className="portal-toolbar-icon-button" style={toolbarIconButtonStyle}
             aria-label="More options"
             onClick={openMoreMenu}
           >
             <MoreHorizontal size={14} />
           </button>
-          {!isMobile ? (
-            <div style={{ position: 'relative' }}>
-              <button
-                ref={customizeButtonRef}
-                type="button"
-                style={toolbarIconButtonStyle}
-                aria-label="Customize fields"
-                title="Customize fields"
-                onClick={() => setShowCustomize((prev) => !prev)}
-              >
-                <Settings size={14} />
-              </button>
-              {showCustomize ? (
-                <div ref={customizePanelRef} style={shell.popover}>
-                  <div style={shell.popoverHeader}>Show/Hide Columns</div>
-                  <div style={shell.popoverBody}>
-                    <button
-                      type="button"
-                      style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
-                      onClick={() => {
-                        setVisibleColumns(defaultVisibleColumns);
-                        resetCustomerColumns();
-                      }}
-                    >
-                      Reset Default Columns
-                    </button>
-                    {allColumns.map((column) => (
-                      <label key={column.key} style={shell.popoverItem}>
-                        <input
-                          type="checkbox"
-                          checked={visibleColumns.includes(column.key)}
-                          onChange={() => toggleColumn(column.key)}
-                        />
-                        {column.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
           {showMoreMenu && moreMenuPosition ? (
             <div
               ref={moreMenuRef}
-              className="crm-action-menu-panel"
+              className="crm-action-menu-panel glass-menu"
               style={{
                 ...shell.menu,
                 left: `${moreMenuPosition.left}px`,
@@ -2988,8 +2941,79 @@ export default function CustomerDashboard() {
           ) : null}
         </div>
       </div>
-      <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped">
-        <table style={tableStyle} className="crm-compact-table crm-readable-mobile-table">
+      <AppCard className="glass-surface glass-search-panel" bodyStyle={{ padding: 14 }} style={{ overflow: 'visible' }}>
+        <ErrorState message={customerLoadState === 'error' ? 'Could not load customers. Use Refresh to retry.' : ''} />
+        <label className="glass-field-label" htmlFor="customer-search">Search customers</label>
+        <div style={{ width: '100%', minWidth: 0, justifySelf: isMobile ? 'stretch' : 'center' }}>
+          <div className="glass-search-control" style={customerSearchBarStyle}>
+            <Search size={14} style={customerSearchIconStyle} />
+            <input
+              id="customer-search"
+              type="search"
+              style={customerSearchInputStyle}
+              value={customerSearchInput}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setCustomerSearchInput(nextValue);
+                setCustomerSearchQuery(nextValue.trim());
+                setCurrentPage(1);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                applyCustomerSearch();
+              }}
+              placeholder="Search company, contact, display name, mobile, alt number, email, or GST"
+            />
+          </div>
+        </div>
+      </AppCard>
+      <AppCard className="glass-surface glass-table-panel" style={{ overflow: 'visible' }} bodyStyle={{ padding: 0 }}
+        title={<span className="glass-panel-title"><Users size={18} aria-hidden="true" />Customers <small>{sortedCustomers.length} records</small></span>}
+        action={<div className="glass-table-tools">          {!isMobile ? (
+            <div style={{ position: 'relative' }}>
+              <button
+                ref={customizeButtonRef}
+                type="button"
+                className="portal-toolbar-icon-button glass-columns-trigger" style={toolbarIconButtonStyle}
+                aria-label="Customize fields"
+                title="Customize fields"
+                onClick={() => setShowCustomize((prev) => !prev)}
+              >
+                <Settings size={14} /><span>Columns</span>
+              </button>
+              {showCustomize ? (
+                <div ref={customizePanelRef} className="glass-columns-menu" style={shell.popover}>
+                  <div style={shell.popoverHeader}>Show/Hide Columns</div>
+                  <div style={shell.popoverBody}>
+                    <button
+                      type="button"
+                      style={{ ...shell.menuButton, border: '1px solid var(--color-border)', borderRadius: '8px', justifyContent: 'center' }}
+                      onClick={() => {
+                        setVisibleColumns(defaultVisibleColumns);
+                        resetCustomerColumns();
+                      }}
+                    >
+                      Reset Default Columns
+                    </button>
+                    {allColumns.map((column) => (
+                      <label key={column.key} style={shell.popoverItem}>
+                        <input
+                          type="checkbox"
+                          checked={visibleColumns.includes(column.key)}
+                          onChange={() => toggleColumn(column.key)}
+                        />
+                        {column.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+</div>}>
+      <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped" aria-busy={customerLoadState === 'loading'}>
+        <table style={{ ...tableStyle, '--glass-column-count': visibleColumnDefs.length }} className="crm-compact-table crm-readable-mobile-table portal-data-table">
           <thead>
             <tr>
               <th style={{ ...shell.headCell, ...shell.checkboxWrap, ...(isMobile ? { width: '56px', minWidth: '56px', maxWidth: '56px' } : {}) }}>
@@ -3022,7 +3046,7 @@ export default function CustomerDashboard() {
             {paginatedCustomers.length === 0 ? (
               <tr style={shell.row}>
                 <td style={{ ...shell.cell, textAlign: 'center', color: '#64748b' }} colSpan={visibleColumnDefs.length + 2}>
-                  No customers found.
+                  {customerLoadState === 'loading' ? <LoadingState message="Loading customers…" /> : customerLoadState === 'error' ? <EmptyState title="Customer list unavailable" message="Use Refresh above to try again." /> : <EmptyState title="No customers found." message="Try another search, or add a customer." />}
                 </td>
               </tr>
             ) : null}
@@ -3058,20 +3082,26 @@ export default function CustomerDashboard() {
                     }
                     title={String(handleCellValue(customer, column.key) || '')}
                   >
-                    {column.key === 'name' && isMobile ? (
-                      <div style={shell.customerNameStack}>
+                    {column.key === 'name' ? (
+                      <div className="glass-record-name">
+                        <RecordAvatar name={handleCellValue(customer, column.key)} />
+                        <div className="glass-record-label">{isMobile ? (
+<div style={shell.customerNameStack}>
                         <div style={shell.customerNamePrimary}>{handleCellValue(customer, column.key)}</div>
                         <div style={shell.customerNameMobile}>{formatIndianMobileNumber(customer.mobileNumber || customer.workPhone || '') || '-'}</div>
                       </div>
-                    ) : (
-                      handleCellValue(customer, column.key)
-                    )}
+                        ) : handleCellValue(customer, column.key)}</div>
+                      </div>
+                    ) : column.key === 'segment' && handleCellValue(customer, column.key) && handleCellValue(customer, column.key) !== '-' ? (
+                      <StatusBadge status="info">{handleCellValue(customer, column.key)}</StatusBadge>
+                    ) : handleCellValue(customer, column.key)}
                   </td>
                 ))}
                 <td style={{ ...shell.cell, whiteSpace: 'nowrap' }}>
+                  <div className="glass-row-actions">
                   <button
                     type="button"
-                    className="customer-row-edit-button"
+                    className="customer-row-edit-button glass-row-action"
                     style={{ ...shell.rowActionButton, marginRight: '8px' }}
                     onClick={() => {
                       setEditingId(customer._id);
@@ -3080,23 +3110,24 @@ export default function CustomerDashboard() {
                       setShowModal(true);
                     }}
                   >
-                    Edit
+                    <Pencil size={12} aria-hidden="true" />Edit
                   </button>
                   <button
                     type="button"
-                    className="customer-row-delete-button"
+                    className="customer-row-delete-button glass-row-action glass-row-action--danger"
                     style={shell.rowActionButton}
                     onClick={() => deleteOneCustomer(customer._id)}
                   >
-                    Delete
+                    <Trash2 size={12} aria-hidden="true" />Delete
                   </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div style={paginationBarStyle}>
+      <div className="portal-table-pagination" style={paginationBarStyle}>
         <div style={shell.paginationText}>{paginationText}</div>
         <div style={paginationActionsStyle}>
           <button
@@ -3122,10 +3153,12 @@ export default function CustomerDashboard() {
         </div>
       </div>
 
+      </AppCard>
+
       {showHistory ? (
         createPortal(<div style={shell.historyOverlay}>
-          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={historyModalStyle}>
-            <div className="crm-modal-surface-header" style={historyHeaderStyle}>
+          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={historyModalStyle}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={historyHeaderStyle}>
               <div>
                 <h3 style={historyTitleTinyStyle}>
                   {selectedHistoryCustomer?.displayName || selectedHistoryCustomer?.name || 'Customer History'}
@@ -3152,8 +3185,8 @@ export default function CustomerDashboard() {
                 <CRMModalCloseButton type="button" style={shell.historyClose} onClick={closeCustomerHistory} aria-label="Close history" />
               </div>
             </div>
-            <div className="crm-modal-surface-body" style={shell.historyBody}>
-              <div style={shell.historyTabs}>
+            <div className="crm-modal-surface-body glass-dialog-body" style={shell.historyBody}>
+              <div className="glass-detail-tabs" style={shell.historyTabs}>
                 <button
                   type="button"
                   style={historyTab === 'overview' ? { ...shell.historyTabBtn, ...shell.historyTabBtnActive } : shell.historyTabBtn}
@@ -3178,9 +3211,9 @@ export default function CustomerDashboard() {
               </div>
 
               {historyLoading ? (
-                <p style={shell.historyEmpty}>Loading customer history...</p>
+                <p className="glass-empty-state" style={shell.historyEmpty}>Loading customer history...</p>
               ) : historyTab === 'profit-cost' && historyProfitLoading ? (
-                <p style={shell.historyEmpty}>Loading profit and cost summary...</p>
+                <p className="glass-empty-state" style={shell.historyEmpty}>Loading profit and cost summary...</p>
               ) : historyTab === 'profit-cost' && historyProfitError ? (
                 <p style={{ ...shell.historyEmpty, color: '#dc2626', fontWeight: 700 }}>{historyProfitError}</p>
               ) : historyTab === 'profit-cost' ? (
@@ -3230,12 +3263,12 @@ export default function CustomerDashboard() {
                     </div>
 
                     {historyProfitSnapshot.contractRows?.length > 0 ? (
-                      <div style={shell.historySection}>
+                      <div className="glass-detail-section" style={shell.historySection}>
                         <div style={shell.historySectionHead}>
                           <h4 style={shell.historySectionTitleSmall}>Contract-wise Profit</h4>
                         </div>
                         <div style={shell.historyTableWrap}>
-                          <table style={shell.historyTableCompact}>
+                          <table className="portal-data-table glass-detail-table" style={shell.historyTableCompact}>
                             <thead>
                               <tr>
                                 <th style={shell.historyHeadCellCompact}>Contract</th>
@@ -3266,12 +3299,12 @@ export default function CustomerDashboard() {
                     ) : null}
 
                     {historyProfitSnapshot.visitRows?.length > 0 ? (
-                      <div style={shell.historySection}>
+                      <div className="glass-detail-section" style={shell.historySection}>
                         <div style={shell.historySectionHead}>
                           <h4 style={shell.historySectionTitleSmall}>Visit-wise Cost History</h4>
                         </div>
                         <div style={shell.historyTableWrap}>
-                          <table style={shell.historyTableCompact}>
+                          <table className="portal-data-table glass-detail-table" style={shell.historyTableCompact}>
                             <thead>
                               <tr>
                                 <th style={shell.historyHeadCellCompact}>Date</th>
@@ -3308,34 +3341,34 @@ export default function CustomerDashboard() {
                     </p>
                   </div>
                 ) : (
-                  <p style={shell.historyEmpty}>No profit and cost data found for this customer yet.</p>
+                  <p className="glass-empty-state" style={shell.historyEmpty}>No profit and cost data found for this customer yet.</p>
                 )
               ) : historyError ? (
                 <p style={{ ...shell.historyEmpty, color: '#dc2626', fontWeight: 700 }}>{historyError}</p>
               ) : historyTab === 'overview' ? (
                 <>
                   <div style={shell.historyStats}>
-                    <div style={shell.historyStatCard}>
+                    <div className="glass-metric-card" style={shell.historyStatCard}>
                       <p style={shell.historyStatLabel}>Total Invoices</p>
                       <p style={shell.historyStatValue}>{historySummary.invoiceCount}</p>
                     </div>
-                    <div style={shell.historyStatCard}>
+                    <div className="glass-metric-card" style={shell.historyStatCard}>
                       <p style={shell.historyStatLabel}>Total Invoice Amount</p>
                       <p style={shell.historyStatValue}>{formatINR(historySummary.totalInvoiceAmount)}</p>
                     </div>
-                    <div style={shell.historyStatCard}>
+                    <div className="glass-metric-card" style={shell.historyStatCard}>
                       <p style={shell.historyStatLabel}>Total Received</p>
                       <p style={shell.historyStatValue}>{formatINR(historySummary.totalReceived)}</p>
                     </div>
-                    <div style={shell.historyStatCard}>
+                    <div className="glass-metric-card" style={shell.historyStatCard}>
                       <p style={shell.historyStatLabel}>Balance Due</p>
                       <p style={shell.historyStatValue}>{formatINR(historySummary.totalBalanceDue)}</p>
                     </div>
-                    <div style={shell.historyStatCard}>
+                    <div className="glass-metric-card" style={shell.historyStatCard}>
                       <p style={shell.historyStatLabel}>Payments Count</p>
                       <p style={shell.historyStatValue}>{historySummary.paymentCount}</p>
                     </div>
-                    <div style={shell.historyStatCard}>
+                    <div className="glass-metric-card" style={shell.historyStatCard}>
                       <p style={shell.historyStatLabel}>Avg Invoice Value</p>
                       <p style={shell.historyStatValue}>{formatINR(historySummary.avgInvoiceValue)}</p>
                     </div>
@@ -3344,15 +3377,15 @@ export default function CustomerDashboard() {
                 </>
               ) : (
                 <div style={shell.historyGrid}>
-                  <div style={shell.historySection}>
+                  <div className="glass-detail-section" style={shell.historySection}>
                     <div style={shell.historySectionHead}>
                       <h4 style={shell.historySectionTitle}>Invoices</h4>
                     </div>
                     {historyInvoicesSorted.length === 0 ? (
-                      <p style={shell.historyEmpty}>No invoices found for this customer.</p>
+                      <p className="glass-empty-state" style={shell.historyEmpty}>No invoices found for this customer.</p>
                     ) : (
                       <div style={shell.historyTableWrap}>
-                        <table style={shell.historyTable}>
+                        <table className="portal-data-table glass-detail-table" style={shell.historyTable}>
                           <thead>
                             <tr>
                               <th style={shell.historyHeadCell}>Date</th>
@@ -3388,15 +3421,15 @@ export default function CustomerDashboard() {
                     )}
                   </div>
 
-                  <div style={shell.historySection}>
+                  <div className="glass-detail-section" style={shell.historySection}>
                     <div style={shell.historySectionHead}>
                       <h4 style={shell.historySectionTitle}>Customer Payments</h4>
                     </div>
                     {historyPaymentsSorted.length === 0 ? (
-                      <p style={shell.historyEmpty}>No payments found for this customer.</p>
+                      <p className="glass-empty-state" style={shell.historyEmpty}>No payments found for this customer.</p>
                     ) : (
                       <div style={shell.historyTableWrap}>
-                        <table style={shell.historyTable}>
+                        <table className="portal-data-table glass-detail-table" style={shell.historyTable}>
                           <thead>
                             <tr>
                               <th style={shell.historyHeadCell}>Date</th>
@@ -3432,7 +3465,7 @@ export default function CustomerDashboard() {
 
       {showModal ? createPortal(
         <div className="skuas-customer-form-overlay" style={modalOverlayStyle}>
-          <CRMFormModal className="customer-modal-surface" style={modalStyle}
+          <CRMFormModal className="customer-modal-surface glass-dialog" style={modalStyle}
   title={editingId ? 'Edit Customer' : 'New Customer'} icon={UserRoundPlus}
   subtitle="Manage customer contacts, addresses and service premises."
   onClose={closeModal} onSubmit={handleSubmit} validateStep={validateCustomerStep} busy={isSaving} error={saveError}
@@ -3715,8 +3748,8 @@ export default function CustomerDashboard() {
 
       {duplicateConflict ? createPortal(
         <div style={duplicateConflictOverlayStyle}>
-          <div role="dialog" aria-modal="true" className="crm-modal-surface" style={duplicateConflictModalStyle}>
-            <div className="crm-modal-surface-header" style={duplicateConflictHeaderStyle}>
+          <div role="dialog" aria-modal="true" className="crm-modal-surface glass-dialog" style={duplicateConflictModalStyle}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={duplicateConflictHeaderStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <AlertTriangle size={16} color="var(--color-text-secondary)" />
@@ -3725,7 +3758,7 @@ export default function CustomerDashboard() {
               </div>
               <CRMModalCloseButton type="button" style={shell.modalCloseButton} onClick={() => setDuplicateConflict(null)} aria-label="Close duplicate warning" />
             </div>
-            <div className="crm-modal-surface-body" style={duplicateConflictBodyStyle}>
+            <div className="crm-modal-surface-body glass-dialog-body" style={duplicateConflictBodyStyle}>
               <div style={{ display: 'grid', gap: '8px', alignContent: 'start' }}>
                 <div style={{ border: '1px solid var(--color-border)', borderRadius: '12px', background: '#fff', padding: '8px', display: 'grid', gap: '3px' }}>
                   <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Draft Customer</p>
@@ -3807,7 +3840,7 @@ export default function CustomerDashboard() {
                 </table>
               </div>
             </div>
-            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
+            <div className="crm-modal-surface-footer glass-dialog-footer" style={modalFooterStyle}>
               <button type="button" style={shell.cancelButton} onClick={reviewDuplicateConflictCustomer}>Review Existing Customer</button>
               <button     type="button" style={shell.cancelButton} onClick={openDuplicateConflictCustomerRecord}>Open Customer Record</button>
               <button
@@ -3847,9 +3880,9 @@ export default function CustomerDashboard() {
 
       {showDuplicateReport ? createPortal(
         <div style={modalOverlayStyle}>
-          <div role="dialog" aria-modal="true" className="crm-modal-surface" style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
-            <div className="crm-modal-surface-header" style={modalHeaderStyle}>Duplicate Report & Data Health<CRMModalCloseButton type="button" onClick={() => setShowDuplicateReport(false)} /></div>
-            <div className="crm-modal-surface-body" style={duplicateModalBodyStyle}>
+          <div role="dialog" aria-modal="true" className="crm-modal-surface glass-dialog" style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={modalHeaderStyle}>Duplicate Report & Data Health<CRMModalCloseButton type="button" onClick={() => setShowDuplicateReport(false)} /></div>
+            <div className="crm-modal-surface-body glass-dialog-body" style={duplicateModalBodyStyle}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', gridColumn: '1 / -1' }}>
                 <div style={{ border: '1px solid var(--color-primary-soft)', borderRadius: '10px', padding: '10px', background: '#fff' }}>
                   <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Total Active Customers</p>
@@ -3895,7 +3928,7 @@ export default function CustomerDashboard() {
                 </table>
               </div>
             </div>
-            <div className="crm-modal-surface-footer" style={modalFooterStyle}>
+            <div className="crm-modal-surface-footer glass-dialog-footer" style={modalFooterStyle}>
               <button type="button" style={shell.cancelButton} onClick={() => setShowDuplicateReport(false)}>Close</button>
               <button type="button" style={shell.cancelButton} onClick={() => exportDuplicateReport('csv')}>Export CSV</button>
               <button data-modal-primary="true" type="button" style={shell.saveButton} onClick={() => exportDuplicateReport('pdf')}>Export PDF</button>

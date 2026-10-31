@@ -412,7 +412,7 @@ export default function CustomerPremisesPanel({
   };
 
   return (
-    <section className="customer-premises-panel" style={styles.wrap}>
+    <section className="customer-premises-panel glass-detail-section" style={styles.wrap}>
       <div style={styles.head}>
         <div>
           <h3 style={styles.title}>Shipping Addresses</h3>

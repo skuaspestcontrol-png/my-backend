@@ -1,0 +1,94 @@
+/* Shared content primitives, opt-in only. Active Customers is the first consumer. */
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-content {
+  display: grid; gap: 16px; min-width: 0; background: transparent !important; border: 0 !important; box-shadow: none !important;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-header,
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-content .glass-surface {
+  background: linear-gradient(130deg, var(--ui-glass), var(--ui-card)) !important;
+  border: 1px solid var(--ui-glass-border) !important; border-radius: 14px !important;
+  box-shadow: 0 4px 18px rgb(28 64 120 / 6%) !important;
+}
+.glass-header { overflow: visible; }
+.glass-content .crm-card-header { padding: 12px 14px !important; border-radius: 14px 14px 0 0; }
+.glass-panel-title { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 9px; font-size: 15px; line-height: 1.4; font-weight: 700; }
+.glass-panel-title > svg { color: var(--ui-link); flex-shrink: 0; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-panel-title small { font-size: 11px; font-weight: 500; color: var(--ui-muted) !important; -webkit-text-fill-color: var(--ui-muted) !important; }
+.glass-field-label { display: block; margin-bottom: 7px; color: var(--ui-muted); font-size: 12px; font-weight: 600; }
+.glass-search-panel input { font-size: 13px !important; min-height: 38px; }
+.glass-content .glass-table-panel .crm-table-shell { border-radius: 0; }
+.glass-table-tools { display: flex; align-items: center; gap: 8px; }
+.glass-columns-menu { max-height: min(440px, 65dvh); overflow-y: auto; border-radius: 10px !important; background: var(--ui-card) !important; color: var(--ui-text); box-shadow: 0 12px 32px rgb(12 25 55 / 16%) !important; z-index: 300; }
+.glass-columns-menu label { color: var(--ui-text) !important; font-size: 12px; }
+.glass-menu { border-radius: 10px !important; border: 1px solid var(--ui-glass-border) !important; background: var(--ui-card) !important; box-shadow: 0 12px 32px rgb(12 25 55 / 18%) !important; }
+.glass-menu button { color: var(--ui-text); border-radius: 6px; font-size: 12px !important; }
+.glass-menu button:focus-visible { outline: 2px solid var(--ui-link); outline-offset: -2px; }
+.glass-menu button[data-danger="true"] { color: var(--status-danger-text) !important; }
+.glass-content .glass-record-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.glass-record-avatar { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 27px; width: 27px; height: 27px; border-radius: 8px; border: 1px solid var(--ui-glass-border); background: var(--ui-action-soft); color: var(--ui-link); font-size: 10px; font-weight: 750; line-height: 1; }
+.glass-record-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 650; color: var(--ui-text); }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-content .glass-row-action { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 0 !important; margin: 0 !important; min-height: 30px; padding: 0 6px !important; border-radius: 7px !important; font-size: 11px !important; font-weight: 600; background: var(--ui-elevated) !important; border-color: var(--ui-glass-border) !important; color: var(--ui-text) !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-content .glass-row-action--danger { color: var(--status-danger-text) !important; }
+.glass-content .glass-row-action svg { flex-shrink: 0; }
+.glass-dialog { border: 1px solid var(--ui-glass-border) !important; border-radius: 16px !important; background: var(--ui-card) !important; color: var(--ui-text); box-shadow: 0 20px 60px rgb(12 25 55 / 22%) !important; }
+.glass-dialog-header { background: var(--ui-navy) !important; color: #fff !important; border-radius: 16px 16px 0 0; }
+.glass-dialog-header :is(h1,h2,h3,p) { color: inherit !important; -webkit-text-fill-color: currentColor !important; }
+.glass-dialog-body { background: var(--ui-card) !important; color: var(--ui-text); }
+.glass-dialog-footer { background: var(--ui-card) !important; border-top: 1px solid var(--ui-glass-border); }
+.glass-dialog .glass-detail-section { border: 1px solid var(--ui-glass-border) !important; border-radius: 12px !important; background: var(--ui-elevated) !important; box-shadow: none !important; }
+.glass-dialog .glass-detail-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--ui-glass-border); }
+.glass-dialog .glass-detail-tabs button { border-radius: 8px !important; font-size: 12px !important; }
+.glass-dialog .glass-detail-table { font-size: 12px; }
+.glass-empty-state { padding: 24px 16px !important; color: var(--ui-muted) !important; text-align: center; font-size: 13px; }
+@media (max-width: 767px) {
+  html[data-theme][data-branding] body .portal-design-system .main-content .glass-content { gap: 12px; }
+  .glass-content .crm-card-header { padding: 11px 12px !important; }
+  .glass-record-avatar { flex-basis: 25px; width: 25px; height: 25px; }
+}
+@media print {
+  .glass-header, .glass-content .glass-surface, .glass-dialog { background: white !important; box-shadow: none !important; }
+}
+.glass-content .portal-state { padding: 10px 0; font-size: 12px; }
+.glass-content .portal-state--error { margin-bottom: 12px; color: var(--status-danger-text); }
+.glass-content .portal-empty-state { padding: 22px 14px; }
+.glass-content .portal-empty-state h4 { font-size: 14px; margin: 0 0 6px; }
+.glass-content .portal-empty-state p { margin: 0; color: var(--ui-muted); font-size: 12px; }
+.glass-dialog .crm-modal-surface-header, .glass-dialog [data-brand-header="true"] { border-radius: 16px 16px 0 0; }
+.glass-dialog .glass-metric-card { background: var(--ui-elevated) !important; border: 1px solid var(--ui-glass-border) !important; border-radius: 10px !important; box-shadow: none !important; }
+.glass-header > :last-child { flex-wrap: wrap; }
+.glass-header > :last-child > button { font-size: 12px !important; min-height: 36px; }
+.glass-content .glass-columns-trigger { width: auto !important; min-width: 92px; padding: 0 10px !important; gap: 6px; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-content { grid-template-columns: minmax(0, 1fr); gap: 16px !important; }
+.glass-content > *, .glass-content .glass-surface, .glass-content .crm-card-body { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.glass-content .glass-search-control { width: 100% !important; max-width: none !important; margin: 0 !important; box-sizing: border-box; }
+@media (max-width: 767px) {
+  html[data-theme][data-branding] body .portal-design-system .main-content .glass-content { gap: 12px !important; }
+}
+.glass-content .glass-table-panel .crm-table-shell { max-height: min(56dvh, 640px); overflow-y: auto !important; }
+.glass-content .glass-table-panel thead th { position: sticky !important; top: 0; z-index: 2; }
+
+.glass-row-actions { display: flex; align-items: center; gap: 6px; }
+
+.glass-dialog--stacked { height: auto !important; max-height: min(92dvh, 860px) !important; grid-template-rows: auto minmax(0, 1fr) auto !important; }
+.glass-dialog-body--stack { display: flex !important; flex-direction: column; min-height: 0; overflow: hidden !important; }
+.glass-dialog-steps { flex-shrink: 0; align-items: start; grid-auto-rows: min-content; }
+.glass-dialog-scroll { flex: 1; min-height: 0; align-content: start; }
+.glass-upload-zone { background: var(--ui-action-soft) !important; }
+@media (max-width: 600px) {
+  .glass-dialog-steps { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .glass-dialog-steps > div { min-width: 0; font-size: 11px !important; }
+}
+
+.glass-dialog .glass-detail-table tbody tr { background: var(--ui-card) !important; }
+.glass-dialog .glass-detail-table tbody tr:nth-child(even) { background: var(--ui-elevated) !important; }
+.glass-dialog .glass-detail-table tbody tr:is(:hover, .glass-selected-row) { background: var(--ui-action-soft) !important; }
+.glass-dialog .glass-detail-table td { color: var(--ui-text) !important; }
+.glass-dialog .glass-person-values, .glass-dialog .glass-person-values > div { color: var(--ui-text) !important; }
+@media print {
+  .glass-content .glass-table-panel .crm-table-shell { max-height: none; overflow: visible !important; }
+  .glass-content .glass-table-panel thead th { position: static !important; }
+}
+
+/* Retain readable columns when users enable additional customer fields. */
+@media (min-width: 901px) {
+  .glass-content .glass-table-panel table { min-width: max(100%, calc(190px + var(--glass-column-count, 8) * 100px)) !important; }
+}

@@ -343,16 +343,16 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
   };
 
   const renderStat = (label, value) => (
-    <div style={shell.card}>
+    <div className="glass-metric-card" style={shell.card}>
       <p style={shell.label}>{label}</p>
       <p style={shell.value}>{value || 0}</p>
     </div>
   );
 
   const renderPerson = (title, data = {}) => (
-    <div style={shell.card}>
+    <div className="glass-metric-card" style={shell.card}>
       <p style={shell.label}>{title}</p>
-      <div style={{ marginTop: '7px', display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 750, color: '#0f172a' }}>
+      <div className="glass-person-values" style={{ marginTop: '7px', display: 'grid', gap: '5px', fontSize: '12px', fontWeight: 750, color: '#0f172a' }}>
         <div>{data.name || '-'}</div>
         <div style={{ color: '#64748b' }}>{data.mobile || '-'} | {data.email || '-'}</div>
         <div style={{ color: '#64748b' }}>{data.gst || data.gstNumber || '-'}</div>
@@ -366,8 +366,8 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
 
   return (
     createPortal(<div style={shell.overlay}>
-      <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.modal}>
-        <div className="crm-modal-surface-header" data-brand-header="true" style={shell.header}>
+      <div className="crm-modal-surface glass-dialog glass-dialog--stacked" role="dialog" aria-modal="true" style={shell.modal}>
+        <div className="crm-modal-surface-header glass-dialog-header" data-brand-header="true" style={shell.header}>
           <div>
             <h2 style={shell.title}>Smart Customer Import / Export</h2>
             <p style={shell.sub}>Deduplicate, merge, and add customer premises without duplicate customer spam.</p>
@@ -375,7 +375,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
           <CRMModalCloseButton type="button" style={shell.close} onClick={close} />
         </div>
 
-        <div className="crm-modal-surface-body"><div style={shell.steps}>
+        <div className="crm-modal-surface-body glass-dialog-body glass-dialog-body--stack"><div className="glass-dialog-steps" style={shell.steps}>
           {steps.map(([label, Icon], idx) => (
             <div key={label} style={{ ...shell.step, ...(idx + 1 === step ? { background: 'var(--color-primary)', color: '#fff', borderColor: 'var(--color-primary)' } : null) }}>
               <Icon size={14} /> {label}
@@ -383,14 +383,15 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
           ))}
         </div>
 
-        <div style={shell.body}>
+        <div className="glass-dialog-scroll" style={shell.body}>
           {status ? <div style={{ ...shell.panel, color: 'var(--color-primary-deep)', fontWeight: 800 }}>{status}</div> : null}
 
           {step === 1 ? (
             <>
-              <div style={shell.panel}>
+              <div className="glass-detail-section" style={shell.panel}>
                 <h3 style={shell.h3}><StepIcon size={16} /> Upload Excel/CSV</h3>
                 <div
+                  className="glass-upload-zone"
                   style={shell.drop}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
@@ -413,7 +414,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                 </div>
               ) : null}
               {headers.length ? (
-                <div style={shell.panel}>
+                <div className="glass-detail-section" style={shell.panel}>
                   <h3 style={shell.h3}>Column Preview</h3>
                   <div style={shell.actions}>{headers.slice(0, 18).map((header) => <span key={header} style={shell.pill}>{header}</span>)}</div>
                 </div>
@@ -422,7 +423,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
           ) : null}
 
           {step === 2 ? (
-            <div style={shell.panel}>
+            <div className="glass-detail-section" style={shell.panel}>
               <h3 style={shell.h3}><MapPinned size={16} /> Auto Field Mapping</h3>
               <p style={shell.note}>Review the detected fields. Dropdowns are compact for fast cleanup on desktop and mobile.</p>
               <div style={shell.grid}>
@@ -443,12 +444,12 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
           ) : null}
 
           {step === 3 ? (
-            <div style={shell.panel}>
+            <div className="glass-detail-section" style={shell.panel}>
               <h3 style={shell.h3}><SearchCheck size={16} /> Smart Duplicate Detection</h3>
               <p style={shell.note}>High priority: mobile, WhatsApp, email, GST. Secondary: customer/company name and address similarity.</p>
               {rowPreview.length ? (
                 <div style={shell.tableWrap}>
-                  <table style={previewTableStyle}>
+                  <table className="glass-detail-table" style={previewTableStyle}>
                     <colgroup>{previewTableColumns.map((column) => <col key={column.key} style={{ width: `${getPreviewColumnWidth(column.key) || previewDefaultWidths[column.key] || 120}px` }} />)}</colgroup>
                     <thead>
                       <tr>
@@ -480,7 +481,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                 {renderStat('Duplicate Customers', (summary?.exactDuplicates || 0) + (summary?.possibleDuplicates || 0))}
                 {renderStat('New Premises Added', summary?.newPremisesAdded)}
               </div>
-              <div style={shell.panel}>
+              <div className="glass-detail-section" style={shell.panel}>
                 <h3 style={shell.h3}><GitMerge size={16} /> Customer Merge Preview</h3>
                 <div style={shell.compare}>
                   {renderPerson('Existing CRM Customer', {
@@ -504,7 +505,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                   {selectedRow ? <button type="button" style={shell.dangerBtn} onClick={() => setRowAction(selectedRow, 'skip')}>Delete Imported Duplicate</button> : null}
                 </div>
               </div>
-              <div style={shell.panel}>
+              <div className="glass-detail-section" style={shell.panel}>
                 <div style={shell.actions}>
                   <button type="button" style={shell.lightBtn} onClick={() => bulkAction('merge_with_existing')} disabled={busy}>Bulk Merge</button>
                   <button type="button" style={shell.lightBtn} onClick={() => bulkAction('skip')} disabled={busy}>Bulk Delete Duplicates</button>
@@ -513,7 +514,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                 </div>
                 <p style={shell.note}>Showing all {visibleImportRows.length} analyzed import rows.</p>
                 <div style={shell.tableWrap}>
-                  <table style={importTableStyle}>
+                  <table className="glass-detail-table" style={importTableStyle}>
                     <colgroup>{importColumns.map((key) => <col key={key} style={{ width: `${getImportColumnWidth(key) || importDefaultWidths[key] || 90}px` }} />)}</colgroup>
                     <thead>
                       <tr>
@@ -526,7 +527,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                     </thead>
                     <tbody>
                       {visibleImportRows.map((row) => (
-                        <tr key={row._id} onClick={() => setSelectedRowId(row._id)} style={{ background: selectedRowId === row._id ? 'rgba(252,231,243,0.5)' : '#fff', cursor: 'pointer' }}>
+                        <tr key={row._id} className={selectedRowId === row._id ? 'glass-selected-row' : undefined} onClick={() => setSelectedRowId(row._id)} style={{ background: selectedRowId === row._id ? 'rgba(252,231,243,0.5)' : '#fff', cursor: 'pointer' }}>
                           <td style={importCellStyle('row', 'center')}>#{row.rowNumber}</td>
                           <td style={importCellStyle('imported')}>{row.clean?.customerName || '-'}<br /><span style={{ color: '#64748b' }}>{row.clean?.mobileNumber || '-'} | {row.clean?.email || '-'}</span></td>
                           <td style={importCellStyle('existing')}>{row.matchedCustomerName || 'New customer'}<br /><span style={{ color: '#64748b' }}>{row.confidence || 0}% match</span></td>
@@ -552,7 +553,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                 {renderStat('Updated Customers', summary?.updatedExisting)}
                 {renderStat('Failed Rows', summary?.failedRows)}
               </div>
-              <div style={shell.panel}>
+              <div className="glass-detail-section" style={shell.panel}>
                 <h3 style={shell.h3}><Download size={16} /> Export Customers</h3>
                 <div style={shell.grid}>
                   <select style={shell.select} value={exportScope} onChange={(event) => setExportScope(event.target.value)}>
@@ -568,11 +569,11 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
                   <button type="button" style={shell.btn} onClick={exportCustomers}><Download size={14} /> Export</button>
                 </div>
               </div>
-              <div style={shell.panel}>
+              <div className="glass-detail-section" style={shell.panel}>
                 <h3 style={shell.h3}>Import Logs</h3>
                 <p style={shell.note}>Showing all {visibleImportRows.length} finalized import rows.</p>
                 <div style={shell.tableWrap}>
-                  <table style={logTableStyle}>
+                  <table className="glass-detail-table" style={logTableStyle}>
                     <colgroup>{logColumns.map((key) => <col key={key} style={{ width: `${getLogColumnWidth(key) || logDefaultWidths[key] || 90}px` }} />)}</colgroup>
                     <thead>
                       <tr>
@@ -589,7 +590,7 @@ export default function CustomerImportDedupWizard({ open, onClose, onComplete })
           ) : null}
         </div></div>
 
-        <div className="crm-modal-surface-footer" data-brand-footer="true" style={shell.footer}>
+        <div className="crm-modal-surface-footer glass-dialog-footer" data-brand-footer="true" style={shell.footer}>
           <span style={shell.note}>Smart import protects customer records and stores multiple addresses as premises.</span>
           <div style={shell.actions}>
             <button type="button" style={shell.lightBtn} onClick={step === 1 ? close : () => setStep((prev) => Math.max(1, prev - 1))}>{step === 1 ? 'Cancel' : 'Back'}</button>
