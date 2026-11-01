@@ -1,3 +1,11 @@
+import { PageHeaderTitle } from './ui/PageHeader';
+import { Building2 } from 'lucide-react';
+import AppCard from './ui/AppCard';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import StatusBadge from './ui/StatusBadge';
+import EmptyState from './ui/EmptyState';
+import '../styles/glassContent.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
@@ -430,26 +438,30 @@ export default function VendorDashboard() {
   };
 
   return (
-    <section className="vendor-dashboard-page" style={shell.page}>
-      <div data-brand-header="true" style={shell.topbar}>
-        <h1 style={shell.title}>Vendors Dashboard</h1>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" style={shell.buttonPrimary} onClick={openNew}>
+    <section className="vendor-dashboard-page glass-content glass-finance-content" style={shell.page}>
+      <div className="portal-page-toolbar glass-header" style={shell.topbar}>
+        <PageHeaderTitle title="Vendors Dashboard" subtitle="Manage vendor details, contacts and billing addresses." icon={Building2} />
+        <div className="glass-header-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" className="glass-primary-action" style={shell.buttonPrimary} onClick={openNew}>
             + New Vendor
           </button>
-          <div ref={customizeWrapRef} style={shell.customizeWrap}>
+
+        </div>
+      </div>
+
+      <AppCard className="glass-surface glass-register-panel" style={{ overflow: 'visible' }} bodyStyle={{ padding: 0 }} title={<span className="glass-panel-title"><Building2 size={18} aria-hidden="true" />Vendors <small>{vendors.length} records</small></span>} action={<div ref={customizeWrapRef} style={shell.customizeWrap}>
             <button
               type="button"
-              className="vendor-toolbar-icon-btn"
+              className="vendor-toolbar-icon-btn glass-columns-trigger"
               style={shell.customizeButton}
               aria-label="Customize columns"
               title="Customize columns"
               onClick={() => setShowCustomize((prev) => !prev)}
             >
-              <Settings size={14} />
+              <Settings size={14} /><span>Columns</span>
             </button>
             {showCustomize ? (
-              <div style={shell.customizePopover}>
+              <div className="glass-columns-menu" style={shell.customizePopover}>
                 <div style={shell.customizePopoverHeader}>Show / Hide Columns</div>
                 <button type="button" style={shell.customizePopoverButton} onClick={() => {
                   resetVendorColumns();
@@ -470,12 +482,9 @@ export default function VendorDashboard() {
                 ))}
               </div>
             ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div style={shell.tableWrap}>
-        <table style={tableStyle}>
+          </div>}>
+      <div className="glass-register-scroll" style={shell.tableWrap}>
+        <table className="portal-data-table" style={tableStyle}>
           <colgroup>
             {visibleVendorColumns.map((column) => (
               <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -521,21 +530,23 @@ export default function VendorDashboard() {
               </tr>
             ))}
             {vendors.length === 0 ? (
-              <tr><td style={shell.td} colSpan={visibleVendorColumns.length + 1}>No vendors found.</td></tr>
+              <tr><td style={shell.td} colSpan={visibleVendorColumns.length + 1}><EmptyState title="No vendors found." /></td></tr>
             ) : null}
           </tbody>
         </table>
       </div>
 
+      </AppCard>
+
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeModal}>
-          <form role="dialog" aria-modal="true" className="crm-modal-surface vendor-modal-surface" style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
-            <div className="crm-modal-surface-header" style={modalHeaderStyle}>
+          <form role="dialog" aria-modal="true" className="crm-modal-surface vendor-modal-surface glass-dialog" style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={modalHeaderStyle}>
               <h3 style={shell.modalTitle}>{editingId ? 'Edit Vendor' : 'New Vendor'}</h3>
               <CRMModalCloseButton type="button" style={shell.closeBtn} onClick={closeModal} />
             </div>
-            <div className="crm-modal-surface-body" style={bodyStyle}>
-              <div className="vendor-modal-card" style={shell.card}>
+            <div className="crm-modal-surface-body glass-dialog-body" style={bodyStyle}>
+              <div className="vendor-modal-card glass-detail-section" style={shell.card}>
                 <p style={shell.sectionTitle}>Vendor Details</p>
                 <div style={gridStyle}>
                   <div style={shell.field}><label style={shell.label}>Company Name</label><input style={shell.input} placeholder="Enter company name" value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
@@ -573,7 +584,7 @@ export default function VendorDashboard() {
               </div>
 
               <div style={addressSplitStyle}>
-                <div className="vendor-modal-card vendor-modal-address-card" style={addressCardStyle}>
+                <div className="vendor-modal-card vendor-modal-address-card glass-detail-section" style={addressCardStyle}>
                   <div style={shell.addressHead}>
                     <h4 style={addressTitleStyle}>Billing Address</h4>
                   </div>
@@ -600,7 +611,7 @@ export default function VendorDashboard() {
                   </div>
                 </div>
 
-                <div className="vendor-modal-card vendor-modal-address-card" style={addressCardStyle}>
+                <div className="vendor-modal-card vendor-modal-address-card glass-detail-section" style={addressCardStyle}>
                   <div style={shell.addressHead}>
                     <h4 style={addressTitleStyle}>Shipping Address</h4>
                     <button type="button" style={shell.addressCopy} onClick={() => setForm((prev) => ({ ...prev, ...copyBillingToShipping(prev) }))}>
@@ -631,7 +642,7 @@ export default function VendorDashboard() {
                 </div>
               </div>
             </div>
-            <div className="crm-modal-surface-footer" style={shell.footer}>
+            <div className="crm-modal-surface-footer glass-dialog-footer" style={shell.footer}>
               {saveError ? <div style={{ marginRight: 'auto', color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{saveError}</div> : null}
               <button type="button" style={shell.cancelButton} onClick={closeModal}>Cancel</button>
               <button data-modal-primary="true"   type="submit" style={shell.saveButton} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Vendor'}</button>

@@ -1,3 +1,11 @@
+import { PageHeaderTitle } from './ui/PageHeader';
+import { Receipt, CheckCircle2, Clock, Pencil } from 'lucide-react';
+import AppCard from './ui/AppCard';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import StatusBadge from './ui/StatusBadge';
+import EmptyState from './ui/EmptyState';
+import '../styles/glassContent.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
@@ -376,27 +384,23 @@ export default function VendorBillsDashboard() {
   };
 
   return (
-    <section className="vendor-bills-page" style={shell.page}>
-      <div data-brand-header="true" style={shell.topbar}>
-        <h1 style={shell.title}>Vendor Bills</h1>
+    <section className="vendor-bills-page glass-content glass-finance-content" style={shell.page}>
+      <div className="portal-page-toolbar glass-header" style={shell.topbar}>
+        <PageHeaderTitle title="Vendor Bills" subtitle="Manage vendor bills, payments and outstanding balances." icon={Receipt} />
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <button type="button" style={shell.buttonPrimary} onClick={openNew}><Plus size={16} />New Bill</button>
+          <button type="button" className="glass-primary-action" style={shell.buttonPrimary} onClick={openNew}><Plus size={16} />New Bill</button>
         </div>
       </div>
 
-      <div style={shell.summaryWrap}>
-        <div data-ui="summary-card" style={shell.summaryCard}>
-          <h3 style={shell.summaryTitle}>Vendor Bills Summary</h3>
-          <div style={isMobile ? { ...shell.summaryGrid, gridTemplateColumns: '1fr' } : shell.summaryGrid}>
-            <div><span style={shell.summaryLabel}>Total Vendor Bills</span><div style={shell.summaryValue}>{summary.count}</div></div>
-            <div><span style={shell.summaryLabel}>Total Paid</span><div style={shell.summaryValue}>{formatINR(summary.paidAmount)}</div></div>
-            <div><span style={shell.summaryLabel}>Outstanding</span><div style={shell.summaryValue}>{formatINR(summary.openAmount)}</div></div>
-          </div>
-        </div>
-      </div>
+      <section aria-label="Vendor Bills Summary"><h3 className="glass-section-label">Vendor Bills Summary</h3><SummaryCardGrid className="glass-summary-grid">
+        <DashboardStatCard variant="glass" title="Total Vendor Bills" value={summary.count} icon={<Receipt size={22} />} tone="var(--ui-link)" />
+        <DashboardStatCard variant="glass" title="Total Paid" value={formatINR(summary.paidAmount)} icon={<CheckCircle2 size={22} />} tone="var(--status-active-text)" />
+        <DashboardStatCard variant="glass" title="Outstanding" value={formatINR(summary.openAmount)} icon={<Clock size={22} />} tone="var(--status-pending-text)" />
+      </SummaryCardGrid></section>
 
-      <div style={shell.tableWrap}>
-        <table style={billTableStyle}>
+      <AppCard className="glass-surface glass-register-panel" style={{ overflow: 'visible' }} bodyStyle={{ padding: 0 }} title={<span className="glass-panel-title"><Receipt size={18} aria-hidden="true" />Vendor Bills <small>{bills.length} records</small></span>}>
+      <div className="glass-register-scroll" style={shell.tableWrap}>
+        <table className="portal-data-table" style={billTableStyle}>
           <colgroup>{billColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || billColumnWidths[key] || 100}px` }} />)}</colgroup>
           <thead>
             <tr>
@@ -419,23 +423,25 @@ export default function VendorBillsDashboard() {
                 <td style={billCellStyle('dueDate')}>{formatDateDisplay(bill.dueDate)}</td>
                 <td style={billCellStyle('amount', 'center')}>{formatINR(bill.total || bill.amount || 0)}</td>
                 <td style={billCellStyle('balanceDue', 'center')}>{formatINR(bill.balanceDue || 0)}</td>
-                <td style={billCellStyle('status', 'center')}>{String(bill.status || 'OPEN').toUpperCase()}</td>
+                <td style={billCellStyle('status', 'center')}><StatusBadge status={String(bill.status || 'OPEN').toLowerCase()}>{String(bill.status || 'OPEN').toUpperCase()}</StatusBadge></td>
                 <td style={billCellStyle('action', 'center')}>
-                  <button type="button" style={shell.iconButton} onClick={() => openEdit(bill)}><Plus size={14} /></button>
-                  <button type="button" style={shell.iconButton} onClick={() => deleteBill(bill._id)}><Trash2 size={14} /></button>
+                  <button type="button" style={shell.iconButton} onClick={() => openEdit(bill)} aria-label="Edit bill" title="Edit bill"><Pencil size={14} /></button>
+                  <button type="button" style={shell.iconButton} onClick={() => deleteBill(bill._id)} aria-label="Delete bill" title="Delete bill"><Trash2 size={14} /></button>
                 </td>
               </tr>
             ))}
-            {bills.length === 0 ? <tr><td style={shell.td} colSpan={8}>No vendor bills found.</td></tr> : null}
+            {bills.length === 0 ? <tr><td style={shell.td} colSpan={8}><EmptyState title="No vendor bills found." /></td></tr> : null}
           </tbody>
         </table>
       </div>
 
+      </AppCard>
+
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeModal}>
-          <form role="dialog" aria-modal="true" className="crm-modal-surface" style={modalStyle} onSubmit={saveBill} onClick={(event) => event.stopPropagation()}>
-            <div className="crm-modal-surface-header" style={modalHeaderStyle}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><CRMModalCloseButton type="button" style={shell.closeBtn} onClick={closeModal} /></div>
-            <div className="crm-modal-surface-body" style={formBodyStyle}>
+          <form role="dialog" aria-modal="true" className="crm-modal-surface glass-dialog" style={modalStyle} onSubmit={saveBill} onClick={(event) => event.stopPropagation()}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={modalHeaderStyle}><h3 style={shell.headerTitle}>{editingId ? 'Edit Vendor Bill' : 'New Vendor Bill'}</h3><CRMModalCloseButton type="button" style={shell.closeBtn} onClick={closeModal} /></div>
+            <div className="crm-modal-surface-body glass-dialog-body" style={formBodyStyle}>
               <div style={row2Style}>
                 <label style={shell.label}>Vendor Name*</label>
                 <select style={shell.input} value={form.vendorId} onChange={(e) => updateForm('vendorId', e.target.value)}>
@@ -555,7 +561,7 @@ export default function VendorBillsDashboard() {
                 <textarea style={shell.textArea} value={form.notes} onChange={(e) => updateForm('notes', e.target.value)} />
               </div>
             </div>
-            <div className="crm-modal-surface-footer" style={shell.modalFooter}>
+            <div className="crm-modal-surface-footer glass-dialog-footer" style={shell.modalFooter}>
               {saveError ? <div style={{ marginRight: 'auto', fontSize: '12px', color: '#dc2626', fontWeight: 700 }}>{saveError}</div> : null}
               <button type="button" style={shell.cancelButton} onClick={closeModal}>Cancel</button>
               <button data-modal-primary="true"    type="submit" style={shell.saveButton} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Bill'}</button>

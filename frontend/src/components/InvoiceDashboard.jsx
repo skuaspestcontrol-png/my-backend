@@ -1,3 +1,12 @@
+import AppCard from './ui/AppCard';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import StatusBadge from './ui/StatusBadge';
+import EmptyState from './ui/EmptyState';
+import '../styles/glassContent.css';
+import AppButton from './ui/AppButton';
+import { Wallet, Clock, CalendarClock, AlertCircle, Timer, RefreshCw, Download } from 'lucide-react';
+import { PageHeaderTitle } from './ui/PageHeader';
 import CustomerNameCombobox from './ui/CustomerNameCombobox';
 import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
 import { CRMFormField } from './ui/CRMForm';
@@ -4064,39 +4073,71 @@ export default function InvoiceDashboard() {
 
   return (
     <section
-      className="crm-page crm-section invoice-dashboard-page"
+      className="crm-page crm-section invoice-dashboard-page glass-content glass-finance-content"
       style={{
         ...shell.page,
         visibility: hideInvoiceShellWhileOpeningModal ? 'hidden' : 'visible'
       }}
     >
-      <div data-brand-header="true" style={topbarStyle}>
-        <div style={shell.titleWrap}>
-          <h1 style={titleStyle}>All Invoices</h1>
+      <div className="portal-page-toolbar glass-header" style={topbarStyle}>
+        <div className="portal-page-title-slot" style={shell.titleWrap}>
+          <PageHeaderTitle kind="invoices" title="All Invoices" subtitle="View invoices, payment status and customer balances." />
         </div>
-        <div style={topActionsStyle}>
+        <div className="glass-header-actions" style={topActionsStyle}>
+          <AppButton variant="outline" size="sm" iconLeft={<RefreshCw size={14} />} onClick={loadInvoices}>Refresh</AppButton>
+          <AppButton variant="outline" size="sm" iconLeft={<Download size={14} />} onClick={exportData}>Export</AppButton>
           <button
             ref={menuButtonRef}
             type="button"
-            style={toolbarIconButtonStyle}
+            className="portal-toolbar-icon-button" style={toolbarIconButtonStyle}
             aria-label="More options"
             onClick={() => setShowMoreMenu((prev) => !prev)}
           >
             <MoreHorizontal size={12} />
           </button>
-          <div style={{ position: 'relative' }}>
+
+      {showMoreMenu ? (
+        <div ref={menuRef} className="crm-action-menu-panel glass-menu" style={shell.menu}>
+          <button type="button" style={shell.menuButton} onClick={loadInvoices}>Refresh Invoices</button>
+          <button type="button" style={shell.menuButton} onClick={exportData}>Export Data</button>
+          <button
+            type="button"
+            style={{ ...shell.menuButton, opacity: selectedIds.length === 1 ? 1 : 0.45 }}
+            onClick={openEditSelected}
+          >
+            Edit Selected
+          </button>
+          <button type="button" data-danger="true" style={shell.menuButton} onClick={deleteSelected}>
+            Delete Selected ({selectedIds.length})
+          </button>
+        </div>
+      ) : null}
+
+        </div>
+      </div>
+
+
+      <section aria-label="Payment Summary"><h3 className="glass-section-label">Payment Summary</h3><SummaryCardGrid className="glass-summary-grid">
+        <DashboardStatCard variant="glass" title="Total Outstanding Receivables" value={formatINR(summary.totalOutstanding)} hint="Unpaid balance" icon={<Wallet size={22} />} tone="var(--ui-link)" />
+        <DashboardStatCard variant="glass" title="Due Today" value={formatINR(summary.dueToday)} hint="Today receivables" icon={<Clock size={22} />} tone="var(--status-danger-text)" />
+        <DashboardStatCard variant="glass" title="Due Within 30 Days" value={formatINR(summary.dueWithin30)} hint="Upcoming dues" icon={<CalendarClock size={22} />} tone="var(--status-pending-text)" />
+        <DashboardStatCard variant="glass" title="Overdue Invoice" value={formatINR(summary.overdue)} hint="Past due amount" icon={<AlertCircle size={22} />} tone="var(--status-danger-text)" />
+        <DashboardStatCard variant="glass" title="Average Customer Payment Day" value={<>{summary.avgDays} Days</>} hint="Payment cycle" icon={<Timer size={22} />} tone="var(--ui-link)" />
+      </SummaryCardGrid></section>
+
+      <AppCard className="glass-surface glass-register-panel" style={{ overflow: 'visible' }} bodyStyle={{ padding: 0 }} title={<span className="glass-panel-title"><FileText size={18} aria-hidden="true" />Invoices <small>{invoices.length} records</small></span>} action={<div style={{ position: 'relative' }}>
             <button
               ref={customizeButtonRef}
               type="button"
-              style={topActionIconStyle}
+              className="glass-columns-trigger" style={topActionIconStyle}
               aria-label="Customize fields"
               title="Customize fields"
               onClick={() => setShowCustomize((prev) => !prev)}
             >
-              <Settings size={12} />
+              <Settings size={12} /><span>Columns</span>
             </button>
             {showCustomize ? (
-              <div ref={customizePanelRef} style={shell.popover}>
+              <div ref={customizePanelRef} className="glass-columns-menu" style={shell.popover}>
                 <div style={shell.popoverHeader}>Show/Hide Columns</div>
                 <div style={shell.popoverBody}>
                   {columns.map((column) => (
@@ -4115,62 +4156,9 @@ export default function InvoiceDashboard() {
                 </div>
               </div>
             ) : null}
-          </div>
-        </div>
-      </div>
-
-      {showMoreMenu ? (
-        <div ref={menuRef} className="crm-action-menu-panel" style={shell.menu}>
-          <button type="button" style={shell.menuButton} onClick={loadInvoices}>Refresh Invoices</button>
-          <button type="button" style={shell.menuButton} onClick={exportData}>Export Data</button>
-          <button
-            type="button"
-            style={{ ...shell.menuButton, opacity: selectedIds.length === 1 ? 1 : 0.45 }}
-            onClick={openEditSelected}
-          >
-            Edit Selected
-          </button>
-          <button type="button" data-danger="true" style={shell.menuButton} onClick={deleteSelected}>
-            Delete Selected ({selectedIds.length})
-          </button>
-        </div>
-      ) : null}
-
-      <div className="invoice-summary-wrap" style={shell.summaryWrap}>
-        <div className="invoice-summary-card" data-ui="summary-card" style={shell.summaryCard}>
-          <h3 style={shell.summaryTitle}>Payment Summary</h3>
-          <div style={summaryGridStyle}>
-            <div className="invoice-summary-metric" style={summaryMetricStyle}>
-              <span style={shell.summaryLabel}>Total Outstanding Receivables</span>
-              <span style={summaryValueStyle}>{formatINR(summary.totalOutstanding)}</span>
-              <span style={shell.summaryHint}>Unpaid balance</span>
-            </div>
-            <div className="invoice-summary-metric" style={summaryMetricStyle}>
-              <span style={shell.summaryLabel}>Due Today</span>
-              <span style={{ ...summaryValueStyle, ...shell.summaryAccent }}>{formatINR(summary.dueToday)}</span>
-              <span style={shell.summaryHint}>Today receivables</span>
-            </div>
-            <div className="invoice-summary-metric" style={summaryMetricStyle}>
-              <span style={shell.summaryLabel}>Due Within 30 Days</span>
-              <span style={summaryValueStyle}>{formatINR(summary.dueWithin30)}</span>
-              <span style={shell.summaryHint}>Upcoming dues</span>
-            </div>
-            <div className="invoice-summary-metric" style={summaryMetricStyle}>
-              <span style={shell.summaryLabel}>Overdue Invoice</span>
-              <span style={summaryValueStyle}>{formatINR(summary.overdue)}</span>
-              <span style={shell.summaryHint}>Past due amount</span>
-            </div>
-            <div className="invoice-summary-metric" style={summaryMetricStyle}>
-              <span style={shell.summaryLabel}>Average Customer Payment Day</span>
-              <span style={summaryValueStyle}>{summary.avgDays} Days</span>
-              <span style={shell.summaryHint}>Payment cycle</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped invoice-table-shell">
-        <table style={tableStyle} className="crm-compact-table invoice-register-table">
+          </div>}>
+      <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped invoice-table-shell glass-register-scroll">
+        <table style={tableStyle} className="crm-compact-table invoice-register-table portal-data-table">
           <colgroup>
             <col style={shell.checkboxWrap} />
             {visibleColumnDefs.map((column) => (
@@ -4232,6 +4220,7 @@ export default function InvoiceDashboard() {
             </tr>
           </thead>
           <tbody>
+            {pagedInvoices.length === 0 ? <tr><td style={shell.cell} colSpan={visibleColumnDefs.length + 2}><EmptyState title="No invoices found." /></td></tr> : null}
             {pagedInvoices.map((invoice) => (
               <tr key={invoice._id} style={shell.row}>
                 <td style={{ ...shell.cell, ...shell.checkboxWrap }} data-label="Select">
@@ -4249,7 +4238,7 @@ export default function InvoiceDashboard() {
                   if (column.key === 'status') {
                     return (
                       <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...shell.statusBadge, ...getColumnStyle(column.key), color: getStatusColor(String(invoice.status || '').toUpperCase()) }} data-label={column.label}>
-                        {String(invoice.status || '').toUpperCase()}
+                        <StatusBadge status={String(invoice.status || '').toLowerCase()}>{String(invoice.status || '').toUpperCase()}</StatusBadge>
                       </td>
                     );
                   }
@@ -4294,7 +4283,7 @@ export default function InvoiceDashboard() {
           </tbody>
         </table>
       </div>
-      <div className="invoice-table-pagination" style={{ padding: '8px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
+      <div className="invoice-table-pagination portal-table-pagination" style={{ padding: '8px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
         <div style={shell.paginationInfo}>{firstRecord}-{lastRecord} of {invoices.length} records</div>
         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
           <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', minWidth: '34px', height: '32px', minHeight: '32px', padding: 0 }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
@@ -4302,9 +4291,11 @@ export default function InvoiceDashboard() {
         </div>
       </div>
 
+      </AppCard>
+
       {showModal ? createPortal(
         <div style={modalOverlayLockedStyle}>
-          <CRMFormModal className="crm-four-wizard contract-form-wizard" style={modalStyle}
+          <CRMFormModal className="crm-four-wizard contract-form-wizard glass-dialog" style={modalStyle}
  title={contractViewOnly ? 'View Contract' : editingId ? 'Edit Contract' : 'New Contract'} subtitle="Manage customer, services, pricing and service schedules." icon={FileText}
  onClose={closeInvoiceModal} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()} validateStep={validateWizardStep}
  busy={isSaving} error={saveError} trackSubmission inlineErrors associateLabels fieldsetContent readOnly={contractViewOnly}
@@ -5014,12 +5005,12 @@ export default function InvoiceDashboard() {
 
       {showInvoiceNumberPrefs ? createPortal(
         <div style={shell.miniModalOverlay}>
-          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.miniModal}>
-            <div className="crm-modal-surface-header" style={shell.miniModalHead}>
+          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={shell.miniModal}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={shell.miniModalHead}>
               <h3 style={shell.miniModalTitle}>Configure Invoice Number Preferences</h3>
               <CRMModalCloseButton type="button" style={shell.miniCloseButton} onClick={() => setShowInvoiceNumberPrefs(false)} aria-label="Close" />
             </div>
-            <div className="crm-modal-surface-body" style={shell.miniModalBody}>
+            <div className="crm-modal-surface-body glass-dialog-body" style={shell.miniModalBody}>
               <p style={shell.miniModalNote}>
                 Your invoice numbers can be auto-generated to save time. You can still edit the invoice number manually in the form.
               </p>
@@ -5094,7 +5085,7 @@ export default function InvoiceDashboard() {
                 Enter invoice numbers manually
               </label>
             </div>
-            <div className="crm-modal-surface-footer" data-brand-footer="true" style={shell.miniFooter}>
+            <div className="crm-modal-surface-footer glass-dialog-footer" data-brand-footer="true" style={shell.miniFooter}>
               <button data-modal-primary="true"  type="button" style={shell.saveButton} onClick={saveInvoiceNumberPrefs}>Save</button>
               <button type="button" style={shell.cancelButton} onClick={() => setShowInvoiceNumberPrefs(false)}>Cancel</button>
             </div>
@@ -5104,12 +5095,12 @@ export default function InvoiceDashboard() {
 
       {showBillingAddressPicker ? createPortal(
         <div style={shell.addressPickerOverlay}>
-          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={{ ...shell.addressPicker, width: 'min(100%, 640px)' }}>
-            <div className="crm-modal-surface-header" style={shell.addressPickerHead}>
+          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={{ ...shell.addressPicker, width: 'min(100%, 640px)' }}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={shell.addressPickerHead}>
               <h3 style={shell.addressPickerTitle}>Billing Address</h3>
               <CRMModalCloseButton type="button" style={shell.addressPickerCloseButton} onClick={() => setShowBillingAddressPicker(false)} />
             </div>
-            <div className="crm-modal-surface-body" style={shell.addressList}>
+            <div className="crm-modal-surface-body glass-dialog-body" style={shell.addressList}>
               {billingAddressOptions.map((option) => (
                 <div
                   key={option.id}
@@ -5135,8 +5126,8 @@ export default function InvoiceDashboard() {
 
       {showShippingAddressPicker ? createPortal(
         <div style={shell.addressPickerOverlay}>
-          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.addressPicker}>
-            <div className="crm-modal-surface-header" style={shell.addressPickerHead}>
+          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={shell.addressPicker}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={shell.addressPickerHead}>
               <h3 style={shell.addressPickerTitle}>Shipping Address</h3>
               <CRMModalCloseButton type="button" style={shell.addressPickerCloseButton} onClick={() => {
                   setShowShippingAddressPicker(false);
@@ -5144,7 +5135,7 @@ export default function InvoiceDashboard() {
                   setShippingAddressDraft(emptyAddressDraft);
                 }} />
             </div>
-            <div className="crm-modal-surface-body" style={shell.addressList}>
+            <div className="crm-modal-surface-body glass-dialog-body" style={shell.addressList}>
               {shippingAddressOptions.map((option) => (
                 <div
                   key={option.id}
@@ -5197,8 +5188,8 @@ export default function InvoiceDashboard() {
       , document.body) : null}
       {showShippingAddressPicker && editingShippingAddressId ? createPortal(
         <div style={shell.miniModalOverlay}>
-          <div className="crm-modal-surface" role="dialog" aria-modal="true" style={{ ...shell.miniModal, width: 'min(100%, 900px)' }}>
-            <div className="crm-modal-surface-header" style={shell.miniModalHead}>
+          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={{ ...shell.miniModal, width: 'min(100%, 900px)' }}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={shell.miniModalHead}>
               <h3 style={shell.miniModalTitle}>
                 {editingShippingAddressId === 'new' || editingShippingAddressId === 'new-premise' ? 'Add New Address' : 'Edit Address'}
               </h3>
@@ -5218,7 +5209,7 @@ export default function InvoiceDashboard() {
                   }} />
               </div>
             </div>
-            <div className="crm-modal-surface-body"
+            <div className="crm-modal-surface-body glass-dialog-body"
               style={{
                 ...shell.miniModalBody,
                 display: 'grid',
@@ -5277,7 +5268,7 @@ export default function InvoiceDashboard() {
                 onChange={(event) => setShippingAddressDraft((prev) => ({ ...prev, pincode: toSixDigitPincode(event.target.value) }))}
               />
             </div>
-            <div className="crm-modal-surface-footer" data-brand-footer="true" style={shell.miniFooter}>
+            <div className="crm-modal-surface-footer glass-dialog-footer" data-brand-footer="true" style={shell.miniFooter}>
               <button data-modal-primary="true"  type="button" style={shell.saveButton} onClick={saveShippingAddressDraft}>
                 Save Address
               </button>

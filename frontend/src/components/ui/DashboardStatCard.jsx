@@ -1,7 +1,20 @@
 import AppCard from './AppCard';
 
-export default function DashboardStatCard({ title, value, icon, tone = 'var(--color-primary)', style, contentStyle, titleStyle, valueStyle, className }) {
+export default function DashboardStatCard({ title, value, icon, tone = 'var(--color-primary)', style, contentStyle, titleStyle, valueStyle, className, variant, hint }) {
   const hasIcon = Boolean(icon);
+
+  if (variant === 'glass') {
+    return <AppCard className={['glass-surface glass-summary-card', className].filter(Boolean).join(' ')} style={style} bodyStyle={{ padding: 12 }}>
+      <div className="glass-summary-layout">
+        {hasIcon ? <span className="glass-summary-icon" style={{ color: tone }} aria-hidden="true">{icon}</span> : null}
+        <div className="glass-summary-copy">
+          <strong className="glass-summary-value" style={valueStyle}>{value}</strong>
+          <span className="glass-summary-label" style={titleStyle}>{title}</span>
+          {hint ? <small className="glass-summary-hint">{hint}</small> : null}
+        </div>
+      </div>
+    </AppCard>;
+  }
 
   return (
     <AppCard className={['crm-kpi-card', 'portal-summary-card', className].filter(Boolean).join(' ')} style={{ padding: 0, ...style }}>

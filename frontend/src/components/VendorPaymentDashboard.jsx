@@ -1,3 +1,10 @@
+import { PageHeaderTitle } from './ui/PageHeader';
+import AppCard from './ui/AppCard';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import StatusBadge from './ui/StatusBadge';
+import EmptyState from './ui/EmptyState';
+import '../styles/glassContent.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ListOrdered, WalletCards } from 'lucide-react';
@@ -311,33 +318,17 @@ export default function VendorPaymentDashboard() {
   };
 
   return (
-    <section className="vendor-payment-page" style={shell.page}>
-      <div style={shell.hero}>
-        <h2 style={shell.title}>Vendor Payment Dashboard</h2>
-        <p style={shell.sub}>{status}</p>
-      </div>
+    <section className="vendor-payment-page glass-content glass-finance-content" style={shell.page}>
+      <div className="portal-page-toolbar glass-header"><PageHeaderTitle title="Vendor Payment Dashboard" subtitle={status} icon={WalletCards} /></div>
+      <SummaryCardGrid className="glass-summary-grid" aria-label="Vendor payment summary">
+        <DashboardStatCard variant="glass" title="Total Paid to Vendors" value={formatINR(summary.totalPaid)} icon={<WalletCards size={22} />} tone="var(--status-active-text)" />
+        <DashboardStatCard variant="glass" title="Outstanding Vendor Due" value={formatINR(summary.totalDue)} icon={<WalletCards size={22} />} tone="var(--status-pending-text)" />
+        <DashboardStatCard variant="glass" title="Payment Entries" value={summary.paymentEntries} icon={<ListOrdered size={22} />} tone="var(--ui-link)" />
+      </SummaryCardGrid>
 
-      <div style={statsStyle}>
-        <article style={shell.stat}>
-          <p style={shell.statLabel}>Total Paid to Vendors</p>
-          <p style={shell.statValue}><RupeeSymbol size={18} style={{ verticalAlign: 'middle' }} /> {formatINR(summary.totalPaid).replace('₹', '')}</p>
-        </article>
-        <article style={shell.stat}>
-          <p style={shell.statLabel}>Outstanding Vendor Due</p>
-          <p style={shell.statValue}><WalletCards size={18} style={{ verticalAlign: 'middle' }} /> {formatINR(summary.totalDue).replace('₹', '')}</p>
-        </article>
-        <article style={shell.stat}>
-          <p style={shell.statLabel}>Payment Entries</p>
-          <p style={shell.statValue}><ListOrdered size={18} style={{ verticalAlign: 'middle' }} /> {summary.paymentEntries}</p>
-        </article>
-      </div>
-
-      <div style={shell.tablePanel}>
-      <div style={shell.tableHeadBar}>
-        <h3 style={shell.tableHead}>Recent Vendor Payments (Expense Tracking)</h3>
-      </div>
-        <div className="responsive-table">
-          <table style={tableStyle}>
+      <AppCard className="glass-surface glass-register-panel" style={{ overflow: 'visible' }} bodyStyle={{ padding: 0 }} title={<span className="glass-panel-title"><WalletCards size={18} aria-hidden="true" />Recent Vendor Payments (Expense Tracking)</span>}>
+        <div className="responsive-table glass-register-scroll">
+          <table className="portal-data-table" style={tableStyle}>
             <colgroup>{paymentColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || paymentColumnWidths[key] || 100}px` }} />)}</colgroup>
             <thead>
               <tr>
@@ -353,7 +344,7 @@ export default function VendorPaymentDashboard() {
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td style={shell.td} colSpan={7}>No vendor payment records available yet.</td>
+                  <td style={shell.td} colSpan={7}><EmptyState title="No vendor payment records available yet." /></td>
                 </tr>
               ) : (
                 rows.map((row) => (
@@ -363,7 +354,7 @@ export default function VendorPaymentDashboard() {
                     <td style={cellStyle('vendorName')}>{row.vendorName}</td>
                     <td style={cellStyle('mode', 'center')}>{row.mode}</td>
                     <td style={{ ...cellStyle('amount', 'center'), fontWeight: 800, color: '#111827' }}>{formatINR(row.amount)}</td>
-                    <td style={cellStyle('status', 'center')}>{row.status}</td>
+                    <td style={cellStyle('status', 'center')}><StatusBadge status={String(row.status || '').toLowerCase()}>{row.status}</StatusBadge></td>
                     <td style={cellStyle('action', 'center')}>
                       <button type="button" style={shell.actionButton} onClick={() => deletePaymentEntry(row)}>
                         Delete
@@ -375,7 +366,7 @@ export default function VendorPaymentDashboard() {
             </tbody>
           </table>
         </div>
-      </div>
+      </AppCard>
     </section>
   );
 }

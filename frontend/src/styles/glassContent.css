@@ -92,3 +92,48 @@ html[data-theme][data-branding] body .portal-design-system .main-content .glass-
 @media (min-width: 901px) {
   .glass-content .glass-table-panel table { min-width: max(100%, calc(190px + var(--glass-column-count, 8) * 100px)) !important; }
 }
+
+/* Reusable finance/register variants; pages opt in without changing their data model. */
+.glass-finance-content .glass-header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; position: relative; }
+.glass-header-actions > .glass-menu { top: calc(100% + 8px) !important; right: 0 !important; left: auto !important; max-width: min(230px, calc(100vw - 40px)); z-index: 1000; }
+.glass-summary-grid { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(min(100%, 185px), 1fr)) !important; gap: 12px !important; }
+.glass-section-label { margin: 0 0 8px; color: var(--ui-muted); font-size: 12px; line-height: 1.4; font-weight: 600; }
+.glass-summary-layout { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.glass-summary-icon { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex: 0 0 42px; border-radius: 11px; background: color-mix(in srgb, currentColor 10%, transparent); }
+.glass-summary-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.glass-summary-value { color: var(--ui-text); font-size: clamp(20px, 1.5vw, 25px); line-height: 1.2; font-weight: 750; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.glass-summary-label { color: var(--ui-text); font-size: 11px; line-height: 1.4; font-weight: 550; }
+.glass-summary-hint { color: var(--ui-muted); font-size: 10px; line-height: 1.4; }
+.glass-finance-content .glass-register-panel .crm-card-header { min-width: 0; }
+.glass-finance-content .glass-register-panel .crm-card-header h3 { min-width: 0; }
+.glass-finance-content .glass-register-scroll { margin: 0 !important; max-width: 100%; min-width: 0; overflow: auto !important; border: 0 !important; border-radius: 0 !important; max-height: min(62dvh, 680px); }
+.glass-finance-content .glass-register-scroll thead th { position: sticky !important; top: 0; z-index: 2; }
+html[data-theme][data-branding] body .portal-design-system .glass-finance-content .glass-primary-action { background: var(--ui-action) !important; border-color: var(--ui-action) !important; color: #fff !important; -webkit-text-fill-color: #fff !important; min-height: 36px; border-radius: 8px !important; font-size: 12px !important; }
+html[data-theme][data-branding] body .portal-design-system .glass-finance-content .glass-register-scroll tbody td { background: var(--ui-card) !important; color: var(--ui-text) !important; }
+html[data-theme][data-branding] body .portal-design-system .glass-finance-content .glass-register-scroll tbody tr:nth-child(even) > td { background: var(--ui-elevated) !important; }
+html[data-theme][data-branding] body .portal-design-system .glass-finance-content .glass-register-scroll tbody tr:hover > td { background: var(--table-row-hover) !important; }
+.glass-finance-content .glass-register-panel td button { border-radius: 7px !important; box-shadow: none !important; }
+.glass-finance-content .portal-status-badge { min-height: 23px; font-size: 11px !important; white-space: nowrap; }
+.glass-finance-content .portal-status-badge[data-status="paid"] { background: var(--status-active-bg) !important; color: var(--status-active-text) !important; -webkit-text-fill-color: currentColor !important; }
+.glass-finance-content .portal-status-badge:is([data-status="open"], [data-status="unpaid"], [data-status="partial"], [data-status="partially paid"]) { background: var(--status-pending-bg) !important; color: var(--status-pending-text) !important; -webkit-text-fill-color: currentColor !important; }
+.glass-finance-content .portal-status-badge[data-status="overdue"] { background: var(--status-danger-bg) !important; color: var(--status-danger-text) !important; -webkit-text-fill-color: currentColor !important; }
+.glass-finance-content .portal-empty-state { padding: 22px 16px; }
+.glass-finance-content .portal-empty-state h4 { margin: 0; font-size: 13px; font-weight: 550; color: var(--ui-muted); }
+@media (max-width: 600px) {
+  .glass-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+  .glass-summary-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .glass-summary-layout { gap: 8px; align-items: flex-start; }
+  .glass-summary-icon { width: 30px; height: 34px; flex-basis: 30px; border-radius: 8px; }
+  .glass-summary-icon svg { width: 19px; height: 19px; }
+  .glass-summary-value { font-size: 20px; }
+  .glass-summary-label { font-size: 10px; }
+}
+@media print {
+  .glass-finance-content .glass-register-scroll { max-height: none; overflow: visible !important; }
+  .glass-finance-content .glass-register-scroll thead th { position: static !important; }
+}
+
+.glass-summary-value, .glass-summary-label, .glass-summary-hint { -webkit-text-fill-color: currentColor !important; }
+.glass-summary-hint { color: var(--ui-muted) !important; font-weight: 400 !important; }
+.glass-finance-content .glass-register-scroll:last-child { border-radius: 0 0 14px 14px !important; }
+.glass-finance-content .glass-columns-trigger { border: 1px solid var(--ui-glass-border) !important; background: var(--ui-elevated) !important; color: var(--ui-text) !important; -webkit-text-fill-color: currentColor !important; }
