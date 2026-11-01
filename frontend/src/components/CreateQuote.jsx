@@ -1,3 +1,8 @@
+import '../styles/glassContent.css';
+import * as GlassIcons from 'lucide-react';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useLocation, useSearchParams } from 'react-router-dom';
@@ -724,19 +729,19 @@ export default function CreateQuote() {
   const inactiveLookupStyle = { ...input, background: '#f8fafc', color: '#94a3b8', cursor: 'not-allowed' };
 
   return (
-    <section style={pageStyle}>
-      <div data-brand-header="true" style={headerStyle}>
-        <h2 style={titleStyle}>{isEditMode ? 'Edit Quotation' : 'Create Quotation'}</h2>
+    <section className="create-quotation-page glass-content glass-sales-content" style={pageStyle}>
+      <div className="portal-page-toolbar glass-header" style={headerStyle}>
+        <PageHeaderTitle title={isEditMode ? 'Edit Quotation' : 'Create Quotation'} subtitle="Prepare customer, service, pricing and proposal details." icon={GlassIcons.FileText} />
         <div style={{ fontWeight: 800, color: 'var(--sky-deep)' }}>Preview Number: {form.quotation_number || quotationPreview}</div>
       </div>
 
-      <div style={tabsStyle}>
+      <div className="glass-tabs" style={tabsStyle}>
         {tabs.map((tab, idx) => (
-          <button key={tab} type="button" onClick={() => setActive(idx)} style={tabStyle(idx)}>{tab}</button>
+          <button key={tab} type="button" aria-pressed={active === idx} onClick={() => setActive(idx)} style={tabStyle(idx)}>{tab}</button>
         ))}
       </div>
 
-      <div style={panel}>
+      <div className="glass-surface glass-editor-panel" style={panel}>
         {active === 0 && (
           <>
             <div style={customerGridStyle}>
@@ -844,7 +849,7 @@ export default function CreateQuote() {
               Show payment details in PDF
             </label>
             <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto' }}>
-              <table style={{ width: '100%', minWidth: isMobile ? 680 : '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+              <table className="portal-data-table" style={{ width: '100%', minWidth: isMobile ? 680 : '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
                     <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid var(--border)', width: 70 }}>Sr No</th>

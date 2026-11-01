@@ -1,3 +1,5 @@
+import '../../styles/glassContent.css';
+import * as GlassIcons from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Edit3, Plus, RefreshCcw, Trash2 } from 'lucide-react';
 import AppButton from '../../components/ui/AppButton';
@@ -392,8 +394,9 @@ export default function SalesTargets() {
   };
 
   return (
-    <div className="crm-page sales-performance-page sales-targets-page" style={pageGridStyle}>
-      <PageHeader
+    <div className="crm-page sales-performance-page sales-targets-page glass-content glass-sales-content" style={pageGridStyle}>
+      <div className="glass-header glass-sales-header-frame"><PageHeader
+        icon={GlassIcons.Target}
         title="Targets"
         subtitle="Set monthly and yearly sales targets and see achieved vs pending amounts."
         titleStyle={isMobile ? { fontSize: 24, lineHeight: 1.1 } : undefined}
@@ -420,10 +423,10 @@ export default function SalesTargets() {
             </AppButton>
           </div>
         )}
-      />
+      /></div>
 
-      <AppCard title="Filters" style={{ width: '100%', minWidth: 0 }}>
-        <div style={filtersGridStyle}>
+      <AppCard className="glass-surface glass-filter-panel" title="Filters" style={{ width: '100%', minWidth: 0 }}>
+        <div className="glass-filter-grid" style={filtersGridStyle}>
           <AppSelect label="Year" value={filters.year} onChange={(e) => setFilters({ ...filters, year: e.target.value ? Number(e.target.value) : '' })}>
             <option value="">All Years</option>
             {Array.from({ length: 5 }, (_, index) => currentYear - 2 + index).map((year) => <option key={year} value={year}>{year}</option>)}
@@ -444,10 +447,10 @@ export default function SalesTargets() {
 
       {error ? <AppCard><EmptyState title="Sales target error" message={error} /></AppCard> : null}
 
-      <AppCard title="Yearly Target Rollup" style={{ width: '100%', minWidth: 0 }}>
+      <AppCard className="glass-surface glass-register-panel" bodyStyle={{ padding: 0 }} title="Yearly Target Rollup" style={{ width: '100%', minWidth: 0 }}>
         {yearlySummaryRows.length ? (
-          <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table className="table-clean sales-targets-table sales-performance-table" style={yearlyTableStyle}>
+          <div className="crm-scroll-table glass-register-scroll" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="table-clean portal-data-table sales-targets-table sales-performance-table" style={yearlyTableStyle}>
               <colgroup>
                 {yearlyColumns.map((column) => <col key={column.key} style={{ width: `${yearlyCellWidths[column.key]}px` }} />)}
               </colgroup>
@@ -483,7 +486,7 @@ export default function SalesTargets() {
         )}
       </AppCard>
 
-      <AppCard className="crm-form-surface" title={form.id ? 'Edit Target' : 'Add Target'} style={{ width: '100%', minWidth: 0 }}>
+      <AppCard className="crm-form-surface glass-surface glass-editor-panel" title={form.id ? 'Edit Target' : 'Add Target'} style={{ width: '100%', minWidth: 0 }}>
         <form className="crm-inline-form" onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, width: '100%', minWidth: 0 }}>
           <div style={formGridStyle}>
             <AppSelect label="Sales Person" value={form.salesPersonId} onChange={(e) => setForm({ ...form, salesPersonId: e.target.value })} required>
@@ -510,12 +513,12 @@ export default function SalesTargets() {
         </form>
       </AppCard>
 
-      <AppCard title="Target List" style={{ width: '100%', minWidth: 0 }}>
+      <AppCard className="glass-surface glass-register-panel" bodyStyle={{ padding: 0 }} title="Target List" style={{ width: '100%', minWidth: 0 }}>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : safeRows(targets).length ? (
-          <div className="crm-scroll-table" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <table className="table-clean sales-targets-table sales-performance-table" style={targetTableStyle}>
+          <div className="crm-scroll-table glass-register-scroll" style={{ width: '100%', maxWidth: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table className="table-clean portal-data-table sales-targets-table sales-performance-table" style={targetTableStyle}>
               <colgroup>
                 {targetColumns.map((column) => <col key={column.key} style={{ width: `${targetCellWidths[column.key]}px` }} />)}
               </colgroup>

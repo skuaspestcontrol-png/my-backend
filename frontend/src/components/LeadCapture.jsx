@@ -1,6 +1,11 @@
+import '../styles/glassContent.css';
+import * as GlassIcons from 'lucide-react';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import DashboardStatCard from './ui/DashboardStatCard';
 import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
 import { Target, ClipboardCheck } from 'lucide-react';
 import '../styles/crmFourWizards.css';
+import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
@@ -2424,51 +2429,26 @@ export default function LeadCapture() {
     : { ...s.cell, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
 
   return (
-    <div className="lead-capture-page" style={pageStyle}>
-      <div style={s.analyticsWrap}>
-        <div style={analyticsHeaderStyle}>
-          <div style={s.analyticsTitleWrap}>
-            <h3 style={analyticsTitleStyle}>Lead Overview Summary</h3>
-            <p style={s.analyticsSub}>Year-wise, month-wise, pest issue-wise, source-wise, status-wise, and assigned-wise lead analytics.</p>
+    <div className="lead-capture-page glass-content glass-sales-content" style={pageStyle}>
+      <div className="glass-sales-stack" style={s.analyticsWrap}>
+        <div className="portal-page-toolbar glass-header" style={analyticsHeaderStyle}>
+          <div className="portal-page-title-slot" style={s.analyticsTitleWrap}>
+            <PageHeaderTitle kind="leads" title="Lead Overview Summary" subtitle="Track enquiries, assignments, lead sources and follow-ups." />
           </div>
         </div>
 
-        <div style={s.metricsGrid}>
-          <div style={s.metricCard}>
-            <p style={s.metricLabel}>Total Leads</p>
-            <p style={s.metricValue}>{leadOverviewSummary.totalLeads}</p>
-            <p style={s.metricSub}>Records matching current filters</p>
-          </div>
-          <div style={s.metricCard}>
-            <p style={s.metricLabel}>New Leads</p>
-            <p style={s.metricValue}>{leadOverviewSummary.newLeads}</p>
-            <p style={s.metricSub}>Fresh opportunities in queue</p>
-          </div>
-          <div style={s.metricCard}>
-            <p style={s.metricLabel}>Converted</p>
-            <p style={s.metricValue}>{leadOverviewSummary.convertedLeads}</p>
-            <p style={s.metricSub}>Leads moved to successful closure</p>
-          </div>
-          <div style={s.metricCard}>
-            <p style={s.metricLabel}>Conversion Rate</p>
-            <p style={s.metricValue}>{`${leadOverviewSummary.conversionRate.toFixed(1)}%`}</p>
-            <p style={s.metricSub}>Converted / Total</p>
-          </div>
-          <div style={s.metricCard}>
-            <p style={s.metricLabel}>Followups Planned</p>
-            <p style={s.metricValue}>{leadOverviewSummary.followupLeads}</p>
-            <p style={s.metricSub}>Leads with followup date</p>
-          </div>
-          <div style={s.metricCard}>
-            <p style={s.metricLabel}>Unassigned Leads</p>
-            <p style={s.metricValue}>{leadOverviewSummary.unassignedLeads}</p>
-            <p style={s.metricSub}>Needs sales owner allocation</p>
-          </div>
-        </div>
+        <SummaryCardGrid className="glass-summary-grid">
+          <DashboardStatCard variant="glass" title="Total Leads" value={leadOverviewSummary.totalLeads} icon={<GlassIcons.FileText size={22} />} tone="var(--ui-link)" hint="Records matching current filters" />
+          <DashboardStatCard variant="glass" title="New Leads" value={leadOverviewSummary.newLeads} icon={<GlassIcons.UserRoundPlus size={22} />} tone="var(--ui-link)" hint="Fresh opportunities in queue" />
+          <DashboardStatCard variant="glass" title="Converted" value={leadOverviewSummary.convertedLeads} icon={<GlassIcons.CheckCircle2 size={22} />} tone="var(--ui-link)" hint="Leads moved to successful closure" />
+          <DashboardStatCard variant="glass" title="Conversion Rate" value={`${leadOverviewSummary.conversionRate.toFixed(1)}%`} icon={<GlassIcons.TrendingUp size={22} />} tone="var(--ui-link)" hint="Converted / Total" />
+          <DashboardStatCard variant="glass" title="Followups Planned" value={leadOverviewSummary.followupLeads} icon={<GlassIcons.CalendarClock size={22} />} tone="var(--ui-link)" hint="Leads with followup date" />
+          <DashboardStatCard variant="glass" title="Unassigned Leads" value={leadOverviewSummary.unassignedLeads} icon={<GlassIcons.Users size={22} />} tone="var(--ui-link)" hint="Needs sales owner allocation" />
+        </SummaryCardGrid>
 
         {!isMobile ? (
-          <div style={s.filtersPanel}>
-            <div style={filtersGridStyle}>
+          <div className="glass-surface glass-filter-panel" style={s.filtersPanel}>
+            <div className="glass-filter-grid" style={filtersGridStyle}>
               <div style={s.filterField}>
                 <label style={s.filterLabel}>Year</label>
                 <select
@@ -2559,13 +2539,13 @@ export default function LeadCapture() {
         ) : null}
       </div>
 
-      <div style={s.registerCard}>
-        <div style={registerHeadStyle}>
+      <div className="glass-surface glass-register-panel" style={s.registerCard}>
+        <div className="glass-register-head" style={registerHeadStyle}>
           <div style={s.registerTitleWrap}>
             <h2 style={registerTitleStyle}>Leads</h2>
           </div>
           <div style={registerActionsStyle}>
-            <button type="button" style={buttonPrimaryStyle} onClick={openLeadModal}>
+            <button type="button" className="glass-primary-action" style={buttonPrimaryStyle} onClick={openLeadModal}>
               New Lead
             </button>
             <div style={{ position: 'relative', marginLeft: isMobile ? 'auto' : 0 }}>
@@ -2579,7 +2559,7 @@ export default function LeadCapture() {
                 <MoreHorizontal size={14} />
               </button>
               {showMoreMenu ? (
-                <div ref={moreMenuRef} className="crm-action-menu-panel" style={s.menu}>
+                <div ref={moreMenuRef} className="crm-action-menu-panel glass-menu" style={s.menu}>
                   <button type="button" style={s.menuButton} onClick={openEditSelectedLead}>
                     Edit Lead
                   </button>
@@ -2605,7 +2585,7 @@ export default function LeadCapture() {
                   <Settings size={14} />
                 </button>
                 {showCustomize ? (
-                  <div ref={customizePanelRef} style={s.popover}>
+                  <div ref={customizePanelRef} className="glass-columns-menu" style={s.popover}>
                     <div style={s.popoverHeader}>Show/Hide Columns</div>
                     <div style={s.popoverBody}>
                       <button
@@ -2643,8 +2623,8 @@ export default function LeadCapture() {
           onChange={importDataFromFile}
         />
 
-        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped">
-          <table style={tableStyleTiny} className="crm-compact-table crm-stack-mobile">
+        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped glass-register-scroll">
+          <table style={tableStyleTiny} className="crm-compact-table crm-stack-mobile portal-data-table">
             <colgroup>
               <col style={s.checkboxWrap} />
               {visibleColumnDefs.map((column) => (
@@ -2767,7 +2747,7 @@ export default function LeadCapture() {
                         {rowActionLeadId === lead._id && rowActionMenuPosition
                           ? createPortal(
                             <div
-                              className="crm-action-menu-panel"
+                              className="crm-action-menu-panel glass-menu"
                               style={{
                                 ...s.rowActionMenu,
                                 left: `${rowActionMenuPosition.left}px`,
@@ -2876,7 +2856,7 @@ export default function LeadCapture() {
             </tbody>
           </table>
         </div>
-        <div style={leadFooterStyle}>
+        <div className="portal-table-pagination" style={leadFooterStyle}>
           <div style={toolbarLeftStyle}>
             <span style={s.toolbarMeta}>{leadPaginationText}</span>
           </div>
@@ -2908,13 +2888,13 @@ export default function LeadCapture() {
       {viewedLead ? (
         <>
           {createPortal(<div style={s.viewDrawerOverlay} onClick={closeViewLeadPanel} />, document.body)}
-          <aside style={s.viewDrawer} data-lead-view-drawer="true">
+          <aside className="glass-detail-drawer" style={s.viewDrawer} data-lead-view-drawer="true">
             <div style={s.viewDrawerHead}>
               <h3 style={s.viewDrawerTitle}>View Lead</h3>
               <X size={20} style={{ cursor: 'pointer', color: '#64748b' }} onClick={closeViewLeadPanel} />
             </div>
             <div style={s.viewDrawerBody}>
-              <div style={s.viewCard}>
+              <div className="glass-detail-section" style={s.viewCard}>
                 <p style={s.viewCardTitle}>Lead Summary</p>
                 <div style={viewGridStyle}>
                   <div style={s.viewItem}>
@@ -2943,7 +2923,7 @@ export default function LeadCapture() {
                   </div>
                 </div>
               </div>
-              <div style={s.viewCard}>
+              <div className="glass-detail-section" style={s.viewCard}>
                 <p style={s.viewCardTitle}>Location</p>
                 <div style={viewGridStyle}>
                   <div style={{ ...s.viewItem, gridColumn: 'span 2' }}>
@@ -2968,7 +2948,7 @@ export default function LeadCapture() {
                   </div>
                 </div>
               </div>
-              <div style={s.viewCard}>
+              <div className="glass-detail-section" style={s.viewCard}>
                 <p style={s.viewCardTitle}>Additional</p>
                 <div style={viewGridStyle}>
                   <div style={s.viewItem}>
@@ -2992,12 +2972,12 @@ export default function LeadCapture() {
 
       {followupLead ? (
         createPortal(<div style={s.followupOverlay}>
-          <div role="dialog" aria-modal="true" className="crm-modal-surface" style={s.followupModal}>
-            <div className="crm-modal-surface-header" style={s.followupHead}>
+          <div role="dialog" aria-modal="true" className="crm-modal-surface glass-dialog" style={s.followupModal}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={s.followupHead}>
               <h3 style={s.followupTitle}><PhoneCall size={22} /> Log Follow-up</h3>
               <CRMModalCloseButton style={{ cursor: 'pointer', color: '#ffffff', flexShrink: 0 }} onClick={closeLogFollowupModal} />
             </div>
-            <div className="crm-modal-surface-body" style={s.followupBody}>
+            <div className="crm-modal-surface-body glass-dialog-body" style={s.followupBody}>
               <div style={s.followupLeadBadge}>
                 {(followupLead.customerName || 'Lead')} ({normalizePhoneNumber(getLeadMobile(followupLead)) || 'No Mobile'})
               </div>
@@ -3052,7 +3032,7 @@ export default function LeadCapture() {
                 </div>
               </div>
             </div>
-            <div className="crm-modal-surface-footer" style={s.followupActions}>
+            <div className="crm-modal-surface-footer glass-dialog-footer" style={s.followupActions}>
               <button type="button" style={s.followupCancelBtn} onClick={closeLogFollowupModal}>Cancel</button>
               <button data-modal-primary="true"   type="button" style={s.followupSaveBtn} onClick={saveLogFollowup} disabled={isSavingFollowup}>
                 {isSavingFollowup ? 'Saving...' : 'Save Follow-up'}
@@ -3064,7 +3044,7 @@ export default function LeadCapture() {
 
       {show && (
         createPortal(<div style={leadOverlayStyle}>
-          <CRMFormModal className="crm-four-wizard lead-form-wizard" style={leadModalStyle}
+          <CRMFormModal className="crm-four-wizard lead-form-wizard glass-dialog" style={leadModalStyle}
  title={editingLeadId ? 'Edit Lead Form' : 'Lead Entry Form'} subtitle="Manage enquiries, services and follow-up information." icon={Target}
  onClose={resetForm} onSubmit={save} validateStep={validateWizardStep} dirtyKey={JSON.stringify(form)} trackSubmission inlineErrors associateLabels
  cancelAction={<button type="button" onClick={resetForm} style={{ marginRight: '10px', minHeight: '40px', padding: '0 16px', border: '1px solid rgba(17,17,17,0.1)', borderRadius: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.9)', fontSize: '14px', fontWeight: 700 }}>

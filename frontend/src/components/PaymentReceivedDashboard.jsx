@@ -1,3 +1,9 @@
+import AppCard from './ui/AppCard';
+import '../styles/glassContent.css';
+import * as GlassIcons from 'lucide-react';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight, ListOrdered, WalletCards } from 'lucide-react';
@@ -409,33 +415,16 @@ export default function PaymentReceivedDashboard() {
   };
 
   return (
-    <section className="payment-received-page" style={shell.page}>
-      <div style={shell.hero}>
-        <h2 style={shell.title}>Payment Received Dashboard</h2>
-        <p style={shell.sub}>{status}</p>
-      </div>
-
-      <div style={statsStyle}>
-        <article style={statStyle}>
-          <p style={shell.statLabel}>Total Received</p>
-          <p style={shell.statValue}><RupeeSymbol size={18} style={{ verticalAlign: 'middle' }} /> {formatINR(summary.totalReceived).replace('₹', '')}</p>
-        </article>
-        <article style={statStyle}>
-          <p style={shell.statLabel}>Payment Entries</p>
-          <p style={shell.statValue}><ListOrdered size={18} style={{ verticalAlign: 'middle' }} /> {summary.totalEntries}</p>
-        </article>
-        <article style={statStyle}>
-          <p style={shell.statLabel}>Unpaid Invoices</p>
-          <p style={shell.statValue}><WalletCards size={18} style={{ verticalAlign: 'middle' }} /> {summary.unpaidInvoices}</p>
-        </article>
-      </div>
-
-      <div style={shell.tablePanel}>
-        <div style={shell.tableHeadBar}>
-          <h3 style={shell.tableHead}>Recent Payments</h3>
-        </div>
-        <div className="responsive-table">
-          <table style={tableStyle}>
+    <section className="payment-received-page glass-content glass-sales-content" style={shell.page}>
+      <div className="portal-page-toolbar glass-header"><PageHeaderTitle title="Payment Received Dashboard" subtitle={status} icon={GlassIcons.WalletCards} /></div>
+      <SummaryCardGrid className="glass-summary-grid">
+        <DashboardStatCard variant="glass" title="Total Received" value={formatINR(summary.totalReceived)} icon={<GlassIcons.WalletCards size={22} />} tone="var(--ui-link)" />
+        <DashboardStatCard variant="glass" title="Payment Entries" value={summary.totalEntries} icon={<GlassIcons.ListOrdered size={22} />} tone="var(--ui-link)" />
+        <DashboardStatCard variant="glass" title="Unpaid Invoices" value={summary.unpaidInvoices} icon={<GlassIcons.Clock size={22} />} tone="var(--ui-link)" />
+      </SummaryCardGrid>
+      <AppCard className="glass-surface glass-register-panel" bodyStyle={{ padding: 0 }} title="Recent Payments">
+        <div className="responsive-table glass-register-scroll">
+          <table className="portal-data-table" style={tableStyle}>
             <colgroup>{paymentColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || paymentColumnWidths[key] || 100}px` }} />)}</colgroup>
             <thead>
               <tr>
@@ -501,7 +490,7 @@ export default function PaymentReceivedDashboard() {
             </tbody>
           </table>
         </div>
-        <div style={paginationStyle}>
+        <div className="portal-table-pagination" style={paginationStyle}>
           <div style={shell.paginationInfo}>{paginationText}</div>
           <div style={paginationActionsStyle}>
             <button
@@ -526,7 +515,7 @@ export default function PaymentReceivedDashboard() {
             </button>
           </div>
         </div>
-      </div>
+      </AppCard>
     </section>
   );
 }

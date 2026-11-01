@@ -1,3 +1,9 @@
+import StatusBadge from './ui/StatusBadge';
+import '../styles/glassContent.css';
+import * as GlassIcons from 'lucide-react';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -542,56 +548,37 @@ function QuotationDashboardInner() {
       };
 
   return (
-    <section className="quotation-dashboard-page" style={shell.page}>
-      <header data-page-toolbar="true" style={headerStyle}>
+    <section className="quotation-dashboard-page glass-content glass-sales-content" style={shell.page}>
+      <header className="portal-page-toolbar glass-header" data-page-toolbar="true" style={headerStyle}>
         <div>
-          <h1 style={titleStyle}>Quotation</h1>
-          <p style={subtitleStyle}>Professional proposal tracking with settings-based numbering, content, and PDF style.</p>
+          <PageHeaderTitle title="Quotation" subtitle="Professional proposal tracking with settings-based numbering, content, and PDF style." icon={GlassIcons.FileText} />
         </div>
         <div style={actionsStyle}>
           <button type="button" style={ghostBtnStyle} onClick={load} disabled={loading}>
             <RefreshCw size={15} /> {loading ? 'Refreshing...' : 'Refresh'}
           </button>
-          <button type="button" style={primaryBtnStyle} onClick={() => navigate('/quotations/new')}>
+          <button type="button" className="glass-primary-action" style={primaryBtnStyle} onClick={() => navigate('/quotations/new')}>
             <Plus size={15} /> New Quotation
           </button>
         </div>
       </header>
 
-      <div style={summaryWrapStyle}>
-        <div style={summaryGridStyle}>
-          <div style={summaryCardStyle}>
-            <p style={shell.metricLabel}>Total Quotations</p>
-            <p style={summaryValueStyle}>{summary.total}</p>
-            <p style={shell.metricSub}>Records matching current filters</p>
-          </div>
-          <div style={summaryCardStyle}>
-            <p style={shell.metricLabel}>Draft</p>
-            <p style={summaryValueStyle}>{summary.draft}</p>
-            <p style={shell.metricSub}>Pending finalization</p>
-          </div>
-          <div style={summaryCardStyle}>
-            <p style={shell.metricLabel}>Final</p>
-            <p style={summaryValueStyle}>{summary.final}</p>
-            <p style={shell.metricSub}>Ready to share with customers</p>
-          </div>
-          <div style={summaryCardStyle}>
-            <p style={shell.metricLabel}>Total Quoted Value</p>
-            <p style={totalValueStyle}>{formatINR(summary.totalValue)}</p>
-            <p style={shell.metricSub}>Combined value of visible quotations</p>
-          </div>
-        </div>
-      </div>
+      <SummaryCardGrid className="glass-summary-grid">
+        <DashboardStatCard variant="glass" title="Total Quotations" value={summary.total} icon={<GlassIcons.FileText size={22} />} tone="var(--ui-link)" hint="Records matching current filters" />
+        <DashboardStatCard variant="glass" title="Draft" value={summary.draft} icon={<GlassIcons.Pencil size={22} />} tone="var(--ui-link)" hint="Pending finalization" />
+        <DashboardStatCard variant="glass" title="Final" value={summary.final} icon={<GlassIcons.CheckCircle2 size={22} />} tone="var(--ui-link)" hint="Ready to share with customers" />
+        <DashboardStatCard variant="glass" title="Total Quoted Value" value={formatINR(summary.totalValue)} icon={<GlassIcons.Wallet size={22} />} tone="var(--ui-link)" hint="Combined value of visible quotations" />
+      </SummaryCardGrid>
 
-      <div style={shell.panel}>
-        <div style={shell.panelHeader}>
+      <div className="glass-surface glass-register-panel" style={shell.panel}>
+        <div className="glass-register-head" style={shell.panelHeader}>
           <p style={shell.panelTitle}>Recent Quotations</p>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
             <span style={shell.badge}>{rows.length} records</span>
           </div>
         </div>
-        <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
-          <table style={tableStyle} className="crm-compact-table crm-stack-mobile">
+        <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell glass-register-scroll">
+          <table style={tableStyle} className="crm-compact-table crm-stack-mobile portal-data-table">
             <colgroup>
               {quotationColumns.map((column) => (
                 <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -662,7 +649,7 @@ function QuotationDashboardInner() {
                     <td style={shell.td} data-label="Date">{formatDate(row.quotation_date || row.date || row.created_at || row.createdAt)}</td>
                     <td style={shell.td} data-label="Customer"><span className="crm-table-primary crm-cell-wrap">{row.customer_name || '-'}</span></td>
                     <td style={shell.td} data-label="Sales Person">{row.sales_person || '-'}</td>
-                    <td style={shell.td} data-label="Status"><span style={shell.badge}>{row.status || 'Draft'}</span></td>
+                    <td style={shell.td} data-label="Status"><StatusBadge status={row.status || 'Draft'}>{row.status || 'Draft'}</StatusBadge></td>
                     <td style={shell.td} data-label="Grand Total">{formatINR(row.grand_total || 0)}</td>
                     <td style={{ ...shell.td, ...actionColumnStyle }} data-label="Action">
                       <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>

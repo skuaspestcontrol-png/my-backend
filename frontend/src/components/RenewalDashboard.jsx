@@ -1,3 +1,9 @@
+import StatusBadge from './ui/StatusBadge';
+import '../styles/glassContent.css';
+import * as GlassIcons from 'lucide-react';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CRMModalCloseButton } from './ui/CRMForm';
@@ -1556,8 +1562,8 @@ export default function RenewalDashboard() {
     : { ...shell.actions, justifyContent: 'flex-end' };
 
   const renderFilters = () => (
-    <div style={shell.panel}>
-      <div style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : 'repeat(6, minmax(118px, 1fr)) auto', padding: '10px 12px 12px' }}>
+    <div className="glass-surface glass-filter-panel" style={shell.panel}>
+      <div className="glass-filter-grid" style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : 'repeat(6, minmax(118px, 1fr)) auto', padding: '10px 12px 12px' }}>
         <label style={shell.field}><span style={shell.label}>Range</span><select style={shell.input} value={filters.range} onChange={(e) => updateFilter('range', e.target.value)}>{ranges.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
         <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
@@ -1588,6 +1594,7 @@ export default function RenewalDashboard() {
             <div
               key={row.renewalId}
               ref={registerRenewalRowRef(row.renewalId)}
+              className="glass-surface"
               style={{
                 ...shell.mobileCard,
                 ...(highlightedRenewalId === String(row.renewalId || '').trim()
@@ -1600,7 +1607,7 @@ export default function RenewalDashboard() {
                   <strong style={shell.mobileCustomerName}>{row.customerName}</strong>
                   <span style={shell.mobileCustomerMobile}>{row.mobile || '-'}</span>
                 </div>
-                <span style={tabStatusStyle(row)}>{tabStatusLabel(row)}</span>
+                <StatusBadge status={tabStatusLabel(row)}>{tabStatusLabel(row)}</StatusBadge>
               </div>
               <div style={shell.mobileMeta}>
                 <span>Expiry: {formatDate(row.previousContractEnd || row.renewalDueDate)}</span>
@@ -1623,8 +1630,8 @@ export default function RenewalDashboard() {
     }
     if (activeTab === 'Won') {
       return (
-        <div style={shell.tableWrap}>
-          <table className="crm-compact-table renewal-dashboard-table" style={{ ...shell.letterTable, minWidth: 980 }}>
+        <div className="glass-register-scroll" style={shell.tableWrap}>
+          <table className="crm-compact-table portal-data-table renewal-dashboard-table" style={{ ...shell.letterTable, minWidth: 980 }}>
             <thead>
               <tr>
                 <th style={{ ...shell.th, ...shell.letterCustomerCell }}>Customer</th>
@@ -1676,8 +1683,8 @@ export default function RenewalDashboard() {
     }
     if (activeTab === 'Lost') {
       return (
-        <div style={shell.tableWrap}>
-          <table className="crm-compact-table renewal-dashboard-table" style={shell.letterTable}>
+        <div className="glass-register-scroll" style={shell.tableWrap}>
+          <table className="crm-compact-table portal-data-table renewal-dashboard-table" style={shell.letterTable}>
             <thead>
               <tr>
                 <th style={{ ...shell.th, ...shell.letterCustomerCell }}>Customer</th>
@@ -1718,9 +1725,9 @@ export default function RenewalDashboard() {
       );
     }
     return (
-      <div style={shell.tableWrap}>
+      <div className="glass-register-scroll" style={shell.tableWrap}>
         <div style={renewalTableContentStyle}>
-          <table className="crm-compact-table renewal-dashboard-table renewal-register-table" style={renewalTableStyle}>
+          <table className="crm-compact-table portal-data-table renewal-dashboard-table renewal-register-table" style={renewalTableStyle}>
             <colgroup>
               {renewalColumns.map((column) => (
                 <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -1753,7 +1760,7 @@ export default function RenewalDashboard() {
                   </td>
                   <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(renewalAmountValue(row))}</td>
                   <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
-                  <td style={renewalBodyCellStyle('status', 'center')}><span style={tabStatusStyle(row)}>{tabStatusLabel(row)}</span></td>
+                  <td style={renewalBodyCellStyle('status', 'center')}><StatusBadge status={tabStatusLabel(row)}>{tabStatusLabel(row)}</StatusBadge></td>
                   <td style={renewalActionCellStyle}>{renderRowActions(row)}</td>
                 </tr>
               ))}
@@ -1848,7 +1855,7 @@ export default function RenewalDashboard() {
               <button type="button" style={shell.ghostBtn} disabled={busy} onClick={() => runAuditAction('keep_as_renewal', 'Keep as Renewal')}>Keep as Renewal</button>
               <button type="button" style={shell.dangerBtn} disabled={busy} onClick={() => runAuditAction('exclude_from_renewal', 'Exclude from Renewal')}>Exclude from Renewal</button>
             </div>
-            <div style={shell.tableWrap}>
+            <div className="glass-register-scroll" style={shell.tableWrap}>
               <table style={{ ...shell.table, minWidth: 900 }}>
                 <thead>
                   <tr>
@@ -1903,9 +1910,9 @@ export default function RenewalDashboard() {
     const declineReasons = ['Price too high', 'Competitor selected', 'Customer no longer requires service', 'Customer dissatisfied with previous service', 'Property vacated or closed', 'Budget unavailable', 'Customer unreachable', 'Service no longer applicable', 'Other'];
     return (
       createPortal(<div style={shell.modalOverlay}>
-        <div className="crm-modal-surface" role="dialog" aria-modal="true" style={shell.modal}>
-          <div className="crm-modal-surface-header" style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><CRMModalCloseButton style={shell.modalCloseBtn} onClick={closeModal} title="Close" aria-label="Close" /></div>
-          <div className="crm-modal-surface-body" style={shell.modalBody}>
+        <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={shell.modal}>
+          <div className="crm-modal-surface-header glass-dialog-header" style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><CRMModalCloseButton style={shell.modalCloseBtn} onClick={closeModal} title="Close" aria-label="Close" /></div>
+          <div className="crm-modal-surface-body glass-dialog-body" style={shell.modalBody}>
             {modal.type === 'view' && (
               <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
                 <strong>{row.customerName}</strong>
@@ -1938,7 +1945,7 @@ export default function RenewalDashboard() {
                 <span>Sales Person: {row.assignedSalesPersonName || '-'}</span>
                 {row.renewalLetterUrl ? <a href={`${API_BASE}${row.renewalLetterUrl}`} onClick={(event) => { event.preventDefault(); openRenewalPdfPreview(row); }} rel="noreferrer">Open renewal letter</a> : null}
                 {canUseAssignedRenewal(row) ? <button style={shell.ghostBtn} onClick={() => openModal('edit', row)}>Edit Renewal</button> : null}
-                {canUseAssignedRenewal(row) && row.status === 'Done' && !row.convertedContractId ? <div className="crm-modal-surface-footer"><button style={shell.primaryBtn} onClick={() => openModal('convert', row)} data-modal-primary="true">Convert to New Contract</button></div> : null}
+                {canUseAssignedRenewal(row) && row.status === 'Done' && !row.convertedContractId ? <div className="crm-modal-surface-footer glass-dialog-footer"><button style={shell.primaryBtn} onClick={() => openModal('convert', row)} data-modal-primary="true">Convert to New Contract</button></div> : null}
               </div>
             )}
             {modal.type === 'edit' && (
@@ -1947,7 +1954,7 @@ export default function RenewalDashboard() {
                 <label style={shell.field}><span style={shell.label}>Renewal Due Date</span><input type="date" style={shell.input} value={form.renewalDueDate} onChange={(e) => setForm((p) => ({ ...p, renewalDueDate: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Proposed Amount</span><input style={shell.input} value={form.proposedAmount} onChange={(e) => setForm((p) => ({ ...p, proposedAmount: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Status</span><select style={shell.input} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>{statuses.filter((s) => s.value !== 'All').map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
-                <div className="crm-modal-surface-footer"><button
+                <div className="crm-modal-surface-footer glass-dialog-footer"><button
                   style={shell.primaryBtn}
                   disabled={busy}
                   onClick={() => runAction('Renewal updated', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/edit`, form))}
@@ -1962,7 +1969,7 @@ export default function RenewalDashboard() {
                   const selected = salesPeople.find((p) => String(p.id || p.name) === e.target.value);
                   setForm((prev) => ({ ...prev, salesPersonId: e.target.value, salesPersonName: selected?.name || '' }));
                 }}><option value="">Select sales person</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
-                <div className="crm-modal-surface-footer"><button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Sales person assigned', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/assign`, form))} data-modal-primary="true">Assign</button></div>
+                <div className="crm-modal-surface-footer glass-dialog-footer"><button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Sales person assigned', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/assign`, form))} data-modal-primary="true">Assign</button></div>
               </>
             )}
             {modal.type === 'followup' && (
@@ -1975,7 +1982,7 @@ export default function RenewalDashboard() {
                 </div>
                 <label style={shell.field}><span style={shell.label}>Follow-up Date</span><input type="date" style={shell.input} value={form.followupDate} onChange={(e) => setForm((p) => ({ ...p, followupDate: e.target.value }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Note</span><textarea style={{ ...shell.input, height: 86, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))} /></label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} className="crm-modal-surface-footer">
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} className="crm-modal-surface-footer glass-dialog-footer">
                   <a style={{ ...shell.ghostBtn, textDecoration: 'none' }} href={row.mobile ? `tel:${row.mobile}` : undefined} title="Call customer" aria-label="Call customer"><Phone size={15} />Call</a>
                   <button type="button" style={shell.ghostBtn} title="WhatsApp customer" aria-label="WhatsApp customer" onClick={() => openRenewalWhatsAppComposer(row)}><MessageCircleMore size={15} />WhatsApp</button>
                   <button type="button" style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Follow-up saved', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/followup`, form))} data-modal-primary="true">Save Follow-up</button>
@@ -1993,13 +2000,13 @@ export default function RenewalDashboard() {
                     <span><strong>Final Amount:</strong> {formatINR(row.finalRenewalAmount || row.finalAmount || row.proposedAmount)}</span>
                     <span><strong>Notes:</strong> {String(row.renewalNotes || row.notes || row.lastNote || '-')}</span>
                   </div>
-                  <div className="crm-modal-surface-footer"><button style={shell.ghostBtn} onClick={closeModal}>Close</button></div>
+                  <div className="crm-modal-surface-footer glass-dialog-footer"><button style={shell.ghostBtn} onClick={closeModal}>Close</button></div>
                 </div>
               ) : (
                 <>
                   <label style={shell.field}><span style={shell.label}>Final Amount</span><input style={shell.input} value={form.finalAmount} onChange={(e) => setForm((p) => ({ ...p, finalAmount: e.target.value }))} /></label>
                   <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.note} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
-                  <div className="crm-modal-surface-footer"><button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal marked done', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/mark-done`, form))} data-modal-primary="true">Mark Done</button></div>
+                  <div className="crm-modal-surface-footer glass-dialog-footer"><button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Renewal marked done', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/mark-done`, form))} data-modal-primary="true">Mark Done</button></div>
                 </>
               )
             )}
@@ -2013,7 +2020,7 @@ export default function RenewalDashboard() {
                     <span><strong>Reason:</strong> {String(row.lostReason || row.declineReason || row.reason || row.remarks || '-')}</span>
                     <span><strong>Notes:</strong> {String(row.lostNotes || row.lastFollowupNote || '-')}</span>
                   </div>
-                  <div className="crm-modal-surface-footer"><button style={shell.ghostBtn} onClick={closeModal}>Close</button></div>
+                  <div className="crm-modal-surface-footer glass-dialog-footer"><button style={shell.ghostBtn} onClick={closeModal}>Close</button></div>
                 </div>
               ) : (
                 <>
@@ -2021,7 +2028,7 @@ export default function RenewalDashboard() {
                   <label style={shell.field}><span style={shell.label}>Lost Reason</span><select style={shell.input} value={form.reasonCategory || ''} onChange={(e) => setForm((p) => ({ ...p, reasonCategory: e.target.value, reason: e.target.value === 'Other' ? p.reason : e.target.value }))}><option value="">Select reason</option>{declineReasons.map((reason) => <option key={reason} value={reason}>{reason}</option>)}</select></label>
                   {form.reasonCategory === 'Other' ? <label style={shell.field}><span style={shell.label}>Other Reason</span><input style={shell.input} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} /></label> : null}
                   <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 76, paddingTop: 8 }} value={form.lostNotes || ''} onChange={(e) => setForm((p) => ({ ...p, lostNotes: e.target.value, notes: e.target.value }))} /></label>
-                  <div className="crm-modal-surface-footer"><button style={shell.dangerBtn} disabled={busy} onClick={() => {
+                  <div className="crm-modal-surface-footer glass-dialog-footer"><button style={shell.dangerBtn} disabled={busy} onClick={() => {
                     if (!window.confirm('Mark this renewal as lost?')) return;
                     runAction('Renewal marked lost', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/decline`, form));
                   }} data-modal-danger="true">Mark as Lost</button></div>
@@ -2106,7 +2113,7 @@ export default function RenewalDashboard() {
                     <label style={shell.field}><span style={shell.label}>Actual agreement date</span><input type="date" style={shell.input} value={form.agreementDate || ''} max={todayInput()} onChange={(event) => setForm((prev) => ({ ...prev, agreementDate: event.target.value }))} /></label>
                     <span>Invoice date is suggested when no agreement date is stored. Confirm the actual agreement date; the time this link is recorded is tracked separately.</span>
                     <label style={shell.field}><span style={shell.label}>{selectedExisting?.reviewAllowed ? 'Review reason (required)' : form.correctExistingLink ? 'Correction reason (required)' : 'Notes'}</span><textarea style={{ ...shell.input, height: 70 }} value={form.note || ''} onChange={(event) => setForm((prev) => ({ ...prev, note: event.target.value }))} /></label>
-                    <div className="crm-modal-surface-footer"><button type="button" style={shell.primaryBtn} disabled={busy || existingLinks.loading || !selectedExisting || (selectedExisting.eligible === false && !existingReviewConfirmed(selectedExisting)) || !form.agreementDate || (form.correctExistingLink && !form.note?.trim())} onClick={handleLinkExisting} data-modal-primary="true">{busy ? 'Saving…' : selectedExisting?.reviewAllowed ? 'Save reviewed link & mark Won' : form.correctExistingLink ? 'Save corrected link' : 'Link existing records & mark Won'}</button></div>
+                    <div className="crm-modal-surface-footer glass-dialog-footer"><button type="button" style={shell.primaryBtn} disabled={busy || existingLinks.loading || !selectedExisting || (selectedExisting.eligible === false && !existingReviewConfirmed(selectedExisting)) || !form.agreementDate || (form.correctExistingLink && !form.note?.trim())} onClick={handleLinkExisting} data-modal-primary="true">{busy ? 'Saving…' : selectedExisting?.reviewAllowed ? 'Save reviewed link & mark Won' : form.correctExistingLink ? 'Save corrected link' : 'Link existing records & mark Won'}</button></div>
                   </>
                 ) : (
                   <>
@@ -2128,7 +2135,7 @@ export default function RenewalDashboard() {
                 <label style={shell.field}><span style={shell.label}>Price</span><select style={shell.input} value={form.priceOption || 'same'} onChange={(e) => updateConvertForm({ priceOption: e.target.value })}><option value="same">Same as previous contract</option><option value="revised">Revised price</option></select></label>
                 <label style={shell.field}><span style={shell.label}>Agreed Amount</span><input style={shell.input} value={form.amount} readOnly={form.priceOption === 'same'} onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value, priceOption: 'revised' }))} /></label>
                 <label style={shell.field}><span style={shell.label}>Notes</span><textarea style={{ ...shell.input, height: 70, paddingTop: 8 }} value={form.note || ''} onChange={(e) => setForm((p) => ({ ...p, note: e.target.value, notes: e.target.value }))} /></label>
-                <div className="crm-modal-surface-footer"><button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract} data-modal-primary="true">{busy ? 'Saving…' : row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'}</button></div>
+                <div className="crm-modal-surface-footer glass-dialog-footer"><button style={shell.primaryBtn} disabled={busy} onClick={handleConvertToContract} data-modal-primary="true">{busy ? 'Saving…' : row.serviceRelationshipType === 'ONE_TIME' ? 'Convert to Contract' : 'Mark as Won'}</button></div>
                   </>
                 )}
               </>
@@ -2140,10 +2147,10 @@ export default function RenewalDashboard() {
   };
 
   return (
-    <div style={shell.page}>
-      <div style={shell.hero}>
+    <div className="renewals-glass-page glass-content glass-sales-content" style={shell.page}>
+      <div className="portal-page-toolbar portal-page-toolbar--search glass-header" style={shell.hero}>
         <div>
-          <h1 style={shell.title}>Renewals</h1>
+          <PageHeaderTitle title="Renewals" subtitle="Manage renewal opportunities, follow-ups and letters." icon={GlassIcons.RefreshCw} />
         </div>
         <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: isMobile ? 'stretch' : 'center' }}>
           <div style={shell.searchRow}>
@@ -2168,20 +2175,21 @@ export default function RenewalDashboard() {
 
       {message ? <div style={{ ...shell.panelPad, border: '1px solid var(--color-primary-soft)', borderRadius: 10, background: 'var(--color-primary-light)', color: 'var(--color-primary-dark)', fontSize: 13, fontWeight: 800 }}>{message}</div> : null}
 
-      <section style={isMobile ? { ...shell.stats, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.stats}>
+      <section className="glass-summary-grid" style={isMobile ? { ...shell.stats, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : shell.stats}>
         {stats.map((item) => (
           <button
             key={item.label}
             type="button"
+            className="glass-clickable-metric"
             style={{ ...shell.stat, width: '100%', textAlign: 'left', cursor: 'pointer' }}
             onClick={() => openSummaryCard(item.targetTab)}
             aria-label={`Open ${item.label}`}
             title={`Open ${item.label}`}
           >
-            <div style={shell.statLabel}>{item.label}</div>
+            <div className="glass-clickable-label" style={shell.statLabel}>{item.label}</div>
             <div style={{ width: '100%', textAlign: 'left' }}>
-              <div style={shell.statValue}>{item.count}</div>
-              <div style={shell.statMeta}>{formatINR(item.value || 0)}</div>
+              <div className="glass-clickable-value" style={shell.statValue}>{item.count}</div>
+              <div className="glass-summary-hint" style={shell.statMeta}>{formatINR(item.value || 0)}</div>
             </div>
           </button>
         ))}
@@ -2189,12 +2197,13 @@ export default function RenewalDashboard() {
 
       {renderFilters()}
 
-      <section style={shell.panel}>
-        <div style={isMobile ? shell.tabsMobile : shell.tabs}>
+      <section className="glass-surface glass-register-panel" style={shell.panel}>
+        <div className="glass-tabs" style={isMobile ? shell.tabsMobile : shell.tabs}>
           {tabs.map((tab) => (
             <button
               key={tab}
               type="button"
+              aria-pressed={activeTab === tab}
               style={{
                 ...shell.tab,
                 ...(isMobile ? shell.tabMobile : {}),
@@ -2231,8 +2240,8 @@ export default function RenewalDashboard() {
             {(visibleLetterRows || []).length === 0 ? (
               <p style={{ margin: 0, color: 'var(--color-muted)' }}>No renewal letters generated yet.</p>
             ) : (
-              <div style={shell.tableWrap}>
-                <table className="crm-compact-table renewal-dashboard-table" style={shell.letterTable}>
+              <div className="glass-register-scroll" style={shell.tableWrap}>
+                <table className="crm-compact-table portal-data-table renewal-dashboard-table" style={shell.letterTable}>
                   <thead>
                     <tr>
                       <th style={{ ...shell.th, ...shell.letterCustomerCell }}>Customer</th>

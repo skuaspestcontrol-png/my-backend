@@ -1,3 +1,8 @@
+import StatusBadge from './ui/StatusBadge';
+import '../styles/glassContent.css';
+import * as GlassIcons from 'lucide-react';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import { createPortal } from 'react-dom';
@@ -1706,7 +1711,7 @@ export default function ContractDashboard() {
       return <div style={shell.empty}>No contracts match your current filters.</div>;
     }
     return (
-      <table style={tableStyle} className="crm-compact-table">
+      <table style={tableStyle} className="crm-compact-table portal-data-table">
         <colgroup>
           <col style={{ width: isMobile ? `${getColumnWidth('rowNumber')}px` : contractColumnPercent('rowNumber') }} />
           {visibleColumns.type ? <col style={{ width: isMobile ? `${getColumnWidth('type')}px` : contractColumnPercent('type') }} /> : null}
@@ -1800,7 +1805,7 @@ export default function ContractDashboard() {
                   </div>
                 </td> : null}
                 {visibleColumns.status ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
-                  <span style={{ ...shell.statusPill, ...statusTone }}>{row.status.toUpperCase()}</span>
+                  <StatusBadge status={row.status}>{row.status.toUpperCase()}</StatusBadge>
                 </td> : null}
                 {visibleColumns.total ? <td style={{ ...shell.td, fontWeight: 800, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{formatWholeAmount(row.total)}</td> : null}
                 {visibleColumns.paid ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.paid > 0 ? shell.amountGreen : (selected ? shell.selectedText : {})) }}>{formatWholeAmount(row.paid)}</td> : null}
@@ -1849,11 +1854,11 @@ export default function ContractDashboard() {
   };
 
   return (
-    <div className="contract-dashboard-page" style={shell.page}>
-      <div style={shell.card}>
-        <div className="portal-contract-header" style={cardTopStyle}>
-          <div style={shell.titleWrap}>
-            <h1 style={shell.cardTitle}>All Contracts</h1>
+    <div className="contract-dashboard-page glass-content glass-sales-content" style={shell.page}>
+      <div className="glass-sales-stack" style={shell.card}>
+        <div className="portal-contract-header portal-page-toolbar portal-page-toolbar--search glass-header" style={cardTopStyle}>
+          <div className="portal-page-title-slot" style={shell.titleWrap}>
+            <PageHeaderTitle kind="contracts" title="All Contracts" subtitle="Manage customer contracts, schedules, services and renewals." />
           </div>
           <div style={headerSearchStyle}>
             <div style={headerSearchWrapStyle}>
@@ -1871,7 +1876,7 @@ export default function ContractDashboard() {
           <div style={headActionsStyle}>
             <button
               type="button"
-              data-ui-action="primary" style={newButtonStyle}
+              className="glass-primary-action" data-ui-action="primary" style={newButtonStyle}
               onClick={() => navigateToInvoiceEditor({ openNewInvoice: 1, fromContract: 1 })}
             >
               <Plus size={16} />
@@ -1880,38 +1885,13 @@ export default function ContractDashboard() {
           </div>
         </div>
 
-        <SummaryCardGrid style={summaryStripStyle}>
+        <SummaryCardGrid className="glass-summary-grid" style={summaryStripStyle}>
           {contractSummaryCards.map((card) => (
-            <div
-              key={card.key}
-              data-ui="summary-card"
-              style={{
-                ...summaryCardStyle,
-                width: '100%',
-                ...(isMobile && card.key === 'paymentDue' ? { gridColumn: '1 / -1' } : {})
-              }}
-            >
-              <span style={{ ...shell.summaryCardAccent, background: card.tone }} />
-              <span className="portal-summary-icon" data-summary-tone={card.key} aria-hidden="true">
-                {card.key === 'totalContracts' ? <FileText size={24} /> : card.key === 'totalAmount' ? <Wallet size={24} /> : <AlertCircle size={24} />}
-              </span>
-              <div style={shell.summaryCopy}>
-                <p style={{ ...shell.summaryLabel, fontSize: isMobile ? '9px' : shell.summaryLabel.fontSize }}>{card.label}</p>
-              </div>
-              <p
-                style={{
-                  ...shell.summaryValue,
-                  ...(card.compact ? shell.summaryValueCurrency : {}),
-                  ...(isMobile ? { fontSize: card.compact ? '16px' : '18px' } : {})
-                }}
-              >
-                {hasLoadedContractsRef.current ? card.value : '—'}
-              </p>
-            </div>
+            <DashboardStatCard key={card.key} variant="glass" title={card.label} value={hasLoadedContractsRef.current ? card.value : '—'} tone={card.tone} icon={card.key === 'totalContracts' ? <FileText size={22} /> : card.key === 'totalAmount' ? <Wallet size={22} /> : <AlertCircle size={22} />} />
           ))}
         </SummaryCardGrid>
 
-        <div style={quickWrapStyle}>
+        <div className="glass-tabs" style={quickWrapStyle}>
           <span style={quickLabelStyle}>Quick Filters:</span>
           {quickFilters.map((entry) => {
             const Icon = entry.icon;
@@ -2001,7 +1981,7 @@ export default function ContractDashboard() {
           ) : null}
         </div>
 
-        <FilterBar data-ui="filter-bar" style={shell.filtersBox}>
+        <FilterBar className="glass-surface glass-filter-panel" data-ui="filter-bar" style={shell.filtersBox}>
           <div style={filterGridStyle}>
             <div style={shell.filterField}>
               <label style={shell.filterLabel}>Status</label>
@@ -2077,7 +2057,7 @@ export default function ContractDashboard() {
           </div>
         ) : null}
         {loading && hasLoadedContractsRef.current ? <div role="status" style={shell.loading}>Refreshing contracts...</div> : null}
-        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped" tabIndex={0} role="region" aria-label="Contracts table">{renderBody()}</div>
+        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped glass-register-scroll glass-surface" tabIndex={0} role="region" aria-label="Contracts table">{renderBody()}</div>
 
         <TablePagination style={footerStyle}>
           <div style={shell.footText}>{firstRecord}-{lastRecord} of {sortedContracts.length} records</div>
@@ -2108,7 +2088,7 @@ export default function ContractDashboard() {
 
       {actionMenu ? createPortal(
         <div
-          className="crm-action-menu-panel"
+          className="crm-action-menu-panel glass-menu"
           data-contract-action-menu="true"
           style={{
             ...shell.actionMenu,
@@ -2218,11 +2198,11 @@ export default function ContractDashboard() {
           style={shell.modalOverlay}
           onClick={closeCustomerSummary}
         >
-          <div className="crm-modal-surface" role="dialog" aria-modal="true"
+          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true"
             style={shell.modalCard}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="crm-modal-surface-header" style={shell.modalHead}>
+            <div className="crm-modal-surface-header glass-dialog-header" style={shell.modalHead}>
               <div>
                 <h3 style={shell.modalTitle}><UserRound size={18} /> Customer Summary</h3>
                 <p style={shell.modalSub}>{`${customerSummary.row.customer} • ${customerSummary.row.mobile || 'No mobile'}`}</p>
@@ -2230,7 +2210,7 @@ export default function ContractDashboard() {
               <CRMModalCloseButton type="button" style={shell.modalClose} onClick={closeCustomerSummary} />
             </div>
 
-            <div className="crm-modal-surface-body" style={shell.modalBody}>
+            <div className="crm-modal-surface-body glass-dialog-body" style={shell.modalBody}>
               <div style={shell.compactSection}>
                 <div style={shell.compactSectionHead}>
                   <h4 style={shell.compactTitle}>Customer Details</h4>

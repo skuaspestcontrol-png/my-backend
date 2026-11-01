@@ -1,3 +1,9 @@
+import StatusBadge from './ui/StatusBadge';
+import '../styles/glassContent.css';
+import * as GlassIcons from 'lucide-react';
+import { SummaryCardGrid } from './ui/PortalPrimitives';
+import DashboardStatCard from './ui/DashboardStatCard';
+import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -408,33 +414,24 @@ export default function LeadFollowups() {
   ];
 
   return (
-    <div className="lead-followups-page" style={shell.page}>
-      <div data-page-toolbar="true" style={shell.header}>
+    <div className="lead-followups-page glass-content glass-sales-content" style={shell.page}>
+      <div className="portal-page-toolbar glass-header" data-page-toolbar="true" style={shell.header}>
         <div>
-          <h1 style={shell.title}>Lead Follow-ups</h1>
-          <p style={shell.subtitle}>Track and manage all your lead follow-up activities</p>
+          <PageHeaderTitle title="Lead Follow-ups" subtitle="Track and manage all your lead follow-up activities" icon={GlassIcons.PhoneCall} />
         </div>
       </div>
 
-      <div style={statGridStyle}>
+      <div className="glass-summary-grid" style={statGridStyle}>
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.label} style={statCardStyle}>
-              <span className="lead-followups-stat-icon" style={{ ...statIconStyle, color: stat.color, background: stat.bg }}>
-                <Icon size={24} />
-              </span>
-              <span>
-                <p style={statValueStyle}>{stat.value}</p>
-                <p style={statLabelStyle}>{stat.label}</p>
-              </span>
-            </div>
+            <DashboardStatCard key={stat.label} variant="glass" title={stat.label} value={stat.value} icon={<Icon size={22} />} tone={stat.color} />
           );
         })}
       </div>
 
       {!isMobile ? (
-        <div style={filterStyle}>
+        <div className="glass-surface glass-filter-panel glass-filter-grid" style={filterStyle}>
           <div>
             <label style={shell.label}>From Date</label>
             <input type="date" style={shell.input} value={draftFilters.fromDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, fromDate: event.target.value }))} />
@@ -476,7 +473,7 @@ export default function LeadFollowups() {
         </div>
       ) : null}
 
-      <div style={tabsStyle}>
+      <div className="glass-tabs" style={tabsStyle}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.key;
@@ -484,6 +481,7 @@ export default function LeadFollowups() {
             <button
               key={tab.key}
               type="button"
+              aria-pressed={active}
               style={{
                 ...tabStyle,
                 color: active ? '#fff' : 'var(--color-muted)',
@@ -503,13 +501,13 @@ export default function LeadFollowups() {
         })}
       </div>
 
-        <div style={shell.tableCard}>
-          <div style={shell.tableTitle}>
+        <div className="glass-surface glass-register-panel" style={shell.tableCard}>
+          <div className="glass-register-head" style={shell.tableTitle}>
             Follow-ups
             <span style={shell.badge}>{tabRows.length}</span>
           </div>
-        <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell">
-          <table style={tableStyle} className="crm-compact-table crm-stack-mobile lead-followups-table">
+        <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell glass-register-scroll">
+          <table style={tableStyle} className="crm-compact-table crm-stack-mobile lead-followups-table portal-data-table">
             <colgroup>
               {followupColumns.map((column) => (
                 <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -530,7 +528,7 @@ export default function LeadFollowups() {
                       <span className="crm-table-muted">{getLeadMobile(lead) || '-'}</span>
                     </div>
                   </td>
-                  <td style={shell.td} data-label="Status">{lead.status || lead.leadStatus || '-'}</td>
+                  <td style={shell.td} data-label="Status"><StatusBadge status={lead.status || lead.leadStatus || 'info'}>{lead.status || lead.leadStatus || '-'}</StatusBadge></td>
                   <td style={shell.td} data-label="Urgency">{lead.urgency}</td>
                   <td style={shell.td} data-label="Assigned To">{lead.assignedToDisplay}</td>
                   <td style={shell.td} data-label="Last Follow-up">{formatDate(lead.lastFollowupDate || lead.lastFollowUpDate)}</td>
