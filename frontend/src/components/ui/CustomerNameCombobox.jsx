@@ -57,7 +57,7 @@ export default function CustomerNameCombobox({ value, options, onChange, style, 
     <ChevronDown size={16} aria-hidden="true" className="crm-customer-combobox-chevron" />
     {open && position ? createPortal(<div ref={popup} id={id} role="listbox" aria-label="Customer suggestions"
       className="crm-customer-suggestions" style={position}>
-      {matches.length ? matches.map((option, index) => <div role="option" id={`${id}-${index}`} key={option.id || `${option.name}-${index}`}
+      {matches.length ? matches.map((option, index) => <div role="option" id={`${id}-${index}`} key={JSON.stringify([option.id || '', option.name])}
         aria-selected={active === index} data-option-index={index} className="crm-customer-suggestion"
         onMouseDown={event => event.preventDefault()} onClick={() => choose(option)}>{option.name}</div>)
         : <div className="crm-customer-suggestions-empty" role="status">No matching customers. Continue typing to use a new name.</div>}
