@@ -6108,10 +6108,10 @@ html[data-theme="dark"] body :is(.crm-action-menu-panel, [data-action-menu="true
   --menu-danger-highlight: rgba(248, 113, 113, 0.14);
   box-shadow: 0 16px 36px rgba(2, 6, 23, 0.40) !important;
 }
-/* Keep the current-page highlight; show the brand tint on other labels on hover/focus. */
+/* Keep sidebar labels and icons white on hover and keyboard focus. */
 html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item:not(.active):is(:hover, :focus-visible) {
   background: var(--brand-soft) !important;
-  color: var(--brand-ink) !important;
+  color: #ffffff !important;
   -webkit-text-fill-color: currentColor !important;
 }
 html[data-branding="true"][data-theme] body .sidebar .sidebar-nav-item:not(.active):is(:hover, :focus-visible) :is(span, svg) {
@@ -6127,5 +6127,5 @@ html[data-theme="dark"] body :is(.crm-action-menu-panel, [data-action-menu="true
   color: var(--text-primary) !important;
 }
 html[data-branding="true"][data-theme="dark"] body .sidebar .sidebar-nav-item:not(.active):is(:hover, :focus-visible) {
-  color: var(--text-primary) !important;
+  color: #ffffff !important;
 }
