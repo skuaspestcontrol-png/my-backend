@@ -1,3 +1,4 @@
+import SalesTeamComboChart from './dashboard/SalesTeamComboChart';
 import { buildContractLeadSourceSeries } from '../utils/contractLeadSources';
 import { shouldAutoRefresh } from '../hooks/autoRefreshPolicy';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -7,10 +8,7 @@ import './Dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Funnel, FunnelChart, LabelList, Trapezoid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  ChartSurface,
-  getBarChartProps,
   getChartAxisProps,
-  getChartHeight,
   getChartMargin,
   getCurrencyAxisProps,
   SalesChartTooltip,
@@ -711,12 +709,6 @@ export default function Dashboard() {
   } : {};
   const salesPerformanceEmployees = safeRows(salesPerformanceData?.employees);
   const salesPerformanceTrend = safeRows(salesPerformanceData?.monthlyTrend);
-  const salesPerformanceChartHeight = getChartHeight({ mobile: isMobile });
-  const salesPerformanceChartProps = getBarChartProps(salesPerformanceTrend.length, { mobile: isMobile });
-  const salesPerformanceAxisProps = { ...getChartAxisProps({ mobile: isMobile }), ...mobileChartAxisProps };
-  const salesPerformanceCurrencyAxisProps = { ...getCurrencyAxisProps({ mobile: isMobile }), width: isMobile ? 58 : 76 };
-  const salesPerformanceMargin = isMobile ? mobileChartMargin : getChartMargin({ mobile: isMobile });
-  const salesPerformanceChartMinWidth = 0;
   const salesPerformanceMonthlyTarget = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.target), 0);
   const salesPerformanceMonthlyAchieved = salesPerformanceTrend.reduce((sum, row) => sum + toNum(row.achieved), 0);
   const selectedSalesPersonLabel = selectedSalesPersonId
@@ -744,11 +736,6 @@ export default function Dashboard() {
   const compactHeaderSelectStyle = { minWidth: 92 };
   const salesChartYearSelectStyle = { minWidth: 92 };
   const salesChartPersonSelectStyle = { minWidth: 140, maxWidth: '100%' };
-  const salesChartBodyStyle = { display: 'grid', gap: 24, padding: 20, minWidth: 0 };
-  const salesChartLegendStyle = { display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' };
-  const salesChartLegendItemStyle = { display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 12 };
-  const salesChartChartWrapStyle = { minWidth: 0 };
-  const salesChartScrollStyle = { width: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' };
   const targetSectionTitleStyle = { margin: 0, color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, letterSpacing: '-.02em' };
   const targetYearSelectStyle = { minWidth: 100 };
   const targetMetricValueStyle = { ...metricValueStyle, fontSize: 'clamp(22px, 2vw, 28px)' };
@@ -1136,7 +1123,7 @@ export default function Dashboard() {
       </section>
 
       <section style={salesChartSectionStyle}>
-        <div className="dashboard-panel dashboard-sales-panel">
+        <div className="dashboard-panel dashboard-sales-panel sales-combo-panel">
           <div className="dashboard-panel-header dashboard-sales-header" style={salesChartCardHeaderStyle}>
             <div>
               <h2 style={salesChartTitleStyle}><span className="dashboard-icon dashboard-icon-blue"><ChartNoAxesColumnIncreasing size={22} /></span>Sales Team Performance</h2>
@@ -1166,65 +1153,9 @@ export default function Dashboard() {
               </select>
             </div>
           </div>
-          <div className="dashboard-sales-body" style={salesChartBodyStyle}>
-            <div className="dashboard-sales-legend" style={salesChartLegendStyle}>
-              <span style={salesChartLegendItemStyle}>
-                <span style={{ ...shell.dot, width: '10px', height: '10px', background: 'var(--chart-target-bar)' }} />
-                <span>Target</span>
-                <strong style={{ color: 'var(--chart-target-bar)' }}>{formatCurrency(salesPerformanceMonthlyTarget)}</strong>
-              </span>
-              <span style={salesChartLegendItemStyle}>
-                <span style={{ ...shell.dot, width: '10px', height: '10px', background: '#16A34A' }} />
-                <span>Achieved</span>
-                <strong style={{ color: '#16A34A' }}>{formatCurrency(salesPerformanceMonthlyAchieved)}</strong>
-              </span>
-              <span style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontSize: '12px', fontWeight: 700 }}>
-                {selectedSalesPersonLabel}
-              </span>
-            </div>
-
-            {salesPerformanceLoading ? (
-              <div style={{ display: 'grid', placeItems: 'center', minHeight: salesPerformanceChartHeight }}>
-                <div style={{ color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>Loading sales performance...</div>
-              </div>
-            ) : salesPerformanceTrend.length ? (
-              <div style={salesChartChartWrapStyle}>
-                <div className="dashboard-sales-chart-scroll" style={salesChartScrollStyle}>
-                  <ChartSurface height={salesPerformanceChartHeight} minWidth={salesPerformanceChartMinWidth}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={salesPerformanceTrend}
-                        margin={salesPerformanceMargin}
-                        barCategoryGap={salesPerformanceChartProps.barCategoryGap}
-                        barGap={4}
-                      >
-                        <CartesianGrid stroke={salesChartTheme.gridStroke} vertical={false} />
-                        <XAxis dataKey="label" {...salesPerformanceAxisProps} />
-                        <YAxis {...salesPerformanceCurrencyAxisProps} />
-                        <Tooltip
-                          {...mobileTooltipProps}
-                          position={isMobile ? { x: 0, y: salesPerformanceChartHeight } : undefined}
-                          cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                          content={isMobile ? <MobileDashboardTooltip /> : <SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
-                        />
-                        <Bar dataKey="target" name="Target" fill="var(--chart-target-bar)" radius={[4, 4, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize} />
-                        <Bar dataKey="achieved" name="Achieved" radius={[4, 4, 0, 0]} maxBarSize={salesPerformanceChartProps.maxBarSize}>
-                          {salesPerformanceTrend.map((entry) => (
-                            <Cell key={entry.month} fill={Number(entry.achieved || 0) >= Number(entry.target || 0) ? '#16A34A' : '#DC2626'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartSurface>
-                </div>
-                {isMobile ? <div className="dashboard-mobile-chart-dock"><span>Tap a month to view amounts.</span></div> : null}
-              </div>
-            ) : (
-              <div style={{ display: 'grid', placeItems: 'center', minHeight: salesPerformanceChartHeight, color: isDarkTheme ? darkDashboardMuted : '#64748b', fontWeight: 700 }}>
-                No sales performance data available.
-              </div>
-            )}
-          </div>
+          <SalesTeamComboChart trend={salesPerformanceTrend} totalTarget={salesPerformanceMonthlyTarget} totalAchieved={salesPerformanceMonthlyAchieved}
+            year={selectedSalesPerformanceYearNumber} teamLabel={selectedSalesPersonLabel} loading={salesPerformanceLoading}
+            available={salesPerformanceData !== null} formatTotal={formatCurrency} mobile={isMobile} />
         </div>
       </section>
     </div>

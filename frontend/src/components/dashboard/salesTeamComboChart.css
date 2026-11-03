@@ -1,0 +1,34 @@
+/* Only the Main Dashboard's Sales Team Performance panel opts into this chart. */
+.sales-combo-panel { --sales-combo-target: #1c2547; --sales-combo-achieved: #0866ff; --sales-combo-rate: #15803d; }
+html[data-theme="dark"] .sales-combo-panel { --sales-combo-target: #7186b5; --sales-combo-achieved: #5895ff; --sales-combo-rate: #4ade80; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel { border-color: var(--ui-glass-border) !important; border-radius: 16px; background: linear-gradient(125deg,var(--ui-action-soft),var(--ui-card) 65%) !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header { background: var(--ui-navy) !important; color: #fff !important; border-color: var(--ui-glass-border); }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header :is(h2,p) { color: #fff !important; -webkit-text-fill-color: #fff !important; }
+.sales-combo { padding: 16px; color: var(--ui-text); display: grid; gap: 14px; min-width: 0; }
+.sales-combo-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+.sales-combo-kpis > div { display: grid; align-content: start; gap: 7px; padding: 14px; border: 1px solid var(--ui-glass-border); border-radius: 12px; background: var(--ui-glass); min-width: 0; }
+.sales-combo-kpis span { color: var(--ui-muted); font-size: 12px; font-weight: 600; }
+.sales-combo-kpis strong { font-size: clamp(18px,1.8vw,25px); line-height: 1.25; overflow-wrap: anywhere; color: var(--ui-text); font-variant-numeric: tabular-nums; }
+.sales-combo-kpis small { font-size: 12px; line-height: 1.4; color: var(--ui-muted); }
+.sales-combo-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; color: var(--ui-muted); }
+.sales-combo-legend { display: flex; flex-wrap: wrap; gap: 8px; }
+html[data-theme] body .sales-combo .sales-combo-legend button { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--ui-glass-border); border-radius: 8px; padding: 7px 10px; background: var(--ui-card) !important; color: var(--ui-text) !important; -webkit-text-fill-color: currentColor !important; font-size: 12px; min-height: 34px; cursor: pointer; }
+.sales-combo-legend button[aria-pressed="false"] { text-decoration: line-through; opacity: .65; }
+.sales-combo-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.sales-combo-navy { background: var(--sales-combo-target); }.sales-combo-blue { background: var(--sales-combo-achieved); }.sales-combo-green { background: var(--sales-combo-rate); border-radius: 50%; }
+.sales-combo-help { margin: 0; font-size: 12px; color: var(--ui-muted); line-height: 1.5; }
+.sales-combo-scroll { overflow-x: auto; overflow-y: hidden; min-width: 0; max-width: 100%; border: 1px solid var(--ui-glass-border); border-radius: 10px; background: var(--ui-card); overscroll-behavior-inline: contain; }
+.sales-combo .sales-chart-frame { min-width: 960px; }
+.sales-combo-inspector { display: grid; grid-template-columns: 170px minmax(0,1fr); align-items: start; gap: 14px; background: var(--ui-card); border: 1px solid var(--ui-glass-border); border-radius: 10px; padding: 12px; }
+.sales-combo-inspector label { display: grid; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ui-text); }
+.sales-combo-values { min-width: 0; font-size: 13px; }
+.sales-combo-values dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 10px 0 0; }
+.sales-combo-values dt,.sales-combo-tooltip dt { font-size: 12px; color: var(--ui-muted); }.sales-combo-values dd,.sales-combo-tooltip dd { margin: 4px 0 0; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sales-combo-values p,.sales-combo-tooltip p { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--ui-muted); }
+.sales-combo-tooltip { padding: 12px; max-width: 260px; border: 1px solid var(--ui-glass-border); border-radius: 10px; background: var(--ui-card); color: var(--ui-text); box-shadow: var(--ui-shadow); font-size: 13px; }
+.sales-combo-tooltip dl { margin: 10px 0 0; display: grid; gap: 8px; }.sales-combo-tooltip dl > div { display: flex; gap: 16px; justify-content: space-between; }.sales-combo-tooltip dd { margin: 0; }
+.sales-combo-summary { border: 1px solid var(--ui-glass-border); border-radius: 10px; background: var(--ui-card); min-width: 0; overflow: hidden; }.sales-combo-summary summary { padding: 12px; font-size: 13px; font-weight: 600; cursor: pointer; }.sales-combo-table-scroll { overflow: auto; max-height: 380px; }.sales-combo-summary table { width: 100%; min-width: 620px; border-collapse: collapse; font-size: 13px; }.sales-combo-summary caption { padding: 10px; text-align: left; font-size: 12px; color: var(--ui-muted); }.sales-combo-summary :is(th,td) { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--ui-glass-border); }.sales-combo-summary tr > :first-child { text-align: left; }.sales-combo-summary tbody th { background: var(--ui-card); color: var(--ui-text); }.sales-combo-summary td small { display: block; font-size: 12px; max-width: 260px; line-height: 1.4; }.sales-combo-summary thead th { position: sticky; top: 0; background: var(--ui-navy); color: white; }
+.sales-combo-state { min-height: 240px; align-content: center; text-align: center; font-size: 14px; }
+.sales-combo :focus-visible { outline: 2px solid var(--ui-link); outline-offset: 2px; }.sales-combo-scroll:focus-visible { outline-offset: -3px; }
+@media(max-width:1050px) { .sales-combo-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .sales-combo { padding: 12px; gap: 12px; }.sales-combo-kpis { gap: 8px; }.sales-combo-kpis > div { padding: 10px; }.sales-combo-inspector { grid-template-columns: 1fr; }.sales-combo-values dl { gap: 8px; }.sales-combo-inspector select { font-size: 16px !important; }.sales-combo-legend button { min-height: 38px; } }
