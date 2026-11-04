@@ -1,3 +1,4 @@
+import { formatRupees } from '../../utils/currencyDisplay';
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -1207,7 +1208,7 @@ export default function WhatsAppMarketing() {
                       <td style={styles.td}>{customer.marketingCity || '-'}</td>
                       <td style={styles.td}>{customer.marketingContractStatus || '-'}</td>
                       <td style={styles.td}>{customer.marketingRenewalStatus || customer.marketingRenewalDate || '-'}</td>
-                      <td style={styles.td}>{customer.marketingOutstandingBalance > 0 ? `₹${customer.marketingOutstandingBalance.toLocaleString('en-IN')}` : '-'}</td>
+                      <td style={styles.td}>{customer.marketingOutstandingBalance > 0 ? formatRupees(customer.marketingOutstandingBalance) : '-'}</td>
                       <td style={styles.td}>
                         <button
                           type="button"

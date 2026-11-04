@@ -60,9 +60,14 @@ test('axis bounds include negative amounts and rates well above 100 percent', ()
   assert(rate[0] < -125 && rate[1] > 725);
   assert(comboAxisDomain([0, 0])[1] >= 1000);
 });
-test('exact rupee detail preserves paise and Indian grouping without compact rounding', () => {
-  assert.equal(exactSalesMoney(123456.78), '₹1,23,456.78');
-  assert.equal(exactSalesMoney(-123456.78), '-₹1,23,456.78');
+test('rupee displays use whole amounts and Indian grouping without changing source precision', () => {
+  assert.equal(exactSalesMoney(123456.78), '₹1,23,457');
+  assert.equal(exactSalesMoney(-123456.78), '-₹1,23,457');
+  assert.equal(exactSalesMoney(357986.47000000003), '₹3,57,986');
+  assert.equal(exactSalesMoney('357986.47000000003'), '₹3,57,986');
   assert.equal(exactSalesMoney(0), '₹0');
   assert.equal(exactSalesMoney(null), 'Unavailable');
+  const prepared = prepareSalesComboTrend([{ month: 7, target: 450000, achieved: 357986.47000000003 }]);
+  assert.equal(prepared.months[6].achieved, 357986.47000000003);
+  assert.equal(prepared.months[6].achievementPercent, 79.6);
 });

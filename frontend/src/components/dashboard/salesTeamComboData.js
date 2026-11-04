@@ -1,3 +1,4 @@
+import { formatRupees } from '../../utils/currencyDisplay.js';
 export const SALES_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export function finiteSalesValue(value) {
@@ -48,5 +49,5 @@ export function comboAxisDomain(values, percent = false) {
   const min = Math.min(0, ...finite), max = Math.max(percent ? 100 : finite.some(value => value !== 0) ? 1 : 1000, ...finite);
   return [min < 0 ? min - Math.abs(min) * 0.1 : 0, max + Math.abs(max) * 0.1];
 }
-export const exactSalesMoney = value => finiteSalesValue(value) === null ? 'Unavailable' : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0, maximumFractionDigits: 20 }).format(Number(value));
+export const exactSalesMoney = value => finiteSalesValue(value) === null ? 'Unavailable' : formatRupees(value);
 export const exactSalesPercent = value => finiteSalesValue(value) === null ? 'Unavailable' : `${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 20 })}%`;

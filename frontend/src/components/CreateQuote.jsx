@@ -1,3 +1,4 @@
+import { formatRupees, formatRupeeAmount } from '../utils/currencyDisplay';
 import '../styles/glassContent.css';
 import * as GlassIcons from 'lucide-react';
 import { SummaryCardGrid } from './ui/PortalPrimitives';
@@ -98,10 +99,7 @@ const getItemField = (item = {}, ...keys) => {
   return '';
 };
 
-const money = (v) => {
-  const formatted = num(v).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `₹ ${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
-};
+const money = formatRupees;
 
 const isCheckedFlag = (value) => {
   if (typeof value === 'boolean') return value;
@@ -881,7 +879,7 @@ export default function CreateQuote() {
               <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Round Off</p><input type="number" style={input} value={form.round_off || 0} onChange={(e) => setForm((p) => ({ ...p, round_off: Number(e.target.value) || 0 }))} /></div>
               <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Grand Total</p><input style={input} readOnly value={money(grandTotal)} /></div>
             </div>
-            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Amount in Words</p><input style={input} readOnly value={`${grandTotal.toLocaleString('en-IN')} Rupees Only`} /></div>
+            <div><p style={{ margin: '0 0 6px', fontWeight: 700 }}>Amount in Words</p><input style={input} readOnly value={`${formatRupeeAmount(grandTotal)} Rupees Only`} /></div>
           </div>
         )}
 

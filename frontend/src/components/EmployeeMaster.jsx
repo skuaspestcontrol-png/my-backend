@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
 import { UserRound, BriefcaseBusiness, MapPin, ClipboardCheck } from 'lucide-react';
 import '../styles/crmFourWizards.css';
@@ -242,7 +243,7 @@ const toAnnual = (value) => {
   return monthly * 12;
 };
 
-const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
+const formatCurrency = formatRupees;
 const toTenDigitNumber = normalizeIndianMobileNumber;
 const toSixDigitPincode = (value) => String(value || '').replace(/\D+/g, '').slice(0, 6);
 const normalizeEmploymentStatus = (value, fallback = 'Active') => {

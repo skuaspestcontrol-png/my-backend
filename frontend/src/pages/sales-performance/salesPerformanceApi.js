@@ -1,3 +1,4 @@
+import { formatRupees } from '../../utils/currencyDisplay';
 import axios from 'axios';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -44,7 +45,7 @@ export const formatCompactIndianCurrency = (value = 0) => {
     return `${sign}₹${trimTrailingZeros(formatValue(floorToDecimals(absolute / 100000, 2), { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}L`;
   }
 };
-export const money = (value = 0) => formatCompactIndianCurrency(value);
+export const money = formatRupees;
 export const percent = (value = 0) => `${Number(value || 0).toFixed(1)}%`;
 
 export const apiGet = async (path, params = {}) => {

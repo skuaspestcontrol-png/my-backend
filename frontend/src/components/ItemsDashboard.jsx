@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
 import { CRMFormField } from './ui/CRMForm';
 import { Package, FileText, Receipt, ClipboardCheck } from 'lucide-react';
@@ -451,11 +452,7 @@ const shell = {
   }
 };
 
-const formatINR = (value) => {
-  const amount = Number(value || 0);
-  const formatted = amount.toFixed(2);
-  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
-};
+const formatINR = formatRupees;
 
 const readItemsDashboardCache = () => {
   try {

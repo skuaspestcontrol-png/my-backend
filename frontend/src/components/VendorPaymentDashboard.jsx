@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import { PageHeaderTitle } from './ui/PageHeader';
 import AppCard from './ui/AppCard';
 import DashboardStatCard from './ui/DashboardStatCard';
@@ -87,11 +88,7 @@ const toNum = (v) => {
   return Number.isFinite(n) ? n : 0;
 };
 
-const formatINR = (value) => {
-  const amount = toNum(value);
-  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
-};
+const formatINR = formatRupees;
 
 const formatDate = (value) => {
   if (!value) return '-';

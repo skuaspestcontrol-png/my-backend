@@ -9,11 +9,11 @@ const stats = [
   ['Total Leads', '148', <Users size={18} />],
   ['Active Customers', '92', <Users size={18} />],
   ['Today Services', '14', <Wrench size={18} />],
-  ['Pending Payments', '₹1.24L', <Receipt size={18} />],
+  ['Pending Payments', '₹1,24,000', <Receipt size={18} />],
   ['Renewals Due', '11', <RefreshCw size={18} />],
   ['Staff Present', '28', <Users size={18} />],
-  ['Monthly Income', '₹8.2L', <CircleDollarSign size={18} />],
-  ['Monthly Expenses', '₹4.9L', <BarChart3 size={18} />]
+  ['Monthly Income', '₹8,20,000', <CircleDollarSign size={18} />],
+  ['Monthly Expenses', '₹4,90,000', <BarChart3 size={18} />]
 ];
 
 const todayColumns = [

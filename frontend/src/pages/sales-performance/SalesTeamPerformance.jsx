@@ -31,7 +31,7 @@ import {
   SalesChartTooltip,
   salesChartTheme
 } from './SalesChartPrimitives';
-import { apiGet, currentMonth, currentYear, formatCompactIndianCurrency, monthOptions, money, number, percent, safeRows, subscribeSalesPerformanceRefresh } from './salesPerformanceApi';
+import { apiGet, currentMonth, currentYear, monthOptions, money, number, percent, safeRows, subscribeSalesPerformanceRefresh } from './salesPerformanceApi';
 import './salesPerformance.css';
 
 const targetColor = 'var(--chart-target-bar)';
@@ -315,7 +315,7 @@ export default function SalesTeamPerformance() {
                       <YAxis {...currencyAxisProps} />
                       <Tooltip
                         cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                        content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
+                        content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
                       />
                       <Bar dataKey="monthlyTarget" name={currencyTooltipLabel.monthlyTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
                       <Bar dataKey="monthlyAchieved" name={currencyTooltipLabel.monthlyAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>
@@ -342,7 +342,7 @@ export default function SalesTeamPerformance() {
                       <YAxis {...currencyAxisProps} />
                       <Tooltip
                         cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
-                        content={<SalesChartTooltip valueFormatter={(value) => formatCompactIndianCurrency(value || 0)} />}
+                        content={<SalesChartTooltip valueFormatter={(value) => money(value || 0)} />}
                       />
                       <Bar dataKey="monthlyCollectionTarget" name={currencyTooltipLabel.monthlyCollectionTarget} fill={targetColor} radius={0} maxBarSize={barChartProps.maxBarSize} />
                       <Bar dataKey="monthlyCollectionAchieved" name={currencyTooltipLabel.monthlyCollectionAchieved} radius={0} maxBarSize={barChartProps.maxBarSize}>

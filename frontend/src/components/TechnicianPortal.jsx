@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import { flushSync, createPortal } from 'react-dom';
@@ -97,10 +98,7 @@ const formatDisplayTime = (value) => {
   return raw;
 };
 
-const formatMoney = (value) => {
-  const formatted = Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
-};
+const formatMoney = formatRupees;
 
 const formatRepresentativeDisplay = (name, mobile) => {
   const cleanName = String(name || '').trim();

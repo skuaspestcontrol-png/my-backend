@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { ChevronDown, ChevronRight } from 'lucide-react';
@@ -2755,8 +2756,8 @@ export default function Settings({ modalMode = false }) {
                   <td style={bankCellStyle('accountNumber')}>{row.accountNumber ? maskAccountNumber(row.accountNumber) : '-'}</td>
                   <td style={bankCellStyle('ifsc')}>{row.ifsc || '-'}</td>
                   <td style={bankCellStyle('upiId')}>{row.upiId || '-'}</td>
-                  <td style={bankCellStyle('openingBalance', 'center')}>{Number(row.opening || 0).toFixed(2)}</td>
-                  <td style={bankCellStyle('currentBalance', 'center')}>{Number(row.current || 0).toFixed(2)}</td>
+                  <td style={bankCellStyle('openingBalance', 'center')}>{formatRupees(row.opening)}</td>
+                  <td style={bankCellStyle('currentBalance', 'center')}>{formatRupees(row.current)}</td>
                   <td style={bankCellStyle('actions', 'center')}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <button type="button" style={shell.smallActionBtn} onClick={() => setActiveSection('bankAccounts')}>View</button>

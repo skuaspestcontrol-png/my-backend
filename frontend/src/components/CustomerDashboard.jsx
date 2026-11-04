@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import AppButton from './ui/AppButton';
 import EmptyState from './ui/EmptyState';
 import { LoadingState, ErrorState } from './ui/PortalPrimitives';
@@ -538,11 +539,7 @@ const shell = {
   paginationButton: { border: '1px solid var(--border)', background: 'var(--surface-card-elevated)', color: 'var(--text-primary)', borderRadius: '4px', width: '34px', minWidth: '34px', minHeight: '32px', padding: 0, fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
 };
 
-const formatINR = (value) => {
-  const amount = Number(value || 0);
-  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
-};
+const formatINR = formatRupees;
 
 const formatDisplayDate = (value) => {
   if (!value) return '-';

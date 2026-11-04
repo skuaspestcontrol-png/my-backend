@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import StatusBadge from './ui/StatusBadge';
 import '../styles/glassContent.css';
 import * as GlassIcons from 'lucide-react';
@@ -180,12 +181,7 @@ const formatDate = (value) => {
   if (Number.isNaN(parsed.getTime())) return '-';
   return parsed.toLocaleDateString('en-IN');
 };
-const formatINR = (value) => {
-  const amount = Number(value || 0);
-  if (!Number.isFinite(amount)) return '₹0';
-  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
-};
+const formatINR = formatRupees;
 const numericAmount = (value) => {
   const amount = Number(value || 0);
   return Number.isFinite(amount) ? amount : 0;

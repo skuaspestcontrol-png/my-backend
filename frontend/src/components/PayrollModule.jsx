@@ -1,3 +1,4 @@
+import { formatRupeeAmount } from '../utils/currencyDisplay';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CRMModalCloseButton } from './ui/CRMForm';
@@ -55,11 +56,7 @@ const shortMonthLabel = (value) => {
   return new Date(defaultYear, monthNumber - 1, 1).toLocaleDateString('en-IN', { month: 'short' });
 };
 
-const money = (value) => {
-  const amount = Number(value || 0);
-  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted;
-};
+const money = formatRupeeAmount;
 const getEmployeeKey = (entry = {}) => String(
   entry?._id
   || entry?.external_id

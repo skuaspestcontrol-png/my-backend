@@ -1,3 +1,4 @@
+import { formatRupees } from '../../utils/currencyDisplay';
 import axios from 'axios';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
@@ -160,10 +161,7 @@ export const toNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-export const money = (value = 0) => {
-  const formatted = Number(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
-};
+export const money = formatRupees;
 
 export const number = (value = 0) => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 3 });
 

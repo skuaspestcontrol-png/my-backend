@@ -45,7 +45,7 @@ export default function CustomersPage() {
     city: String(customer.city || customer.billingState || customer.state || '-'),
     plan: String(customer.segment || '-'),
     status: 'active',
-    due: '₹0.00'
+    due: '₹0'
   })), [customers]);
 
   const summary = useMemo(() => {

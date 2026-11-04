@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import AppCard from './ui/AppCard';
 import DashboardStatCard from './ui/DashboardStatCard';
 import { SummaryCardGrid } from './ui/PortalPrimitives';
@@ -663,7 +664,10 @@ const shell = {
   saveButton: { minHeight: '42px', height: '42px', border: 'none', background: 'var(--color-primary)', color: '#fff', borderRadius: '10px', padding: '0 22px', fontSize: '15px', fontWeight: 800, cursor: 'pointer' }
 };
 
-const formatINR = (value) => {
+const formatINR = formatRupees;
+
+// Preserve paise in outbound template payloads; screen formatting is separate.
+const formatTemplateCurrency = (value) => {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount)) return '₹0';
   const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -2660,10 +2664,10 @@ export default function InvoiceDashboard() {
           invoice_date: formatDisplayDate(invoice.date),
           invoice_amount: formatTemplateAmount(invoiceTotalAmount),
           total_amount: formatTemplateAmount(invoiceTotalAmount),
-          invoice_amount_with_currency: formatINR(invoiceTotalAmount),
-          total_amount_with_currency: formatINR(invoiceTotalAmount),
+          invoice_amount_with_currency: formatTemplateCurrency(invoiceTotalAmount),
+          total_amount_with_currency: formatTemplateCurrency(invoiceTotalAmount),
           balance_due: formatTemplateAmount(invoice.balanceDue || 0),
-          balance_due_with_currency: formatINR(invoice.balanceDue || 0),
+          balance_due_with_currency: formatTemplateCurrency(invoice.balanceDue || 0),
           due_date: formatDisplayDate(invoice.dueDate || ''),
           company_name: companySettings.companyName || 'Service Team',
           company_website: companySettings.companyWebsite || '',
@@ -4992,7 +4996,7 @@ export default function InvoiceDashboard() {
  <CRMFormStep title="Review & Save" description="Review actual contract values and schedule" icon={ClipboardCheck}>
   <CRMFormReview groups={[
    {title:'Customer & Contract Details',fields:[['Customer',form.customerName],['Customer Type',form.customerType],['Invoice Number',form.invoiceNumber],['Invoice Type',form.invoiceType],['Date',form.date],['Salesperson',form.salesperson],['Place of Supply',form.placeOfSupply],['Lead Source',form.leadSource],['Billing Address',getAddressDisplayText(selectedBillingAddress,form.billingAddressText)],['Shipping Address',getAddressDisplayText(selectedShippingAddress,form.shippingAddressText || form.premiseAddress)]]},
-   {title:'GST & Final Amount',fields:[['Subtotal',formatINR(form.subtotal)],['GST',formatINR(form.totalTax)],...(form.invoiceType === 'GST' ? [['CGST',formatINR(gstDisplay.cgstAmount)],['SGST',formatINR(gstDisplay.sgstAmount)]] : []),...(Number(form.withholdingAmount || 0) ? [['Withholding',formatINR(form.withholdingAmount)]] : []),['Discount',formatINR(form.discount)],['Round Off',form.roundOff],['Final Payable',formatINR(form.total)],['Amount Received',formatINR(paymentSummary.receivedAmount)],['Balance Due',formatINR(form.balanceDue)]]},
+   {title:'GST & Final Amount',fields:[['Subtotal',formatINR(form.subtotal)],['GST',formatINR(form.totalTax)],...(form.invoiceType === 'GST' ? [['CGST',formatINR(gstDisplay.cgstAmount)],['SGST',formatINR(gstDisplay.sgstAmount)]] : []),...(Number(form.withholdingAmount || 0) ? [['Withholding',formatINR(form.withholdingAmount)]] : []),['Discount',formatINR(form.discount)],['Round Off',formatINR(form.roundOff)],['Final Payable',formatINR(form.total)],['Amount Received',formatINR(paymentSummary.receivedAmount)],['Balance Due',formatINR(form.balanceDue)]]},
    {title:'Terms',fields:[['Payment Terms',form.terms],['Due Date',form.dueDate],['Terms & Conditions',form.termsAndConditions]]}
   ]} />
   <section className="crm-wizard-review-lines"><h4>Itemized Services</h4>{form.items.filter(line => line.itemName && parseDecimalNumber(line.quantity,0) > 0).map((line,index) => <CRMFormReview key={index} groups={[{title:line.itemName,fields:[['Description',line.frequency || line.description],['Quantity',line.quantity],['Rate',formatINR(line.rate)],['Tax Rate',form.invoiceType === 'NON GST' ? '0%' : String(line.taxRate) + '%'],['Line Total',formatINR(computeTotals([line],form.invoiceType).total)],['Relationship',line.serviceRelationshipType],['Start',line.contractStartDate],['End',line.contractEndDate],['Total Services',line.totalServices],['Preferred Day',serviceSchedulePreferredDayOptions.find(option => option.value === line.serviceWeekday)?.label || line.serviceWeekday],['Service Frequency',serviceFrequencyOptions.find(option => option.value === line.serviceFrequency)?.label || line.serviceFrequency],['Contract Period',contractPeriodOptions.find(option => option.value === line.contractPeriod)?.label || line.contractPeriod]]}]} />)}</section>

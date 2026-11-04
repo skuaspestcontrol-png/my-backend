@@ -1,3 +1,4 @@
+import { formatRupees } from '../utils/currencyDisplay';
 import { PageHeaderTitle } from './ui/PageHeader';
 import { Receipt, CheckCircle2, Clock, Pencil } from 'lucide-react';
 import AppCard from './ui/AppCard';
@@ -125,11 +126,7 @@ const shell = {
 };
 
 const toNum = (v) => Number(v || 0);
-const formatINR = (v) => {
-  const amount = Number(v || 0);
-  const formatted = amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `₹${formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted}`;
-};
+const formatINR = formatRupees;
 const toDateOnly = (value) => {
   if (!value) return '';
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.trim())) return value.trim();

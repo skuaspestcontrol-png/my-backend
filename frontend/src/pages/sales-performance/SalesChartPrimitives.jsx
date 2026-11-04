@@ -1,5 +1,5 @@
 import AppCard from '../../components/ui/AppCard';
-import { formatCompactIndianCurrency, percent } from './salesPerformanceApi';
+import { formatCompactIndianCurrency, money, percent } from './salesPerformanceApi';
 
 const gridStroke = 'var(--chart-grid)';
 const axisStroke = 'var(--chart-grid)';
@@ -111,7 +111,7 @@ export function getBarChartProps(count = 0, { mobile = false } = {}) {
   return { barCategoryGap: mobile ? '15%' : '12%', barGap: 3, maxBarSize: mobile ? 28 : 34 };
 }
 
-export function SalesChartTooltip({ active, payload, label, valueFormatter = formatCompactIndianCurrency }) {
+export function SalesChartTooltip({ active, payload, label, valueFormatter = money }) {
   if (!active || !payload?.length) return null;
 
   return (
