@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Bar, CartesianGrid, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartSurface } from '../../pages/sales-performance/SalesChartPrimitives';
 import { formatCompactIndianCurrency } from '../../pages/sales-performance/salesPerformanceApi';
@@ -18,7 +18,6 @@ function ExactTooltip({ active, payload, year }) {
   return <div className="sales-combo-tooltip"><MonthValues row={row} year={year} /></div>;
 }
 export default function SalesTeamComboChart({ trend, totalTarget, totalAchieved, year, teamLabel, loading, available, formatTotal, mobile }) {
-  const id = useId();
   const [visible, setVisible] = useState({ target: true, achieved: true, achievementPercent: true });
   const prepared = useMemo(() => prepareSalesComboTrend(trend), [trend]);
   const totals = salesComboTotals(prepared, totalTarget, totalAchieved);
@@ -40,8 +39,7 @@ export default function SalesTeamComboChart({ trend, totalTarget, totalAchieved,
     <div className="sales-combo-toolbar"><div className="sales-combo-legend" aria-label="Chart series visibility">
       {series.map(([key, name, color]) => <button type="button" key={key} aria-pressed={visible[key]} onClick={() => setVisible(previous => ({ ...previous, [key]: !previous[key] }))}><i className={`sales-combo-swatch sales-combo-${color}`} aria-hidden="true" />{name}</button>)}
     </div><span>{teamLabel} · {year}</span></div>
-    <p id={`${id}-help`} className="sales-combo-help">Rupee columns use the left axis; the percentage line uses the right axis. {mobile ? 'Scroll horizontally and tap a month. ' : ''}Hover or select a chart point to view monthly values.</p>
-    <div className="sales-combo-scroll" role="region" tabIndex={0} aria-label="Monthly target, achieved and achievement percentage chart" aria-describedby={`${id}-help`}>
+    <div className="sales-combo-scroll" role="region" tabIndex={0} aria-label="Monthly target, achieved and achievement percentage chart">
       <ChartSurface height={mobile ? 300 : 350} minWidth={960}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={prepared.months} margin={{ top: 20, right: 12, bottom: 6, left: 10 }} barGap={3} barCategoryGap="24%" accessibilityLayer>
@@ -59,7 +57,6 @@ export default function SalesTeamComboChart({ trend, totalTarget, totalAchieved,
       </ChartSurface>
     </div>
     {!Object.values(visible).some(Boolean) ? <p role="status" className="sales-combo-help">All chart series are hidden. Use the legend buttons to show them again.</p> : null}
-    <p className="sales-combo-help">* CRM convention: a non-positive target reports 0%, not a defined target ratio. Missing values remain unavailable. Totals use monthly plans, which may differ from explicit annual targets.</p>
     {!prepared.complete ? <p className="sales-combo-help" role="status">Partial or invalid response: {prepared.targetMonths}/12 target months and {prepared.achievedMonths}/12 achieved months supplied. Missing months are gaps; percentage and variance totals require complete data.</p> : null}
   </div>;
 }

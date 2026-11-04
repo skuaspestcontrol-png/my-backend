@@ -1,4 +1,5 @@
 import SalesTeamComboChart from './dashboard/SalesTeamComboChart';
+import DashboardPeriodControls from './dashboard/DashboardPeriodControls';
 import { buildContractLeadSourceSeries } from '../utils/contractLeadSources';
 import { shouldAutoRefresh } from '../hooks/autoRefreshPolicy';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -844,18 +845,9 @@ export default function Dashboard() {
           </p>
         </div>
 
-          <div className="dashboard-monthly-controls" title="Monthly target period"><CalendarDays size={17} aria-hidden="true" />
-            <select value={monthlyPeriod.month} aria-label="Select monthly target month"
-              onChange={(event) => setMonthlyPeriod((period) => ({ ...period, month: Number(event.target.value) }))}>
-              {Array.from({ length: 12 }, (_, index) => (
-                <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat('en-IN', { month: 'short', timeZone: 'Asia/Kolkata' }).format(new Date(Date.UTC(2000, index, 1)))}</option>
-              ))}
-            </select>
-            <select value={monthlyPeriod.year} aria-label="Select monthly target year"
-              onChange={(event) => setMonthlyPeriod((period) => ({ ...period, year: Number(event.target.value) }))}>
-              {monthlyYearOptions.map((year) => <option key={year} value={year}>{year}</option>)}
-            </select>
-          </div>
+          <DashboardPeriodControls month={monthlyPeriod.month} year={monthlyPeriod.year} years={monthlyYearOptions}
+            onMonthChange={(month) => setMonthlyPeriod((period) => ({ ...period, month: Number(month) }))}
+            onYearChange={(year) => setMonthlyPeriod((period) => ({ ...period, year: Number(year) }))} />
       </section>
 
       <section className="stats-grid dashboard-grid">

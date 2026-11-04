@@ -184,7 +184,7 @@ const shell = {
   cardTop: { padding: '10px 12px', borderBottom: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: 'var(--surface-card)', borderTopLeftRadius: '14px', borderTopRightRadius: '14px', backgroundClip: 'padding-box', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   cardTitle: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' },
   shownPill: { border: '1px solid var(--color-border)', background: 'var(--surface-secondary)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '4px 8px', fontSize: '11px', fontWeight: 800 },
-  quickWrap: { padding: '8px 12px 0', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
+  quickWrap: { padding: '8px 12px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' },
   quickLabel: { fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)' },
   summaryStrip: {
     padding: '8px 12px 4px',
@@ -1516,8 +1516,8 @@ export default function ContractDashboard() {
   const quickWrapStyle = isMobile
     ? {
       ...shell.quickWrap,
-      alignItems: 'stretch',
-      padding: '8px 10px 0',
+      alignItems: 'center',
+      padding: '8px 10px',
       gap: '7px'
     }
     : shell.quickWrap;
@@ -1536,7 +1536,7 @@ export default function ContractDashboard() {
     : shell.chip;
   const customizeWrapStyle = compactMobile
     ? { position: 'relative', flex: '1 0 100%', marginLeft: 0, display: 'flex', justifyContent: 'flex-end' }
-    : { position: 'relative', marginLeft: 'auto' };
+    : { position: 'relative', marginLeft: 'auto', display: 'flex', alignItems: 'center' };
   const customizeButtonStyle = compactMobile
     ? { ...shell.customizeButton, width: '32px', height: '32px' }
     : shell.customizeButton;

@@ -2,8 +2,26 @@
 .sales-combo-panel { --sales-combo-target: #1c2547; --sales-combo-achieved: #0866ff; --sales-combo-rate: #15803d; }
 html[data-theme="dark"] .sales-combo-panel { --sales-combo-target: #7186b5; --sales-combo-achieved: #5895ff; --sales-combo-rate: #4ade80; }
 html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel { border-color: var(--ui-glass-border) !important; border-radius: 16px; background: linear-gradient(125deg,var(--ui-action-soft),var(--ui-card) 65%) !important; }
-html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header { background: var(--ui-navy) !important; color: #fff !important; border-color: var(--ui-glass-border); }
-html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header :is(h2,p) { color: #fff !important; -webkit-text-fill-color: #fff !important; }
+/* Match the Main Dashboard's Yearly panel header and native selectors. */
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header { background: var(--skuas-header) !important; color: var(--card-header-text) !important; border-color: var(--ui-glass-border); min-height: 48px; padding: 8px 14px !important; gap: 10px; }
+html[data-theme="dark"][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header { background: var(--dashboard-header) !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header :is(h2,p) { color: var(--card-header-text) !important; -webkit-text-fill-color: var(--card-header-text) !important; }
+.sales-combo-panel .dashboard-sales-header > div:first-child { display: flex; flex: 1 1 220px; align-items: center; flex-wrap: wrap; gap: 8px 12px; min-width: 0; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header h2 { margin: 0; gap: 8px; font-size: 14px !important; font-weight: 700; line-height: 1.4 !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header h2 .dashboard-icon { width: 17px; height: 17px; border-radius: 0; background: transparent; color: var(--card-header-text); }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header h2 .dashboard-icon svg { width: 17px; height: 17px; color: var(--card-header-text) !important; -webkit-text-fill-color: currentColor !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header p { margin: 0 !important; line-height: 1.4; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-controls select { min-width: 80px !important; min-height: 30px; padding: 4px 42px 4px 8px !important; background-color: var(--card-header-bg) !important; color: var(--card-header-text) !important; -webkit-text-fill-color: var(--card-header-text) !important; border-color: #ffffff30 !important; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 1.5; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important; }
+.sales-combo-panel .dashboard-sales-controls { max-width: 100%; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-controls select:last-child { min-width: 140px !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-controls select option { color: var(--text-primary) !important; -webkit-text-fill-color: var(--text-primary) !important; background: var(--surface-input); }
+@media (max-width: 767px) {
+  html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-controls select { font-size: 12px; }
+}
+@media (max-width: 600px) {
+  html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-header { min-height: 60px; }
+  html[data-theme][data-branding] body .portal-design-system .main-content .dashboard-main .sales-combo-panel .dashboard-sales-controls select { min-height: 44px; }
+}
 .sales-combo { padding: 16px; color: var(--ui-text); display: grid; gap: 14px; min-width: 0; }
 .sales-combo-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
 .sales-combo-kpis > div { display: grid; align-content: start; gap: 7px; padding: 14px; border: 1px solid var(--ui-glass-border); border-radius: 12px; background: var(--ui-glass); min-width: 0; }
