@@ -40,7 +40,7 @@ export default function SalesTeamComboChart({ trend, totalTarget, totalAchieved,
     <div className="sales-combo-toolbar"><div className="sales-combo-legend" aria-label="Chart series visibility">
       {series.map(([key, name, color]) => <button type="button" key={key} aria-pressed={visible[key]} onClick={() => setVisible(previous => ({ ...previous, [key]: !previous[key] }))}><i className={`sales-combo-swatch sales-combo-${color}`} aria-hidden="true" />{name}</button>)}
     </div><span>{teamLabel} · {year}</span></div>
-    <p id={`${id}-help`} className="sales-combo-help">Rupee columns use the left axis; the percentage line uses the right axis. {mobile ? 'Scroll horizontally and tap a month. ' : ''}Open Monthly Performance Summary below for keyboard-accessible exact values.</p>
+    <p id={`${id}-help`} className="sales-combo-help">Rupee columns use the left axis; the percentage line uses the right axis. {mobile ? 'Scroll horizontally and tap a month. ' : ''}Hover or select a chart point to view monthly values.</p>
     <div className="sales-combo-scroll" role="region" tabIndex={0} aria-label="Monthly target, achieved and achievement percentage chart" aria-describedby={`${id}-help`}>
       <ChartSurface height={mobile ? 300 : 350} minWidth={960}>
         <ResponsiveContainer width="100%" height="100%">
@@ -61,6 +61,5 @@ export default function SalesTeamComboChart({ trend, totalTarget, totalAchieved,
     {!Object.values(visible).some(Boolean) ? <p role="status" className="sales-combo-help">All chart series are hidden. Use the legend buttons to show them again.</p> : null}
     <p className="sales-combo-help">* CRM convention: a non-positive target reports 0%, not a defined target ratio. Missing values remain unavailable. Totals use monthly plans, which may differ from explicit annual targets.</p>
     {!prepared.complete ? <p className="sales-combo-help" role="status">Partial or invalid response: {prepared.targetMonths}/12 target months and {prepared.achievedMonths}/12 achieved months supplied. Missing months are gaps; percentage and variance totals require complete data.</p> : null}
-    <details className="sales-combo-summary"><summary>Monthly Performance Summary</summary><div className="sales-combo-table-scroll" tabIndex={0} role="region" aria-label="Monthly performance source data"><table><caption>{year} · {teamLabel} · exact source amounts</caption><thead><tr><th scope="col">Month</th><th scope="col">Target</th><th scope="col">Achieved</th><th scope="col">Achievement %</th></tr></thead><tbody>{prepared.months.map(row => <tr key={row.month}><th scope="row">{row.name}</th><td>{exactSalesMoney(row.target)}</td><td>{exactSalesMoney(row.achieved)}</td><td>{exactSalesPercent(row.achievementPercent)}{row.nonPositiveTarget ? ' *' : ''}{row.note ? <small>{row.note}</small> : null}</td></tr>)}</tbody></table></div></details>
   </div>;
 }
