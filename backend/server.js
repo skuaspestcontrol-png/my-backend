@@ -15614,34 +15614,29 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const drawParagraph = (text) => {
       doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(text, pageLeft, doc.y, {
         width: contentWidth,
-        align: 'justify',
+        align: 'left',
+        wordSpacing: 0,
+        characterSpacing: 0,
         lineGap: 1
       });
       doc.y += 5;
     };
     const drawInlineParagraph = (segments) => {
-      const startY = doc.y;
-      const textSize = Math.max(...segments.map((segment) => Number(segment.fontSize || 9.6) || 9.6));
-      const combinedText = segments.map((segment) => String(segment.text || '')).join('');
-      doc.font(pdfFont.regular).fontSize(textSize);
-      const measuredHeight = doc.heightOfString(combinedText, {
-        width: contentWidth,
-        align: 'justify',
-        lineGap: 1
-      });
-
       segments.forEach((segment, index) => {
         const textOptions = {
           width: contentWidth,
-          align: 'justify',
+          align: 'left',
+          wordSpacing: 0,
+          characterSpacing: 0,
           lineGap: 1,
           continued: index < segments.length - 1
         };
-        const renderY = index === 0 ? startY : doc.y;
-        doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827').text(String(segment.text || ''), pageLeft, renderY, textOptions);
+        doc.font(segment.bold ? pdfFont.bold : pdfFont.regular).fontSize(segment.fontSize || 9.6).fillColor('#111827');
+        // Let PDFKit retain the continued-text cursor, spaces and page position.
+        if (index === 0) doc.text(String(segment.text || ''), pageLeft, doc.y, textOptions);
+        else doc.text(String(segment.text || ''), textOptions);
       });
-
-      doc.y = startY + measuredHeight + 5;
+      doc.y += 5;
     };
     const renewalAddressFontSize = renewalAddressText.length > 95
       ? 8.4
@@ -15706,11 +15701,11 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       return match ? `Rupees ${match[1]} Only/-` : `${words}/-`;
     };
     const tableX = pageLeft;
-    const tableY = doc.y + 4;
     const colWidths = [30, 190, 136, pageRight - tableX - 30 - 190 - 136];
     const headerHeight = 22;
-    const itemRowHeight = 24;
-    const totalRowHeight = 24;
+    const ensureLetterSpace = (height) => {
+      if (doc.y + height > doc.page.height - doc.page.margins.bottom) doc.addPage();
+    };
     const drawTableCell = (x, y, w, h, text, options = {}) => {
       doc.rect(x, y, w, h).lineWidth(0.8).strokeColor('#111827').stroke();
       doc
@@ -15721,7 +15716,7 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
           width: w - 8,
           align: options.align || 'center',
           lineGap: 0,
-          ellipsis: true
+          ellipsis: false
         });
     };
     const drawWrappedTableCell = (x, y, w, h, text, options = {}) => {
@@ -15748,39 +15743,77 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
         ellipsis: false
       });
     };
-    const headerY = tableY;
-    let cursorX = tableX;
     const tableHeadings = isNonGstRenewalLetter
       ? ['Sn', 'Service Name', 'Amount without GST', 'Amount without GST']
       : ['Sn', 'Service Name', 'Amount without GST', 'Amount with GST'];
-    tableHeadings.forEach((heading, index) => {
-      drawTableCell(cursorX, headerY, colWidths[index], headerHeight, heading, {
-        bold: true,
-        fontSize: 8.8,
-        color: '#ffffff'
-      });
-      doc.rect(cursorX, headerY, colWidths[index], headerHeight).fillOpacity(1).fillAndStroke('#808080', '#111827');
-      doc.font(pdfFont.bold).fontSize(8.8).fillColor('#ffffff').text(heading, cursorX + 4, headerY + 7, { width: colWidths[index] - 8, align: 'center' });
-      cursorX += colWidths[index];
-    });
-    serviceLines.forEach((line, rowIndex) => {
-      const itemY = tableY + headerHeight + (rowIndex * itemRowHeight);
-      cursorX = tableX;
-      const rowValues = isNonGstRenewalLetter
-        ? [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithoutGst)]
-        : [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithGst)];
-      rowValues.forEach((value, index) => {
-        drawTableCell(cursorX, itemY, colWidths[index], itemRowHeight, String(value), {
-          bold: false,
-          fontSize: 8.8,
-          align: index === 1 ? 'left' : 'center'
-        });
+    const drawTableHeader = () => {
+      const headerY = doc.y;
+      let cursorX = tableX;
+      tableHeadings.forEach((heading, index) => {
+        doc.rect(cursorX, headerY, colWidths[index], headerHeight).lineWidth(0.8).strokeColor('#111827').fillOpacity(1).fillAndStroke('#808080', '#111827');
+        doc.font(pdfFont.bold).fontSize(8.8).fillColor('#ffffff').text(heading, cursorX + 4, headerY + 7, { width: colWidths[index] - 8, align: 'center' });
         cursorX += colWidths[index];
       });
+      doc.y = headerY + headerHeight;
+    };
+    const nextTablePage = () => {
+      doc.addPage();
+      drawTableHeader();
+    };
+    const measureCell = (text, index) => doc.font(pdfFont.regular).fontSize(8.8)
+      .heightOfString(text, { width: colWidths[index] - 8, lineGap: 0 });
+    // Split exceptionally tall cells at a word boundary, retaining every word.
+    const fitCell = (text, index, availableHeight) => {
+      if (!text || measureCell(text, index) <= availableHeight) return [text, ''];
+      const characters = Array.from(text);
+      let low = 0, high = characters.length;
+      while (low < high) {
+        const middle = Math.ceil((low + high) / 2);
+        if (measureCell(characters.slice(0, middle).join(''), index) <= availableHeight) low = middle;
+        else high = middle - 1;
+      }
+      const prefix = characters.slice(0, Math.max(1, low)).join('');
+      const boundary = prefix.search(/\s+\S*$/);
+      const split = boundary > 0 ? Array.from(prefix.slice(0, boundary)).length : Math.max(1, low);
+      return [characters.slice(0, split).join('').trimEnd(), characters.slice(split).join('').trimStart()];
+    };
+    const tableGap = 6;
+    ensureLetterSpace(tableGap + headerHeight + 24);
+    doc.y += tableGap;
+    drawTableHeader();
+    serviceLines.forEach((line) => {
+      let remaining = (isNonGstRenewalLetter
+        ? [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithoutGst)]
+        : [line.serial, line.name, formatTableAmount(line.amountWithoutGst), formatTableAmount(line.amountWithGst)])
+        .map(String);
+      const fullHeight = Math.max(24, ...remaining.map((text, index) => measureCell(text, index) + 14));
+      const pageRowHeight = doc.page.height - doc.page.margins.top - doc.page.margins.bottom - headerHeight;
+      if (fullHeight <= pageRowHeight && doc.y + fullHeight > doc.page.height - doc.page.margins.bottom) nextTablePage();
+      while (remaining.some(Boolean)) {
+        let availableHeight = doc.page.height - doc.page.margins.bottom - doc.y;
+        if (availableHeight < 26) {
+          nextTablePage();
+          availableHeight = doc.page.height - doc.page.margins.bottom - doc.y;
+        }
+        const pieces = remaining.map((text, index) => fitCell(text, index, availableHeight - 14));
+        const rowHeight = Math.max(24, ...pieces.map(([text], index) => measureCell(text, index) + 14));
+        const rowY = doc.y;
+        let cursorX = tableX;
+        pieces.forEach(([text], index) => {
+          drawTableCell(cursorX, rowY, colWidths[index], rowHeight, text, {
+            bold: false,
+            fontSize: 8.8,
+            align: index === 1 ? 'left' : 'center'
+          });
+          cursorX += colWidths[index];
+        });
+        doc.y = rowY + rowHeight;
+        remaining = pieces.map(([, rest]) => rest);
+        if (remaining.some(Boolean)) nextTablePage();
+      }
     });
     const leftTotalWidth = colWidths[0] + colWidths[1];
     const rightTotalWidth = colWidths[2] + colWidths[3];
-    const totalY = tableY + headerHeight + (serviceLines.length * itemRowHeight);
     const leftTotalText = `${isNonGstRenewalLetter ? 'Total Price without GST' : 'Total Price with GST'} (In Words) = ${formatTableAmount(renewalTotalAmount)}`;
     const rightTotalText = formatTableAmountWords(renewalTotalAmount);
     const totalTextFontSize = 8.4;
@@ -15788,6 +15821,8 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
     const leftTotalTextHeight = doc.heightOfString(leftTotalText, { width: Math.max(0, leftTotalWidth - 10), align: 'left', lineGap: 1 });
     const rightTotalTextHeight = doc.heightOfString(rightTotalText, { width: Math.max(0, rightTotalWidth - 10), align: 'center', lineGap: 1 });
     const mergedTotalRowHeight = Math.max(28, Math.ceil(Math.max(leftTotalTextHeight, rightTotalTextHeight) + 10));
+    if (doc.y + mergedTotalRowHeight > doc.page.height - doc.page.margins.bottom) nextTablePage();
+    const totalY = doc.y;
     drawWrappedTableCell(tableX, totalY, leftTotalWidth, mergedTotalRowHeight, leftTotalText, { bold: true, fontSize: totalTextFontSize, align: 'left', lineGap: 1.2, paddingY: 4 });
     drawWrappedTableCell(tableX + leftTotalWidth, totalY, rightTotalWidth, mergedTotalRowHeight, rightTotalText, { bold: true, fontSize: totalTextFontSize, align: 'center', lineGap: 1.2, paddingY: 4 });
     doc.y = totalY + mergedTotalRowHeight + 12;
@@ -15798,23 +15833,40 @@ app.post('/api/renewals/:id/generate-letter', async (req, res) => {
       'Complaints will be handled without any additional charges.',
       'Skuas Pest Control Private Limited is in no way responsible for any direct/indirect losses and/or damages by pests and of the consequences.'
     ];
+    ensureLetterSpace(36);
     doc.font(pdfFont.bold).fontSize(9.8).fillColor('#111827').text('Payment Terms and Other Conditions:', pageLeft, doc.y, { width: contentWidth, align: 'left' });
     doc.y += 4;
     terms.forEach((term) => {
       doc.font(pdfFont.regular).fontSize(9.4).fillColor('#111827').text(term, pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1 });
       doc.y += 3;
     });
+    const closingParagraphs = [
+      'We look forward to working with you and hope this is the beginning of a long and prosperous relationship.',
+      'For any clarification, please feel free to contact me.'
+    ];
+    const signatureLines = ['Thanking you,', '', 'Yours Truly,', 'For Skuas Pest Control Pvt Ltd', salesPersonName || String(renewal.assignedSalesPersonName || '').trim() || '-', salesDesignation, salesMobile ? `Mob: ${salesMobile}` : ''];
+    const closingOptions = { width: contentWidth, align: 'left', wordSpacing: 0, characterSpacing: 0, lineGap: 1 };
+    const signatureOptions = { width: contentWidth, align: 'left', lineGap: 0 };
+    const signatureBold = (line) => line === 'Yours Truly,' || line === 'For Skuas Pest Control Pvt Ltd';
+    doc.font(pdfFont.regular).fontSize(9.6);
+    const closingHeight = closingParagraphs.reduce((height, text, index) =>
+      height + doc.heightOfString(text, closingOptions) + (index === 0 ? 5 : 36), 12);
+    const signatureHeight = signatureLines.reduce((height, line) => {
+      doc.font(signatureBold(line) ? pdfFont.bold : pdfFont.regular).fontSize(9.6);
+      return height + (line ? doc.heightOfString(line, signatureOptions) + 2 : 4);
+    }, 0);
+    // Keep the closing copy and sign-off together using their actual wrapped heights.
+    ensureLetterSpace(closingHeight + signatureHeight);
     doc.y += 12;
-    doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827')
-      .text('We look forward to working with you and hope this is the beginning of a long and prosperous relationship.', pageLeft, doc.y, { width: contentWidth, align: 'left', lineGap: 1 });
-    doc.y += 5;
-    doc.text('For any clarification, please feel free to contact me.', pageLeft, doc.y, { width: contentWidth, align: 'left' });
-    doc.y += 36;
-    ['Thanking you,', '', 'Yours Truly,', 'For Skuas Pest Control Pvt Ltd', salesPersonName || String(renewal.assignedSalesPersonName || '').trim() || '-', salesDesignation, salesMobile ? `Mob: ${salesMobile}` : ''].forEach((line) => {
-      doc.font(line === 'Yours Truly,' || line === 'For Skuas Pest Control Pvt Ltd' ? pdfFont.bold : pdfFont.regular)
+    closingParagraphs.forEach((text, index) => {
+      doc.font(pdfFont.regular).fontSize(9.6).fillColor('#111827').text(text, pageLeft, doc.y, closingOptions);
+      doc.y += index === 0 ? 5 : 36;
+    });
+    signatureLines.forEach((line) => {
+      doc.font(signatureBold(line) ? pdfFont.bold : pdfFont.regular)
         .fontSize(9.6)
         .fillColor('#111827')
-        .text(line, pageLeft, doc.y, { width: contentWidth, align: 'left' });
+        .text(line, pageLeft, doc.y, signatureOptions);
       doc.y += line ? 2 : 4;
     });
     doc.end();

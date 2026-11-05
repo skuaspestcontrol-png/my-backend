@@ -1,0 +1,42 @@
+/* All Contracts opts into readable columns; shared tables keep their existing sizing. */
+html[data-theme][data-branding] body .portal-design-system .main-content .contract-dashboard-page .contract-register-table thead th {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+.contract-dashboard-page .contract-register-table thead th button {
+  display: flex !important;
+  align-items: center;
+  width: 100%;
+  height: auto !important;
+  min-height: 28px;
+  padding: 0 !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  text-align: left;
+  white-space: normal !important;
+}
+.contract-dashboard-page .contract-sort-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+.contract-dashboard-page .contract-sort-label > span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.contract-dashboard-page .contract-sort-label svg { flex: 0 0 13px; }
+.contract-dashboard-page .contract-register-table :is(.contract-customer-name, .contract-property-name, .contract-property-city) {
+  max-width: 100%;
+  white-space: normal !important;
+  overflow: visible !important;
+  overflow-wrap: anywhere;
+  line-height: 1.4 !important;
+}
+
+.contract-dashboard-page .contract-register-table :is(.contract-customer-mobile, .contract-property-city, .contract-period-cell > div) {
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+}

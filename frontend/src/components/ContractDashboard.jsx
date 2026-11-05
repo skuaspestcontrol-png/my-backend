@@ -1,9 +1,10 @@
 import StatusBadge from './ui/StatusBadge';
 import '../styles/glassContent.css';
+import './ContractDashboard.css';
 import * as GlassIcons from 'lucide-react';
 import DashboardStatCard from './ui/DashboardStatCard';
 import { PageHeaderTitle } from './ui/PageHeader';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
@@ -80,7 +81,7 @@ const defaultColumnWidths = {
   duration: 138,
   type: 112,
   services: 100,
-  status: 104,
+  status: 160,
   total: 112,
   paid: 112,
   due: 106,
@@ -95,7 +96,7 @@ const mobileColumnWidths = {
   duration: 120,
   type: 96,
   services: 96,
-  status: 92,
+  status: 160,
   total: 100,
   paid: 92,
   due: 92,
@@ -123,7 +124,7 @@ const contractColumnResizeBounds = {
   duration: { min: 110, max: 170 },
   type: { min: 92, max: 160 },
   services: { min: 140, max: 280 },
-  status: { min: 92, max: 150 },
+  status: { min: 160, max: 240 },
   total: { min: 100, max: 160 },
   paid: { min: 100, max: 160 },
   due: { min: 96, max: 160 },
@@ -696,6 +697,8 @@ export default function ContractDashboard() {
   const [loadError, setLoadError] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('');
   const [actionMenu, setActionMenu] = useState(null);
+  const actionMenuRef = useRef(null);
+  const actionTriggerRef = useRef(null);
   const [showCustomize, setShowCustomize] = useState(false);
   const [customizeMenuPosition, setCustomizeMenuPosition] = useState(null);
   const [visibleColumns, setVisibleColumns] = useState(() => ({
@@ -1042,8 +1045,26 @@ export default function ContractDashboard() {
     };
   }, [showCustomize]);
 
+  useLayoutEffect(() => {
+    if (!actionMenu || !actionMenuRef.current || !actionTriggerRef.current) return;
+    const anchor = actionTriggerRef.current.getBoundingClientRect();
+    const menu = actionMenuRef.current.getBoundingClientRect();
+    const padding = 4;
+    const below = anchor.bottom + padding;
+    const top = Math.max(padding, Math.min(window.innerHeight - menu.height - padding,
+      below + menu.height <= window.innerHeight - padding ? below : anchor.top - menu.height - padding));
+    const left = Math.max(padding, Math.min(anchor.right - menu.width, window.innerWidth - menu.width - padding));
+    if (top !== actionMenu.top || left !== actionMenu.left) {
+      setActionMenu((previous) => previous ? { ...previous, top, left } : previous);
+    }
+    if (actionMenu.keyboardOpen) actionMenuRef.current.querySelector('button')?.focus({ preventScroll: true });
+  }, [actionMenu]);
+
   useEffect(() => {
-    const clearMenu = () => setActionMenu(null);
+    const clearMenu = (event) => {
+      if (event.target instanceof Node && actionMenuRef.current?.contains(event.target)) return;
+      setActionMenu(null);
+    };
     window.addEventListener('resize', clearMenu);
     window.addEventListener('scroll', clearMenu, true);
     return () => {
@@ -1446,9 +1467,7 @@ export default function ContractDashboard() {
       ? Math.max(Number(mobileColumnWidths[columnKey] || 0), Number(defaultColumnWidths[columnKey] || 0))
       : Number(desktopWidth) || Number(defaultColumnWidths[columnKey] || 0);
     const baseWidth = Math.max(columnKey === 'rowNumber' ? 50 : 80, width);
-    if (!isMobile && columnKey === 'services') return Math.min(baseWidth, 92);
-    if (!isMobile && columnKey === 'status') return Math.min(baseWidth, 96);
-    return baseWidth;
+    return Math.max(baseWidth, contractColumnResizeBounds[columnKey]?.min || 0);
   };
   const contractSortableColumns = new Set(['contractNo', 'customer', 'property', 'duration', 'type', 'services', 'status', 'total', 'paid', 'due']);
   const toggleContractSort = (columnKey) => {
@@ -1484,9 +1503,9 @@ export default function ContractDashboard() {
               aria-label={`Sort ${label} ${active && contractSort.direction === 'asc' ? 'descending' : 'ascending'}`}
               title={`Sort ${label} ${active && contractSort.direction === 'asc' ? 'descending' : 'ascending'}`}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                {label}
-                <SortChevronIcon size={13} color="#111827" />
+              <span className="contract-sort-label">
+                <span>{label}</span>
+                <SortChevronIcon size={13} color="currentColor" />
               </span>
             </button>
           ) : (
@@ -1511,7 +1530,6 @@ export default function ContractDashboard() {
     `${getColumnWidth('actions')}px`
   ].filter(Boolean);
   const contractTableMinWidth = contractColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
-  const contractColumnPercent = (columnKey) => `${((getColumnWidth(columnKey) / contractTableMinWidth) * 100).toFixed(4)}%`;
   const compactMobile = viewportWidth <= 430;
   const quickWrapStyle = isMobile
     ? {
@@ -1581,21 +1599,12 @@ export default function ContractDashboard() {
       touchAction: 'auto'
     }
     : { ...shell.tableWrap, overflowX: 'hidden', touchAction: 'auto' };
-  const tableStyle = isMobile
-    ? {
-      ...shell.table,
-      width: `${contractTableMinWidth}px`,
-      minWidth: `${contractTableMinWidth}px`,
-      '--mobile-table-columns': contractColumnList.join(' '),
-      '--mobile-table-min-width': `${contractTableMinWidth}px`
-    }
-    : {
-      ...shell.table,
-      width: '100%',
-      minWidth: '100%',
-      '--mobile-table-columns': contractColumnList.join(' '),
-      '--mobile-table-min-width': '100%'
-    };
+  const tableStyle = {
+    ...shell.table,
+    minWidth: `${contractTableMinWidth}px`,
+    '--mobile-table-columns': contractColumnList.join(' '),
+    '--mobile-table-min-width': `${contractTableMinWidth}px`
+  };
   const mobileStackCellStyle = isMobile
     ? { flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }
     : {};
@@ -1711,20 +1720,20 @@ export default function ContractDashboard() {
       return <div style={shell.empty}>No contracts match your current filters.</div>;
     }
     return (
-      <table style={tableStyle} className="crm-compact-table portal-data-table">
+      <table style={tableStyle} className="crm-compact-table portal-data-table contract-register-table">
         <colgroup>
-          <col style={{ width: isMobile ? `${getColumnWidth('rowNumber')}px` : contractColumnPercent('rowNumber') }} />
-          {visibleColumns.type ? <col style={{ width: isMobile ? `${getColumnWidth('type')}px` : contractColumnPercent('type') }} /> : null}
-          {visibleColumns.contractNo ? <col style={{ width: isMobile ? `${getColumnWidth('contractNo')}px` : contractColumnPercent('contractNo') }} /> : null}
-          {visibleColumns.customer ? <col style={{ width: isMobile ? `${getColumnWidth('customer')}px` : contractColumnPercent('customer') }} /> : null}
-          {visibleColumns.property ? <col style={{ width: isMobile ? `${getColumnWidth('property')}px` : contractColumnPercent('property') }} /> : null}
-          {visibleColumns.duration ? <col style={{ width: isMobile ? `${getColumnWidth('duration')}px` : contractColumnPercent('duration') }} /> : null}
-          {visibleColumns.services ? <col style={{ width: isMobile ? `${getColumnWidth('services')}px` : contractColumnPercent('services') }} /> : null}
-          {visibleColumns.status ? <col style={{ width: isMobile ? `${getColumnWidth('status')}px` : contractColumnPercent('status') }} /> : null}
-          {visibleColumns.total ? <col style={{ width: isMobile ? `${getColumnWidth('total')}px` : contractColumnPercent('total') }} /> : null}
-          {visibleColumns.paid ? <col style={{ width: isMobile ? `${getColumnWidth('paid')}px` : contractColumnPercent('paid') }} /> : null}
-          {visibleColumns.due ? <col style={{ width: isMobile ? `${getColumnWidth('due')}px` : contractColumnPercent('due') }} /> : null}
-          <col style={{ width: isMobile ? `${getColumnWidth('actions')}px` : contractColumnPercent('actions') }} />
+          <col style={{ width: `${getColumnWidth('rowNumber')}px` }} />
+          {visibleColumns.type ? <col style={{ width: `${getColumnWidth('type')}px` }} /> : null}
+          {visibleColumns.contractNo ? <col style={{ width: `${getColumnWidth('contractNo')}px` }} /> : null}
+          {visibleColumns.customer ? <col style={{ width: `${getColumnWidth('customer')}px` }} /> : null}
+          {visibleColumns.property ? <col style={{ width: `${getColumnWidth('property')}px` }} /> : null}
+          {visibleColumns.duration ? <col style={{ width: `${getColumnWidth('duration')}px` }} /> : null}
+          {visibleColumns.services ? <col style={{ width: `${getColumnWidth('services')}px` }} /> : null}
+          {visibleColumns.status ? <col style={{ width: `${getColumnWidth('status')}px` }} /> : null}
+          {visibleColumns.total ? <col style={{ width: `${getColumnWidth('total')}px` }} /> : null}
+          {visibleColumns.paid ? <col style={{ width: `${getColumnWidth('paid')}px` }} /> : null}
+          {visibleColumns.due ? <col style={{ width: `${getColumnWidth('due')}px` }} /> : null}
+          <col style={{ width: `${getColumnWidth('actions')}px` }} />
         </colgroup>
         <thead>
           <tr>
@@ -1765,7 +1774,7 @@ export default function ContractDashboard() {
                         className="contract-customer-name"
                         role="button"
                         tabIndex={0}
-                        title="Single click opens contract. Double-click opens customer summary."
+                        title={`${row.customer}. Single click opens contract. Double-click opens customer summary.`}
                         onClick={(event) => {
                           event.stopPropagation();
                           handleCustomerNameClick(row);
@@ -1791,11 +1800,11 @@ export default function ContractDashboard() {
                     </div>
                   </div>
                 </td> : null}
-                {visibleColumns.property ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
-                  <div style={{ ...shell.subText }}>{row.city || '-'}</div>
+                {visibleColumns.property ? <td className="contract-property-cell" style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                  <div className="contract-property-name" title={row.property || '-'} style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
+                  <div className="contract-property-city" style={{ ...shell.subText }}>{row.city || '-'}</div>
                 </td> : null}
-                {visibleColumns.duration ? <td style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.duration ? <td className="contract-period-cell" style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
                   <div style={{ ...shell.subText }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}
@@ -1816,8 +1825,22 @@ export default function ContractDashboard() {
                       type="button"
                       className="crm-action-chip"
                       style={shell.actionBtn}
+                      aria-haspopup="menu"
+                      aria-expanded={actionMenu?.rowId === row.id}
+                      aria-controls={actionMenu?.rowId === row.id ? 'contracts-row-action-menu' : undefined}
+                      onKeyDown={(event) => {
+                        if (event.key === 'ArrowDown') {
+                          event.preventDefault();
+                          if (actionMenu?.rowId === row.id) actionMenuRef.current?.querySelector('button')?.focus({ preventScroll: true });
+                          else event.currentTarget.click();
+                        } else if (event.key === 'Escape' && actionMenu?.rowId === row.id) {
+                          event.preventDefault();
+                          setActionMenu(null);
+                        }
+                      }}
                       onClick={(event) => {
                         event.stopPropagation();
+                        actionTriggerRef.current = event.currentTarget;
                         const menuWidth = 170;
                         const menuHeight = 190;
                         const menuGap = 4;
@@ -1835,7 +1858,7 @@ export default function ContractDashboard() {
                           viewportPadding,
                           Math.min(maxTop, hasRoomBelow ? belowTop : aboveTop)
                         );
-                        setActionMenu((prev) => (prev?.rowId === row.id ? null : { rowId: row.id, row, top, left }));
+                        setActionMenu((prev) => (prev?.rowId === row.id ? null : { rowId: row.id, row, top, left, keyboardOpen: event.detail === 0 }));
                       }}
                     >
                       <span>Action</span>
@@ -2057,6 +2080,7 @@ export default function ContractDashboard() {
           </div>
         ) : null}
         {loading && hasLoadedContractsRef.current ? <div role="status" style={shell.loading}>Refreshing contracts...</div> : null}
+        <div style={{ minWidth: 0 }}>
         <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped glass-register-scroll glass-surface" tabIndex={0} role="region" aria-label="Contracts table">{renderBody()}</div>
 
         <TablePagination style={footerStyle}>
@@ -2084,20 +2108,52 @@ export default function ContractDashboard() {
             </button>
           </div>
         </TablePagination>
+        </div>
       </div>
 
       {actionMenu ? createPortal(
         <div
+          ref={actionMenuRef}
+          id="contracts-row-action-menu"
+          role="menu"
+          aria-label="Contract actions"
           className="crm-action-menu-panel glass-menu"
           data-contract-action-menu="true"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' || event.key === 'Tab') {
+              if (event.key === 'Escape') event.preventDefault();
+              setActionMenu(null);
+              actionTriggerRef.current?.focus({ preventScroll: true });
+              return;
+            }
+            if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const items = Array.from(event.currentTarget.querySelectorAll('button:not(:disabled)'));
+            const current = items.indexOf(document.activeElement);
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+              : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+            const item = items[next];
+            item?.focus({ preventScroll: true });
+            if (item) {
+              const menu = event.currentTarget;
+              if (item.offsetTop < menu.scrollTop) menu.scrollTop = item.offsetTop;
+              else if (item.offsetTop + item.offsetHeight > menu.scrollTop + menu.clientHeight) {
+                menu.scrollTop = item.offsetTop + item.offsetHeight - menu.clientHeight;
+              }
+            }
+          }}
           style={{
             ...shell.actionMenu,
+            maxHeight: 'calc(100dvh - 8px)',
+            overflowY: 'auto',
             left: `${actionMenu.left}px`,
             top: `${actionMenu.top}px`
           }}
         >
           <button
             type="button"
+            role="menuitem"
+            tabIndex={-1}
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
@@ -2109,6 +2165,8 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            role="menuitem"
+            tabIndex={-1}
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
@@ -2120,6 +2178,8 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            role="menuitem"
+            tabIndex={-1}
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
@@ -2137,6 +2197,8 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            role="menuitem"
+            tabIndex={-1}
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
@@ -2148,6 +2210,8 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            role="menuitem"
+            tabIndex={-1}
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
@@ -2171,6 +2235,8 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            role="menuitem"
+            tabIndex={-1}
             className="crm-action-menu-item"
             style={shell.actionMenuItem}
             onClick={() => {
@@ -2182,6 +2248,8 @@ export default function ContractDashboard() {
           </button>
           <button
             type="button"
+            role="menuitem"
+            tabIndex={-1}
             className="crm-action-menu-item"
             data-danger="true"
             style={{ ...shell.actionMenuItem, ...shell.actionMenuDanger }}
