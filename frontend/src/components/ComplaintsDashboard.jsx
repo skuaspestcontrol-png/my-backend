@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CRMModalCloseButton } from './ui/CRMForm';
@@ -349,14 +350,7 @@ export default function ComplaintsDashboard() {
                     <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }} data-label="Priority"><span style={{ borderRadius: 999, padding: '4px 9px', background: '#DBEAFE', color: '#2563EB', fontWeight: 700, fontSize: 12 }}>{entry.priority || '-'}</span></td>
                     <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }} data-label="Status"><span style={{ borderRadius: 999, padding: '4px 9px', background: '#F3E8FF', color: '#7C3AED', fontWeight: 700, fontSize: 12 }}>{entry.status || '-'}</span></td>
                     <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 }} data-label="Created">
-                      {entry.createdAt ? (() => {
-                        const d = new Date(entry.createdAt);
-                        if (Number.isNaN(d.getTime())) return '-';
-                        const day = String(d.getDate()).padStart(2, '0');
-                        const month = String(d.getMonth() + 1).padStart(2, '0');
-                        const year = d.getFullYear();
-                        return `${day}/${month}/${year}`;
-                      })() : '-'}
+                      {formatPortalDate(entry.createdAt)}
                     </td>
                     <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }} data-label="Actions">
                       <button

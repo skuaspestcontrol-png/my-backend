@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import '../styles/glassContent.css';
 import * as GlassIcons from 'lucide-react';
 import { SummaryCardGrid } from './ui/PortalPrimitives';
@@ -519,15 +520,7 @@ const getLeadDateValue = (lead) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 const toDateInput = (value) => (value ? new Date(value).toISOString().slice(0, 10) : '');
-const formatDisplayDate = (value) => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+const formatDisplayDate = (value) => formatPortalDate(value, value ? String(value) : '');
 const getCustomerMobile = (customer) => normalizePhoneNumber(customer.mobileNumber || customer.workPhone || '');
 const getCustomerName = (customer) => customer.displayName || customer.name || customer.companyName || customer.contactPersonName || '';
 const normalizeDuplicateName = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -3175,7 +3168,7 @@ export default function LeadCapture() {
                       {form.referenceCustomerName ? (
                         <div style={s.referenceBadge}>
                           <div><strong>Referred By:</strong> {form.referenceCustomerName}</div>
-                          <div><strong>Customer Since:</strong> {form.referenceCustomerDate || 'N/A'}</div>
+                          <div><strong>Customer Since:</strong> {formatPortalDate(form.referenceCustomerDate, 'N/A')}</div>
                         </div>
                       ) : null}
                     </div>

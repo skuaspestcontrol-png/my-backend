@@ -1,3 +1,4 @@
+import { formatPortalDateTime } from '../../utils/portalDateTime';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -6,7 +7,7 @@ import { ArrowLeft, Pause, Play, RotateCcw, Square } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-const formatDate = (value) => value ? new Date(value).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '-';
+const formatDate = (value) => formatPortalDateTime(value);
 const styles = {
   page: { display: 'grid', gap: 12, width: '100%', minWidth: 0 },
   panel: { border: '1px solid var(--border-soft)', borderRadius: 16, background: 'var(--surface-card)', padding: 16, overflow: 'hidden' },

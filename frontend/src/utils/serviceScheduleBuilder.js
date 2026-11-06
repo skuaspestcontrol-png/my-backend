@@ -1,3 +1,4 @@
+import { formatPortalDate, formatPortalTime } from './portalDateTime.js';
 const WEEKDAY_LABELS = [
   { value: '0', short: 'Sun', label: 'Sunday' },
   { value: '1', short: 'Mon', label: 'Monday' },
@@ -416,11 +417,7 @@ export const generateServiceScheduleDates = (draft = {}, maxVisits = 500) => {
   return buildServiceScheduleRows(draft, '', {}, maxVisits).map((row) => row.serviceDate).filter(Boolean);
 };
 
-export const formatServiceScheduleDate = (value) => {
-  const date = parseDateOnly(value);
-  if (!date) return '';
-  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
-};
+export const formatServiceScheduleDate = (value) => formatPortalDate(value, '');
 
 export const formatServiceScheduleDateWithWeekday = (value) => {
   const date = parseDateOnly(value);
@@ -429,15 +426,7 @@ export const formatServiceScheduleDateWithWeekday = (value) => {
   return [weekday, formatServiceScheduleDate(value)].filter(Boolean).join(', ');
 };
 
-export const formatServiceScheduleTime = (value) => {
-  const raw = normalizeServiceScheduleTime(value, '10:00');
-  const [hoursRaw, minutes] = raw.split(':');
-  const hours = Number(hoursRaw);
-  if (!Number.isFinite(hours)) return raw;
-  const suffix = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  return `${displayHours}:${minutes} ${suffix}`;
-};
+export const formatServiceScheduleTime = (value) => formatPortalTime(normalizeServiceScheduleTime(value, '10:00'), '');
 
 export const formatServiceScheduleDateTime = (dateValue, timeValue) =>
   [formatServiceScheduleDate(dateValue), formatServiceScheduleTime(timeValue)].filter(Boolean).join(', ');

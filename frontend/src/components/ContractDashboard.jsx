@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import StatusBadge from './ui/StatusBadge';
 import '../styles/glassContent.css';
 import './ContractDashboard.css';
@@ -431,15 +432,7 @@ const toInputDate = (value) => {
   return `${date.getFullYear()}-${month}-${day}`;
 };
 
-const formatDate = (value) => {
-  if (!value) return '-';
-  const dt = parseDateOnly(value);
-  if (!dt) return '-';
-  const day = String(dt.getDate()).padStart(2, '0');
-  const month = String(dt.getMonth() + 1).padStart(2, '0');
-  const year = dt.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+const formatDate = (value) => formatPortalDate(value);
 
 const formatINR = (num) => `₹${Number(num || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 const formatWholeAmount = (num) => Number(num || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });

@@ -1,3 +1,4 @@
+import { formatPortalTime, formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
 import AppCard from './ui/AppCard';
 import DashboardStatCard from './ui/DashboardStatCard';
@@ -700,15 +701,7 @@ const formatTemplateAmount = (value) => {
   return formatted.endsWith('.00') ? formatted.slice(0, -3) : formatted;
 };
 
-const formatDisplayDate = (value) => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+const formatDisplayDate = (value) => formatPortalDate(value, value ? String(value) : '');
 
 const parseDateOnly = (value) => {
   const raw = String(value || '').trim();
@@ -5003,7 +4996,7 @@ export default function InvoiceDashboard() {
    {title:'Terms',fields:[['Payment Terms',form.terms],['Due Date',form.dueDate],['Terms & Conditions',form.termsAndConditions]]}
   ]} />
   <section className="crm-wizard-review-lines"><h4>Itemized Services</h4>{form.items.filter(line => line.itemName && parseDecimalNumber(line.quantity,0) > 0).map((line,index) => <CRMFormReview key={index} groups={[{title:line.itemName,fields:[['Description',line.frequency || line.description],['Quantity',line.quantity],['Rate',formatINR(line.rate)],['Tax Rate',form.invoiceType === 'NON GST' ? '0%' : String(line.taxRate) + '%'],['Line Total',formatINR(computeTotals([line],form.invoiceType).total)],['Relationship',line.serviceRelationshipType],['Start',line.contractStartDate],['End',line.contractEndDate],['Total Services',line.totalServices],['Preferred Day',serviceSchedulePreferredDayOptions.find(option => option.value === line.serviceWeekday)?.label || line.serviceWeekday],['Service Frequency',serviceFrequencyOptions.find(option => option.value === line.serviceFrequency)?.label || line.serviceFrequency],['Contract Period',contractPeriodOptions.find(option => option.value === line.contractPeriod)?.label || line.contractPeriod]]}]} />)}</section>
-  <section className="crm-wizard-review-lines"><h4>Schedule Preview</h4>{(Array.isArray(serviceScheduleRows) && serviceScheduleRows.length > 0 ? serviceScheduleRows : liveMultiItemScheduleRows).map((row,index) => <div className="crm-wizard-schedule-row" key={index}><strong>{row.itemName}</strong><span>{row.serviceDate} {row.serviceTime}</span><span>{row.status || 'Scheduled'}</span></div>)}</section>
+  <section className="crm-wizard-review-lines"><h4>Schedule Preview</h4>{(Array.isArray(serviceScheduleRows) && serviceScheduleRows.length > 0 ? serviceScheduleRows : liveMultiItemScheduleRows).map((row,index) => <div className="crm-wizard-schedule-row" key={index}><strong>{row.itemName}</strong><span>{formatPortalDate(row.serviceDate)} {formatPortalTime(row.serviceTime)}</span><span>{row.status || 'Scheduled'}</span></div>)}</section>
  </CRMFormStep>
 </CRMFormModal>
         </div>,

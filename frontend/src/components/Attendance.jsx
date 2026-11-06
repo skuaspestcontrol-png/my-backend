@@ -1,3 +1,4 @@
+import { formatPortalDateTime, formatPortalDate, formatPortalTime } from '../utils/portalDateTime';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CRMModalCloseButton } from './ui/CRMForm';
@@ -69,17 +70,7 @@ const formatAttendanceSourceLabel = (value) => {
   return text;
 };
 
-const formatAttendanceDisplayTime = (value) => {
-  const raw = String(value || '').trim();
-  if (!raw) return '--';
-  const [hoursText, minutesText] = raw.split(':');
-  const hours = Number(hoursText);
-  const minutes = Number(minutesText);
-  if (!/^\d{1,2}$/.test(hoursText || '') || !/^\d{2}$/.test(minutesText || '') || !Number.isFinite(hours) || !Number.isFinite(minutes)) return raw;
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
-};
+const formatAttendanceDisplayTime = (value) => formatPortalTime(value, value || '--');
 
 const getEditableTimeValue = (value) => {
   const raw = String(value || '').trim();
@@ -985,7 +976,7 @@ export default function Attendance() {
     ringOffset += totalEmployees ? (dayCounts[status] || 0) * 100 / totalEmployees : 0;
     return `var(--att-${status}) ${start}% ${ringOffset}%`;
   });
-  const selectedDateLabel = new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const selectedDateLabel = formatPortalDate(date);
   const [calendarYear, calendarMonth] = month.split('-').map(Number);
   const monthStart = new Date(calendarYear, calendarMonth - 1, 1).getDay();
   const monthDays = new Date(calendarYear, calendarMonth, 0).getDate();
@@ -1267,7 +1258,7 @@ export default function Attendance() {
         <label>Status<select aria-label="Status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="">All Statuses</option>{statusOrder.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}</select></label>
         <button type="button" onClick={() => { setSearch(''); setDepartment(''); setStatusFilter(''); setRangeStart(''); setRangeEnd(''); }}>Clear filters</button>
       </section>
-      {loading && <p className="att-notice" role="status">Loading attendance for {date}…</p>}
+      {loading && <p className="att-notice" role="status">Loading attendance for {formatPortalDate(date)}…</p>}
       {statusMessage && <div className="att-notice" role="status">{statusMessage} <button type="button" onClick={() => loadData()}>Refresh attendance</button></div>}
       <div className={`att-overview ${view === 'Calendar View' ? '' : 'att-overview-wide'}`} aria-busy={loading}>
         {view === 'Calendar View' && <section className="att-panel att-calendar">
@@ -1280,7 +1271,7 @@ export default function Attendance() {
               const key = `${month}-${String(day).padStart(2, '0')}`;
               const statuses = calendarStatuses(key);
               const outsideRange = (rangeStart && key < rangeStart) || (rangeEnd && key > rangeEnd);
-              return <button type="button" key={key} disabled={Boolean(outsideRange)} aria-label={`${key}: ${statuses.map((status) => statusLabels[status] || status).join(', ') || 'No recorded attendance'}`} aria-pressed={date === key} className={date === key ? 'selected' : ''} onClick={() => handleDateChange(key)}><span>{day}</span><span className="att-dots">{statuses.map((status) => <i key={status} data-status={status} />)}</span></button>;
+              return <button type="button" key={key} disabled={Boolean(outsideRange)} aria-label={`${formatPortalDate(key)}: ${statuses.map((status) => statusLabels[status] || status).join(', ') || 'No recorded attendance'}`} aria-pressed={date === key} className={date === key ? 'selected' : ''} onClick={() => handleDateChange(key)}><span>{day}</span><span className="att-dots">{statuses.map((status) => <i key={status} data-status={status} />)}</span></button>;
             })}
           </div>
           <div className="att-legend">{statusOrder.slice(0, 5).map((status) => <span key={status}><i data-status={status} />{statusLabels[status]}</span>)}</div>
@@ -1296,7 +1287,7 @@ export default function Attendance() {
           <p className="att-caption">Present ÷ total employees. Unmarked means no saved record. Totals include all employees returned for this date.</p>
         </section>
         <section className="att-panel att-timeline">
-          <div className="att-panel-heading"><h3><Users size={18} /> {view === 'Team View' ? 'Team Attendance' : view === 'Location View' ? 'Punch Locations' : 'Employee Timeline'}</h3><span>{date}</span></div>
+          <div className="att-panel-heading"><h3><Users size={18} /> {view === 'Team View' ? 'Team Attendance' : view === 'Location View' ? 'Punch Locations' : 'Employee Timeline'}</h3><span>{formatPortalDate(date)}</span></div>
           {view === 'Team View' ? <div className="att-teams">{[...new Set(filteredRows.map(({ employee }) => departmentName(employee)))].map((name) => {
             const rows = filteredRows.filter(({ employee }) => departmentName(employee) === name);
             return <details key={name} open><summary>{name} · {rows.length} employees · {rows.filter(({ record }) => displayStatus(record) === 'present').length} present</summary>{renderTimeline(rows)}</details>;
@@ -1341,7 +1332,7 @@ export default function Attendance() {
       <section className="att-panel att-records">
         <div className="att-records-header">
           <div className="att-records-copy">
-            <h3><CalendarDays size={23} /> Attendance Records · {new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</h3>
+            <h3><CalendarDays size={23} /> Attendance Records · {formatPortalDate(date)}</h3>
             <p>Manage daily attendance, working hours, leave types and locations. Changes auto-save.</p>
             <small>Select Present to enable time editing.</small>
           </div>
@@ -1609,7 +1600,7 @@ export default function Attendance() {
             <div className="crm-modal-surface-header" style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
               <div>
                 <h3 style={shell.modalTitle}>Attendance Audit</h3>
-                <p style={shell.auditMeta}>{auditModal.employeeName} • {date}</p>
+                <p style={shell.auditMeta}>{auditModal.employeeName} • {formatPortalDate(date)}</p>
               </div>
               <CRMModalCloseButton type="button" style={shell.actionBtn} onClick={() => setAuditModal({ open: false, loading: false, employeeName: '', items: [] })} />
             </div>
@@ -1617,10 +1608,10 @@ export default function Attendance() {
             {!auditModal.loading && auditModal.items.length === 0 ? <p style={shell.footerNote}>No audit history found.</p> : null}
             {!auditModal.loading && auditModal.items.map((item) => (
               <div key={item.id} style={shell.auditCard}>
-                <p style={shell.auditMeta}>{item.changedBy || '-'} • {item.changedAt ? String(item.changedAt).replace('T', ' ').slice(0, 16) : '-'}</p>
+                <p style={shell.auditMeta}>{item.changedBy || '-'} • {formatPortalDateTime(item.changedAt)}</p>
                 <p style={shell.footerNote}>Status: {item.oldStatus || '-'} → {item.newStatus || '-'}</p>
-                <p style={shell.footerNote}>Check In: {formatAttendanceDisplayTime(item.oldCheckInTime ? String(item.oldCheckInTime).slice(11, 16) : '')} → {formatAttendanceDisplayTime(item.newCheckInTime ? String(item.newCheckInTime).slice(11, 16) : '')}</p>
-                <p style={shell.footerNote}>Check Out: {formatAttendanceDisplayTime(item.oldCheckOutTime ? String(item.oldCheckOutTime).slice(11, 16) : '')} → {formatAttendanceDisplayTime(item.newCheckOutTime ? String(item.newCheckOutTime).slice(11, 16) : '')}</p>
+                <p style={shell.footerNote}>Check In: {formatPortalTime(item.oldCheckInTime, '--')} → {formatPortalTime(item.newCheckInTime, '--')}</p>
+                <p style={shell.footerNote}>Check Out: {formatPortalTime(item.oldCheckOutTime, '--')} → {formatPortalTime(item.newCheckOutTime, '--')}</p>
                 <p style={shell.footerNote}>Source: {item.source || '-'}</p>
                 {item.reason ? <p style={shell.footerNote}>Reason: {item.reason}</p> : null}
               </div>
@@ -1634,7 +1625,7 @@ export default function Attendance() {
             <div className="crm-modal-surface-header" style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'center' }}>
               <div>
                 <h3 style={shell.modalTitle}>{locationModal.title}</h3>
-                <p style={shell.auditMeta}>{locationModal.timestamp || '-'}</p>
+                <p style={shell.auditMeta}>{formatPortalDateTime(locationModal.timestamp)}</p>
               </div>
               <CRMModalCloseButton type="button" style={shell.actionBtn} onClick={() => setLocationModal({ open: false, title: '', address: '', timestamp: '', latitude: null, longitude: null, mapUrl: '' })} />
             </div>

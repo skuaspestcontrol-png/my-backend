@@ -1,50 +1,6 @@
-export const INDIA_TIME_ZONE = 'Asia/Kolkata';
-
-const toDate = (value) => {
-  if (value === null || value === undefined || value === '') return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const formatWithIntl = (value, options, fallback = '-') => {
-  const date = toDate(value);
-  if (!date) return fallback;
-  try {
-    return new Intl.DateTimeFormat('en-IN', { timeZone: INDIA_TIME_ZONE, ...options }).format(date);
-  } catch {
-    return fallback;
-  }
-};
-
-export const formatIndiaDateTime = (value, options = {}) =>
-  formatWithIntl(
-    value,
-    {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-      ...options
-    }
-  );
-
-export const formatIndiaDate = (value, options = {}) =>
-  formatWithIntl(
-    value,
-    {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      ...options
-    }
-  );
-
-export const formatIndiaTime = (value, options = {}) =>
-  formatWithIntl(
-    value,
-    {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-      ...options
-    }
-  );
-
+import { PORTAL_TIME_ZONE, formatPortalDate, formatPortalTime, formatPortalDateTime } from './portalDateTime.js';
+export const INDIA_TIME_ZONE = PORTAL_TIME_ZONE;
+// Retain the existing call signatures for portal consumers.
+export const formatIndiaDateTime = (value, _options = {}, fallback = '-') => formatPortalDateTime(value, fallback);
+export const formatIndiaDate = (value, _options = {}, fallback = '-') => formatPortalDate(value, fallback);
+export const formatIndiaTime = (value, _options = {}, fallback = '-') => formatPortalTime(value, fallback);

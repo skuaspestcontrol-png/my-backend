@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import StatusBadge from './ui/StatusBadge';
 import '../styles/glassContent.css';
 import * as GlassIcons from 'lucide-react';
@@ -99,11 +100,7 @@ const toDateOnly = (value) => {
   date.setHours(0, 0, 0, 0);
   return date;
 };
-const formatDate = (value) => {
-  const date = toDateOnly(value);
-  if (!date) return '-';
-  return date.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
+const formatDate = (value) => formatPortalDate(value);
 const getLeadMobile = (lead) => String(lead.mobile || lead.mobileNumber || '').trim();
 const getAssignedTo = (lead) => String(lead.assignedTo || '').trim() || 'Unassigned';
 const compareValues = (left, right) => {

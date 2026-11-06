@@ -1,3 +1,4 @@
+import { formatPortalValue } from '../../utils/portalDateTime';
 import AppCard from '../ui/AppCard';
 import EmptyState from '../ui/EmptyState';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -108,7 +109,7 @@ export default function ResizableTable({
                         whiteSpace: 'nowrap'
                       }}
                     >
-                      {column.render ? column.render(row[column.key], row) : row[column.key]}
+                      {column.render ? column.render(row[column.key], row) : formatPortalValue(row[column.key])}
                     </td>
                   ))}
                   {renderRowActions ? <td className="table-actions-cell">{renderRowActions(row)}</td> : null}

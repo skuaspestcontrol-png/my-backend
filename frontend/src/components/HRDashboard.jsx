@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -299,7 +300,7 @@ function InsightList({ title, rows = [], valuePrefix = '' }) {
           <li key={`${row.employeeId}-${row.employeeName}`} style={shell.listRow}>
             <div>
               <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{row.employeeName}</p>
-              {row.date ? <p style={shell.tiny}>Date: {row.date}</p> : null}
+              {row.date ? <p style={shell.tiny}>Date: {formatPortalDate(row.date)}</p> : null}
             </div>
             <span style={{ ...shell.badge, color: 'var(--color-primary-dark)', borderColor: 'rgba(159, 23, 77, 0.26)' }}>{Number.isFinite(row.days) ? (row.days === 0 ? 'Today' : `${row.days} days`) : row.value != null ? `${valuePrefix}${money(row.value)}` : '—'}</span>
           </li>
@@ -678,7 +679,7 @@ export default function HRDashboard() {
         {['department', 'role', 'location', 'status'].map((key) => <label key={key}>{key === 'status' ? 'Workflow status' : key.charAt(0).toUpperCase() + key.slice(1)}<select value={filters[key]} onChange={(event) => setFilters((prev) => ({ ...prev, [key]: event.target.value }))}><option value="">All</option>{(filterOptions[key === 'department' ? 'departments' : key === 'role' ? 'roles' : key === 'location' ? 'locations' : 'statuses'] || []).map((value) => <option key={value} value={value}>{value}</option>)}</select></label>)}
         <label>Search<input value={filters.search} placeholder="Search employees" onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))} /></label>
       </div></details>
-      <section className="hr-card-section"><div className="hr-section-title"><h2>Workforce &amp; today's records</h2><span>{summary?.attendanceReferenceDate || 'Date unavailable'} · {summary?.reportingTimeZone || 'Timezone unavailable'}</span></div><div className="hr-workforce-cards">
+      <section className="hr-card-section"><div className="hr-section-title"><h2>Workforce &amp; today's records</h2><span>{formatPortalDate(summary?.attendanceReferenceDate, 'Date unavailable')} · {summary?.reportingTimeZone || 'Timezone unavailable'}</span></div><div className="hr-workforce-cards">
         {metric('Total Employees', cards.totalEmployees, 'All employment statuses')}
         {metric('Active Employees', cards.activeEmployees, 'Employment status: Active', 'green')}
         {metric('Present Today', cards.presentToday, 'Explicit recorded Present; half-days separate', 'teal')}
@@ -707,7 +708,7 @@ export default function HRDashboard() {
           <p style={shell.panelSub}>Approve/reject requests with leave balances visible per employee.</p>
           {leavePeriodReady && loadStates.leaves === 'ready' ? <div className="hr-pending-list">
             {visibleLeaves.filter((entry) => entry.status === 'Pending').length === 0 ? <p style={shell.panelSub}>No pending requests for this month.</p> : visibleLeaves.filter((entry) => entry.status === 'Pending').map((entry) => <article className="hr-pending-card" key={entry._id}>
-              <div><strong>{entry.employeeName || entry.employeeCode || 'Employee unavailable'}</strong><p>{entry.displayLeaveType || entry.leaveType} · {entry.fromDate} to {entry.toDate} · {entry.days} days</p></div>
+              <div><strong>{entry.employeeName || entry.employeeCode || 'Employee unavailable'}</strong><p>{entry.displayLeaveType || entry.leaveType} · {formatPortalDate(entry.fromDate)} to {formatPortalDate(entry.toDate)} · {entry.days} days</p></div>
               <span style={shell.badge}>{entry.status}</span>
               {role.canManage ? <div className="hr-pending-actions"><button type="button" style={shell.btnLight} onClick={() => decideLeave(entry._id, 'approved')}>Approve</button><button type="button" style={shell.btnLight} onClick={() => decideLeave(entry._id, 'rejected')}>Reject</button></div> : null}
             </article>)}
@@ -761,7 +762,7 @@ export default function HRDashboard() {
                   <tr key={entry._id}>
                     <td style={bodyStyle(getLeaveColumnWidth, 'employee')}>{entry.employeeName}</td>
                     <td style={bodyStyle(getLeaveColumnWidth, 'type', 'center')}>{entry.displayLeaveType || entry.leaveType}</td>
-                    <td style={bodyStyle(getLeaveColumnWidth, 'period', 'center')}>{entry.fromDate} to {entry.toDate}</td>
+                    <td style={bodyStyle(getLeaveColumnWidth, 'period', 'center')}>{formatPortalDate(entry.fromDate)} to {formatPortalDate(entry.toDate)}</td>
                     <td style={bodyStyle(getLeaveColumnWidth, 'days', 'center')}>{entry.days}</td>
                     <td style={bodyStyle(getLeaveColumnWidth, 'status', 'center')}><span style={shell.badge}>{entry.status}</span></td>
                     <td style={bodyStyle(getLeaveColumnWidth, 'action', 'center')}>

@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
 import AppCard from './ui/AppCard';
 import '../styles/glassContent.css';
@@ -107,18 +108,7 @@ const normalizeDepositTo = (value, invoiceType = 'GST') => {
   return defaultValue;
 };
 
-const formatDate = (value) => {
-  if (!value) return '-';
-  const raw = String(value).trim();
-  const plain = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (plain) return `${plain[3]}/${plain[2]}/${plain[1]}`;
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return '-';
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+const formatDate = (value) => formatPortalDate(value);
 
 const paymentColumns = ['date', 'invoice', 'customer', 'mode', 'depositTo', 'amount', 'action'];
 const paymentColumnWidths = {

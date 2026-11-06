@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../../utils/portalDateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import { FileDown, RefreshCcw } from 'lucide-react';
 import AppButton from '../../components/ui/AppButton';
@@ -172,13 +173,13 @@ export default function StockReports() {
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td className="table-text-cell" style={cellStyle}>{row.purchaseDate}</td>
+                <td className="table-text-cell" style={cellStyle}>{formatPortalDate(row.purchaseDate)}</td>
                 <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
                 <td className="table-text-cell" style={cellStyle}>{row.vendorName || '---'}</td>
                 <td className="table-number-cell" style={cellStyle}>{number(row.quantity)}</td>
                 <td className="table-number-cell" style={cellStyle}>{money(row.rate)}</td>
                 <td className="table-number-cell" style={cellStyle}>{money(row.totalAmount)}</td>
-                <td className="table-text-cell" style={cellStyle}>{row.batchNumber || '---'}<div style={{ color: '#6B7280', fontSize: 12 }}>{row.expiryDate || 'No expiry'}</div></td>
+                <td className="table-text-cell" style={cellStyle}>{row.batchNumber || '---'}<div style={{ color: '#6B7280', fontSize: 12 }}>{formatPortalDate(row.expiryDate, 'No expiry')}</div></td>
               </tr>
             ))}
           </tbody>
@@ -195,7 +196,7 @@ export default function StockReports() {
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td className="table-text-cell" style={cellStyle}>{row.movementDate ? String(row.movementDate).slice(0, 10) : row.movementDate}</td>
+                <td className="table-text-cell" style={cellStyle}>{formatPortalDate(row.movementDate)}</td>
                 <td className="table-text-cell" style={cellStyle}>{row.technicianName}</td>
                 <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
                 <td className="table-number-cell" style={cellStyle}>{number(row.outQty)}</td>
@@ -241,7 +242,7 @@ export default function StockReports() {
               <tr key={row.id}>
                 <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
                 <td className="table-text-cell" style={cellStyle}>{stockCategoryDisplayLabel(row.category)}</td>
-                <td className="table-text-cell" style={cellStyle}>{row.expiryDate || '---'}</td>
+                <td className="table-text-cell" style={cellStyle}>{formatPortalDate(row.expiryDate, '---')}</td>
                 <td className="table-number-cell" style={cellStyle}>{formatCurrentStockDisplay(row)}</td>
                 <td className="table-status-cell" style={cellStyle}><span style={badgeStyle('Expiring Soon')}>Expiring Soon</span></td>
               </tr>
@@ -259,7 +260,7 @@ export default function StockReports() {
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              <td className="table-text-cell" style={cellStyle}>{String(row.movementDate || '').slice(0, 10)}</td>
+              <td className="table-text-cell" style={cellStyle}>{formatPortalDate(row.movementDate)}</td>
               <td className="table-text-cell" style={cellStyle}>{row.movementType}</td>
               <td className="table-name-cell" style={cellStyle}>{row.itemName}</td>
               <td className="table-number-cell" style={cellStyle}>{number(row.inQty)}</td>

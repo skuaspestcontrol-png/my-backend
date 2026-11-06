@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import StatusBadge from './ui/StatusBadge';
 import '../styles/glassContent.css';
 import * as GlassIcons from 'lucide-react';
@@ -205,7 +206,7 @@ const formatDate = (value) => {
   if (!raw) return '-';
   const d = new Date(raw);
   if (Number.isNaN(d.getTime())) return typeof raw === 'string' ? raw : '-';
-  return d.toLocaleDateString('en-GB');
+  return formatPortalDate(raw);
 };
 
 const formatINR = (value) => {

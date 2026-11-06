@@ -1,3 +1,4 @@
+import { formatPortalTime } from '../utils/portalDateTime';
 import PortalBreadcrumbs from './ui/PortalBreadcrumbs';
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
@@ -113,7 +114,7 @@ const getTodayServiceScheduleNotifications = (rows = []) => {
       id: `service-schedule-${String(job._id || job.id || `${job.customerName || 'job'}-${job.scheduledDate || job.scheduled_date || ''}-${index}`)}`,
       title: `Today Service: ${String(job.customerName || job.customer || 'Scheduled job').trim()}`,
       subtitle: [
-        String(job.scheduledTime || job.scheduled_time || '').trim() || '10:00',
+        formatPortalTime(String(job.scheduledTime || job.scheduled_time || '').trim() || '10:00'),
         String(job.assignedTo || job.technicianName || job.technician || 'Unassigned').trim()
       ].filter(Boolean).join(' • '),
       status: String(job.status || 'Scheduled').trim() || 'Scheduled'

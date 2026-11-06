@@ -1,3 +1,4 @@
+import { formatPortalTime, formatPortalDate } from '../utils/portalDateTime';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, Layers, RefreshCw, UserRound } from 'lucide-react';
@@ -61,14 +62,7 @@ const monthLabel = (date) =>
     year: 'numeric'
   });
 
-const displayDate = (value) => {
-  const date = parseDateOnly(value);
-  if (!date) return value || '-';
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+const displayDate = (value) => formatPortalDate(value, value || '-');
 
 const normalizeTime = (value, fallback = '10:00') => {
   const raw = String(value || '').trim();
@@ -444,7 +438,7 @@ export default function ServiceCalendar() {
                 <span className="service-calendar-title-icon"><CalendarDays size={26} /></span>
                 <div>
                   <strong>{parseDateOnly(selectedDate)?.getDate()}</strong>
-                  <p>{parseDateOnly(selectedDate)?.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', year: 'numeric' })}</p>
+                  <p>{formatPortalDate(selectedDate)}</p>
                 </div>
               </div>
               {selectedDayEvents.length === 0 ? (
@@ -462,7 +456,7 @@ export default function ServiceCalendar() {
                       <div className="service-calendar-event-details">
                       <div className="service-calendar-event-row" style={shell.eventRow}>
                         <span className="service-calendar-event-pill" style={shell.eventPill}>
-                          <Clock3 size={12} /> {event.serviceTime}
+                          <Clock3 size={12} /> {formatPortalTime(event.serviceTime)}
                         </span>
                         <span className="service-calendar-event-pill" style={shell.eventPill}>
                           <UserRound size={12} /> {event.customerName || 'Customer not linked'}

@@ -1,3 +1,4 @@
+import { formatPortalDate, formatPortalTime } from '../utils/portalDateTime';
 import { formatRupeeAmount } from '../utils/currencyDisplay';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -1568,7 +1569,7 @@ export default function PayrollModule() {
             {salaryStructures.map((entry) => (
               <tr key={entry._id}>
                 <td style={setupBodyCellStyle('employee')}>{getSalaryStructureEmployeeLabel(entry)}</td>
-                <td style={setupBodyCellStyle('effectiveDate', 'center')}>{entry.effectiveDate}</td>
+                <td style={setupBodyCellStyle('effectiveDate', 'center')}>{formatPortalDate(entry.effectiveDate)}</td>
                 <td style={setupBodyCellStyle('type', 'center')}>{entry.salaryType}</td>
                 <td style={setupBodyCellStyle('basic', 'center')}>INR {money(getVisibleSalaryStructureAmount(entry))}</td>
                 <td style={setupBodyCellStyle('allowances', 'center')}>INR {money(Object.values(entry.allowances || {}).reduce((sum, value) => sum + Number(value || 0), 0) + (entry.customAllowances || []).reduce((sum, item) => sum + Number(item.amount || 0), 0))}</td>
@@ -1637,7 +1638,7 @@ export default function PayrollModule() {
             <div style={{ marginTop: '8px', display: 'grid', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
               <div>Processing: <strong>{selectedGenerateEmployees.length > 0 ? 'Selected employees only' : 'All employees'}</strong></div>
               <div>Late Grace: <strong>{meta?.config?.lateMarkGraceMinutes || 15} min</strong></div>
-              <div>Shift: <strong>{meta?.config?.workStartTime || '09:30'} - {meta?.config?.workEndTime || '17:30'}</strong></div>
+              <div>Shift: <strong>{formatPortalTime(meta?.config?.workStartTime || '09:30')} - {formatPortalTime(meta?.config?.workEndTime || '17:30')}</strong></div>
               <div>OT Cutoff: <strong>{meta?.config?.lateOvertimeCutoffMinutes || 30} min</strong></div>
               <div>OT Rate: <strong>{meta?.config?.overtimeMultiplier || 2}x hourly</strong></div>
               <div>Salary Basis: <strong>Calendar days in month</strong></div>
@@ -1808,7 +1809,7 @@ export default function PayrollModule() {
             {advances.map((entry) => (
               <tr key={entry._id}>
                 <td style={advanceBodyCellStyle('employee')}>{employeeMap.get(String(entry.employeeId || '')) ? getEmployeeDisplayName(employeeMap.get(String(entry.employeeId || ''))) : entry.employeeId}</td>
-                <td style={advanceBodyCellStyle('issuedDate', 'center')}>{entry.issuedDate}</td>
+                <td style={advanceBodyCellStyle('issuedDate', 'center')}>{formatPortalDate(entry.issuedDate)}</td>
                 <td style={advanceBodyCellStyle('amount', 'center')}>INR {money(entry.amount)}</td>
                 <td style={advanceBodyCellStyle('recovered', 'center')}>INR {money(entry.recoveredAmount)}</td>
                 <td style={advanceBodyCellStyle('balance', 'center')}><strong>INR {money(entry.balanceAmount)}</strong></td>
@@ -1874,7 +1875,7 @@ export default function PayrollModule() {
           <tbody>
             {holidays.map((entry) => (
               <tr key={entry._id}>
-                <td style={holidayBodyCellStyle('date', 'center')}>{entry.date}</td>
+                <td style={holidayBodyCellStyle('date', 'center')}>{formatPortalDate(entry.date)}</td>
                 <td style={holidayBodyCellStyle('holiday')}>{entry.title}</td>
                 <td style={holidayBodyCellStyle('type', 'center')}><span style={{ ...shell.badge, ...statusBadgeStyle(entry.type) }}>{entry.type}</span></td>
                 <td style={holidayBodyCellStyle('notes')}>{entry.notes || '-'}</td>

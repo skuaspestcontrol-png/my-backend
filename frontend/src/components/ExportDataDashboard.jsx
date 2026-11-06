@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { Database, Download, FileDown, FileSpreadsheet, RefreshCcw, Search } from 'lucide-react';
@@ -6,12 +7,7 @@ import AppCard from './ui/AppCard';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-const formatDate = (value) => {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString('en-GB');
-};
+const formatDate = (value) => formatPortalDate(value, value ? String(value) : '');
 
 const formatCurrency = (value) => {
   const parsed = Number(value || 0);

@@ -1,3 +1,4 @@
+import { formatPortalDate, formatPortalDateTime } from '../../utils/portalDateTime';
 import { formatRupees } from '../../utils/currencyDisplay';
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
@@ -387,7 +388,7 @@ const buildCampaignContext = (customer = {}, campaign = {}) => {
     renewal_date: buildRenewalDate(customer),
     balance_due: buildOutstandingBalance(customer).toLocaleString('en-IN'),
     sales_person: buildSalesPerson(customer),
-    today_date: new Date().toLocaleDateString('en-IN')
+    today_date: formatPortalDate(new Date())
   };
 };
 
@@ -700,9 +701,9 @@ export default function WhatsAppMarketing() {
         type === 'Create Campaign'
           ? ''
           : type === 'Create Promotion'
-            ? `Promotion - ${new Date().toLocaleDateString('en-IN')}`
+            ? `Promotion - ${formatPortalDate(new Date())}`
             : type === 'Send Festival Greeting'
-              ? `Festival Greeting - ${new Date().toLocaleDateString('en-IN')}`
+              ? `Festival Greeting - ${formatPortalDate(new Date())}`
               : '',
       message:
         type === 'Send Festival Greeting'
@@ -1046,7 +1047,7 @@ export default function WhatsAppMarketing() {
                   </div>
                   <div style={styles.checkboxRow}>
                     <CalendarClock size={14} />
-                    <span style={styles.muted}>{form.scheduleAt ? `Scheduled for ${form.scheduleAt}` : 'Send immediately'}</span>
+                    <span style={styles.muted}>{form.scheduleAt ? `Scheduled for ${formatPortalDateTime(form.scheduleAt)}` : 'Send immediately'}</span>
                   </div>
                 </div>
               </div>
@@ -1207,7 +1208,7 @@ export default function WhatsAppMarketing() {
                       <td style={styles.td}>{customer.marketingArea || '-'}</td>
                       <td style={styles.td}>{customer.marketingCity || '-'}</td>
                       <td style={styles.td}>{customer.marketingContractStatus || '-'}</td>
-                      <td style={styles.td}>{customer.marketingRenewalStatus || customer.marketingRenewalDate || '-'}</td>
+                      <td style={styles.td}>{customer.marketingRenewalStatus || formatPortalDate(customer.marketingRenewalDate)}</td>
                       <td style={styles.td}>{customer.marketingOutstandingBalance > 0 ? formatRupees(customer.marketingOutstandingBalance) : '-'}</td>
                       <td style={styles.td}>
                         <button
@@ -1290,7 +1291,7 @@ export default function WhatsAppMarketing() {
                         <td style={styles.td}>{row.recipientCount || 0} / {row.uniqueRecipientCount || 0}</td>
                         <td style={styles.td}>{row.sentCount || 0}</td>
                         <td style={styles.td}>{row.failedCount || 0}</td>
-                        <td style={styles.td}>{row.scheduleAt || '-'}</td>
+                        <td style={styles.td}>{formatPortalDateTime(row.scheduleAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1317,7 +1318,7 @@ export default function WhatsAppMarketing() {
                   <tbody>
                     {visibleLogs.map((row) => (
                       <tr key={row.id}>
-                        <td style={styles.td}>{row.sentAt ? new Date(row.sentAt).toLocaleString('en-IN') : '-'}</td>
+                        <td style={styles.td}>{row.sentAt ? formatPortalDateTime(row.sentAt) : '-'}</td>
                         <td style={styles.td}>{row.recipientName || '-'}</td>
                         <td style={styles.td}>{formatWhatsAppPhoneNumber(row.recipientPhone || '') || '-'}</td>
                         <td style={styles.td}>{row.status || '-'}</td>

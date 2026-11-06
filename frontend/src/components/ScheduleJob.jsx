@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -92,14 +93,7 @@ const toDateOnly = (value) => {
   return d;
 };
 
-const formatDate = (value) => {
-  const d = toDateOnly(value);
-  if (!d) return '-';
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+const formatDate = (value) => formatPortalDate(value);
 
 const normalizeDateInputValue = (value) => {
   const raw = String(value || '').trim();

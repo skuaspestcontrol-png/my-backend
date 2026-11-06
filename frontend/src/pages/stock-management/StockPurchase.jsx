@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../../utils/portalDateTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, RefreshCcw, ShoppingCart } from 'lucide-react';
 import AppButton from '../../components/ui/AppButton';
@@ -14,14 +15,7 @@ import { apiGet, apiPost, money, number, safeRows, stockCategoryDisplayLabel, to
 const vendorLabel = (row) => String(row.name || row.vendor_name || row.company_name || row.displayName || `Vendor ${row.id || row._id || ''}`).trim();
 
 const today = new Date().toISOString().slice(0, 10);
-const formatDateDisplay = (value) => {
-  const raw = String(value || '').trim();
-  if (!raw) return '---';
-  const datePart = raw.slice(0, 10);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return '---';
-  const [year, month, day] = datePart.split('-');
-  return `${day}/${month}/${year}`;
-};
+const formatDateDisplay = (value) => formatPortalDate(String(value || '').slice(0, 10), '---');
 
 const initialForm = {
   vendorId: '',

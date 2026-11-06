@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
 import { PageHeaderTitle } from './ui/PageHeader';
 import { Receipt, CheckCircle2, Clock, Pencil } from 'lucide-react';
@@ -137,13 +138,7 @@ const toDateOnly = (value) => {
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
-const formatDateDisplay = (value) => {
-  const iso = toDateOnly(value);
-  if (!iso) return '-';
-  const [year, month, day] = iso.split('-');
-  if (!year || !month || !day) return '-';
-  return `${day}/${month}/${year}`;
-};
+const formatDateDisplay = (value) => formatPortalDate(toDateOnly(value));
 
 const readVendorBillsCache = () => {
   try {

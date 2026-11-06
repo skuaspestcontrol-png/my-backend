@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
 import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
 import { UserRound, BriefcaseBusiness, MapPin, ClipboardCheck } from 'lucide-react';
@@ -268,12 +269,7 @@ const normalizeDateInputValue = (value) => {
   const day = String(parsed.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
-const formatDate = (value) => {
-  const normalized = normalizeDateInputValue(value);
-  if (!normalized) return '';
-  const [year, month, day] = normalized.split('-');
-  return `${day}/${month}/${year}`;
-};
+const formatDate = (value) => formatPortalDate(normalizeDateInputValue(value), '');
 const toAbsoluteUploadUrl = (value) => {
   const raw = String(value || '').trim();
   if (!raw) return '';

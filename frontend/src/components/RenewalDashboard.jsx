@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
 import StatusBadge from './ui/StatusBadge';
 import '../styles/glassContent.css';
@@ -172,15 +173,7 @@ const shell = {
   paginationBtnDisabled: { opacity: 0.48, cursor: 'not-allowed' }
 };
 
-const formatDate = (value) => {
-  if (!value) return '-';
-  const raw = String(value).slice(0, 10);
-  const parts = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (parts) return `${parts[3]}/${parts[2]}/${parts[1]}`;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return '-';
-  return parsed.toLocaleDateString('en-IN');
-};
+const formatDate = (value) => formatPortalDate(value);
 const formatINR = formatRupees;
 const numericAmount = (value) => {
   const amount = Number(value || 0);

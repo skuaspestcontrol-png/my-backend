@@ -1,3 +1,4 @@
+import { formatPortalTime, formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
@@ -64,39 +65,9 @@ const parseDateOnly = (value) => {
   return date;
 };
 
-const formatDisplayDate = (value) => {
-  const date = parseDateOnly(value);
-  if (!date) return value || '-';
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+const formatDisplayDate = (value) => formatPortalDate(value, value || '-');
 
-const formatDisplayTime = (value) => {
-  const raw = String(value || '').trim();
-  if (!raw) return '--:--';
-
-  const twentyFourHour = raw.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
-  if (twentyFourHour) {
-    const hours = Number(twentyFourHour[1]);
-    const minutes = twentyFourHour[2];
-    const suffix = hours >= 12 ? 'PM' : 'AM';
-    const displayHours = hours % 12 || 12;
-    return `${displayHours}:${minutes} ${suffix}`;
-  }
-
-  const twelveHour = raw.match(/^(\d{1,2})(?::([0-5]\d))?\s*([ap]m)$/i);
-  if (twelveHour) {
-    const hours = Number(twelveHour[1]);
-    const minutes = (twelveHour[2] || '00').padStart(2, '0');
-    const suffix = twelveHour[3].toUpperCase();
-    if (!Number.isFinite(hours) || hours < 1 || hours > 12) return raw;
-    return `${hours}:${minutes} ${suffix}`;
-  }
-
-  return raw;
-};
+const formatDisplayTime = (value) => formatPortalTime(value, value || '--:--');
 
 const formatMoney = formatRupees;
 
@@ -3105,7 +3076,7 @@ export default function TechnicianPortal() {
             {isPunchingIn ? 'Saving...' : 'Punch In'}
           </button>
         ) : (
-          <div style={shell.statusPill}>Started: {punchInTime}</div>
+          <div style={shell.statusPill}>Started: {formatPortalTime(punchInTime)}</div>
         )}
       </div>
 

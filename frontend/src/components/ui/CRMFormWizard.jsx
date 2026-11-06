@@ -1,3 +1,4 @@
+import { formatPortalReviewValue } from '../../utils/portalDateTime';
 import { Children, cloneElement, createContext, useEffect, useId, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { CRMModal, CRMModalHeader, CRMModalBody, CRMModalFooter, CRMFormActions } from './CRMForm';
@@ -21,7 +22,7 @@ export function CRMFormStepper({ steps, activeStep, reachedStep, disabled, onNav
 
 export function CRMFormReview({ groups }) {
   return <div className="crm-wizard-review">{groups.map(({ title, fields }) => <section key={title}>
-    <h4>{title}</h4><dl>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{String(value ?? '').trim() || '—'}</dd></div>)}</dl>
+    <h4>{title}</h4><dl>{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{formatPortalReviewValue(value)}</dd></div>)}</dl>
   </section>)}</div>;
 }
 

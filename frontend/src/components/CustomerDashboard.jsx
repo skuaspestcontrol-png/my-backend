@@ -1,3 +1,4 @@
+import { formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
 import AppButton from './ui/AppButton';
 import EmptyState from './ui/EmptyState';
@@ -541,15 +542,7 @@ const shell = {
 
 const formatINR = formatRupees;
 
-const formatDisplayDate = (value) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
+const formatDisplayDate = (value) => formatPortalDate(value, value ? String(value) : '-');
 
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
 const normalizeComparisonText = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
