@@ -25,21 +25,19 @@ export default function WhatsAppTemplates() {
     resetColumns
   } = useColumnResize({
     storageKey: 'whatsapp_templates_table_widths',
-    columns: ['name', 'type', 'sendTo', 'officialName', 'attachment', 'status', 'actions'],
+    columns: ['name', 'type', 'sendTo', 'attachment', 'status', 'actions'],
     defaultColumnWidths: {
-      name: 180,
-      type: 170,
-      sendTo: 130,
-      officialName: 220,
-      attachment: 150,
-      status: 110,
+      name: 210,
+      type: 220,
+      sendTo: 110,
+      attachment: 170,
+      status: 90,
       actions: 120
     },
     columnBounds: {
       name: { min: 150, max: 260 },
       type: { min: 140, max: 240 },
       sendTo: { min: 110, max: 160 },
-      officialName: { min: 180, max: 320 },
       attachment: { min: 120, max: 220 },
       status: { min: 90, max: 140 },
       actions: { min: 100, max: 160 }
@@ -47,9 +45,9 @@ export default function WhatsAppTemplates() {
     minWidth: 90,
     enabled: true
   });
-  const tableKeys = ['name', 'type', 'sendTo', 'officialName', 'attachment', 'status', 'actions'];
+  const tableKeys = ['name', 'type', 'sendTo', 'attachment', 'status', 'actions'];
   const tableMinWidth = tableKeys.reduce((sum, key) => sum + (getColumnWidth(key) || 90), 0);
-  const tableStyle = { width: '100%', borderCollapse: 'collapse', minWidth: `${Math.max(980, tableMinWidth)}px`, tableLayout: 'fixed' };
+  const tableStyle = { width: '100%', borderCollapse: 'collapse', minWidth: `${tableMinWidth}px`, tableLayout: 'fixed' };
   const headStyle = (key, align = 'left') => ({ textAlign: align, padding: '10px', fontSize: '12px', position: 'relative', width: `${getColumnWidth(key)}px`, minWidth: `${getColumnWidth(key)}px`, maxWidth: `${getColumnWidth(key)}px` });
   const cellStyle = (key, align = 'left') => ({
     padding: key === 'actions' ? '8px 8px' : '10px',
@@ -59,7 +57,8 @@ export default function WhatsAppTemplates() {
     minWidth: `${getColumnWidth(key)}px`,
     maxWidth: `${getColumnWidth(key)}px`,
     textAlign: align,
-    verticalAlign: 'middle'
+    verticalAlign: 'middle',
+    overflowWrap: 'anywhere'
   });
   const actionButtonStyle = {
     minHeight: '28px',
@@ -142,14 +141,13 @@ export default function WhatsAppTemplates() {
           <colgroup>
             {tableKeys.map((key) => <col key={key} style={{ width: `${getColumnWidth(key)}px` }} />)}
           </colgroup>
-          <thead><tr><th style={headStyle('name')}>Name</th><th style={headStyle('type')}>Type</th><th style={headStyle('sendTo', 'center')}>Send To</th><th style={headStyle('officialName')}>Official Name</th><th style={headStyle('attachment')}>Attachment</th><th style={headStyle('status', 'center')}>Status</th><th style={headStyle('actions', 'center')}>Actions</th></tr></thead>
+          <thead><tr><th style={headStyle('name')}>Name</th><th style={headStyle('type')}>Type</th><th style={headStyle('sendTo', 'center')}>Send To</th><th style={headStyle('attachment')}>Attachment</th><th style={headStyle('status', 'center')}>Status</th><th style={headStyle('actions', 'center')}>Actions</th></tr></thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
                 <td style={cellStyle('name')}>{row.templateName}</td>
                 <td style={cellStyle('type')}>{row.templateType}</td>
                 <td style={cellStyle('sendTo', 'center')}>{row.sendToType}</td>
-                <td style={cellStyle('officialName')}>{row.officialTemplateName || '-'}</td>
                 <td style={cellStyle('attachment')}>{row.attachmentOption}</td>
                 <td style={cellStyle('status', 'center')}>{row.isActive ? 'Active' : 'Inactive'}</td>
                 <td style={{ ...cellStyle('actions', 'center'), whiteSpace: 'nowrap' }}>
