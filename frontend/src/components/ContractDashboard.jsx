@@ -81,7 +81,7 @@ const defaultColumnWidths = {
   duration: 138,
   type: 112,
   services: 100,
-  status: 160,
+  status: 104,
   total: 112,
   paid: 112,
   due: 106,
@@ -123,8 +123,8 @@ const contractColumnResizeBounds = {
   property: { min: 130, max: 240 },
   duration: { min: 110, max: 170 },
   type: { min: 92, max: 160 },
-  services: { min: 140, max: 280 },
-  status: { min: 160, max: 240 },
+  services: { min: 64, max: 140 },
+  status: { min: 92, max: 160 },
   total: { min: 100, max: 160 },
   paid: { min: 100, max: 160 },
   due: { min: 96, max: 160 },
@@ -1469,6 +1469,10 @@ export default function ContractDashboard() {
     const baseWidth = Math.max(columnKey === 'rowNumber' ? 50 : 80, width);
     return Math.max(baseWidth, contractColumnResizeBounds[columnKey]?.min || 0);
   };
+  // Treat stored widths as proportions, so visible columns always fit the viewport.
+  const contractColumnKeys = ['rowNumber', ...customColumns.filter(column => visibleColumns[column.key]).map(column => column.key), 'actions'];
+  const contractColumnWeight = contractColumnKeys.reduce((sum, key) => sum + getColumnWidth(key), 0);
+  const getColumnShare = (key) => `${getColumnWidth(key) / contractColumnWeight * 100}%`;
   const contractSortableColumns = new Set(['contractNo', 'customer', 'property', 'duration', 'type', 'services', 'status', 'total', 'paid', 'due']);
   const toggleContractSort = (columnKey) => {
     setContractSort((current) => ({
@@ -1481,7 +1485,7 @@ export default function ContractDashboard() {
     const active = contractSort.key === columnKey;
     const ariaSort = sortable ? (active ? (contractSort.direction === 'asc' ? 'ascending' : 'descending') : 'none') : undefined;
     return (
-      <th style={{ ...shell.th, width: `${getColumnWidth(columnKey)}px`, minWidth: `${getColumnWidth(columnKey)}px`, ...extraStyle }} aria-sort={ariaSort}>
+      <th style={{ ...shell.th, width: getColumnShare(columnKey), minWidth: 0, ...extraStyle }} aria-sort={ariaSort}>
         {typeof label === 'string' ? (
           sortable ? (
             <button
@@ -1515,21 +1519,6 @@ export default function ContractDashboard() {
       </th>
     );
   };
-  const contractColumnList = [
-    `${getColumnWidth('rowNumber')}px`,
-    visibleColumns.type ? `${getColumnWidth('type')}px` : null,
-    visibleColumns.contractNo ? `${getColumnWidth('contractNo')}px` : null,
-    visibleColumns.customer ? `${getColumnWidth('customer')}px` : null,
-    visibleColumns.property ? `${getColumnWidth('property')}px` : null,
-    visibleColumns.duration ? `${getColumnWidth('duration')}px` : null,
-    visibleColumns.services ? `${getColumnWidth('services')}px` : null,
-    visibleColumns.status ? `${getColumnWidth('status')}px` : null,
-    visibleColumns.total ? `${getColumnWidth('total')}px` : null,
-    visibleColumns.paid ? `${getColumnWidth('paid')}px` : null,
-    visibleColumns.due ? `${getColumnWidth('due')}px` : null,
-    `${getColumnWidth('actions')}px`
-  ].filter(Boolean);
-  const contractTableMinWidth = contractColumnList.reduce((sum, width) => sum + Number.parseInt(width, 10), 0);
   const compactMobile = viewportWidth <= 430;
   const quickWrapStyle = isMobile
     ? {
@@ -1601,9 +1590,8 @@ export default function ContractDashboard() {
     : { ...shell.tableWrap, overflowX: 'hidden', touchAction: 'auto' };
   const tableStyle = {
     ...shell.table,
-    minWidth: `${contractTableMinWidth}px`,
-    '--mobile-table-columns': contractColumnList.join(' '),
-    '--mobile-table-min-width': `${contractTableMinWidth}px`
+    minWidth: 0,
+    '--mobile-table-min-width': '100%'
   };
   const mobileStackCellStyle = isMobile
     ? { flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }
@@ -1722,18 +1710,18 @@ export default function ContractDashboard() {
     return (
       <table style={tableStyle} className="crm-compact-table portal-data-table contract-register-table">
         <colgroup>
-          <col style={{ width: `${getColumnWidth('rowNumber')}px` }} />
-          {visibleColumns.type ? <col style={{ width: `${getColumnWidth('type')}px` }} /> : null}
-          {visibleColumns.contractNo ? <col style={{ width: `${getColumnWidth('contractNo')}px` }} /> : null}
-          {visibleColumns.customer ? <col style={{ width: `${getColumnWidth('customer')}px` }} /> : null}
-          {visibleColumns.property ? <col style={{ width: `${getColumnWidth('property')}px` }} /> : null}
-          {visibleColumns.duration ? <col style={{ width: `${getColumnWidth('duration')}px` }} /> : null}
-          {visibleColumns.services ? <col style={{ width: `${getColumnWidth('services')}px` }} /> : null}
-          {visibleColumns.status ? <col style={{ width: `${getColumnWidth('status')}px` }} /> : null}
-          {visibleColumns.total ? <col style={{ width: `${getColumnWidth('total')}px` }} /> : null}
-          {visibleColumns.paid ? <col style={{ width: `${getColumnWidth('paid')}px` }} /> : null}
-          {visibleColumns.due ? <col style={{ width: `${getColumnWidth('due')}px` }} /> : null}
-          <col style={{ width: `${getColumnWidth('actions')}px` }} />
+          <col style={{ width: getColumnShare('rowNumber') }} />
+          {visibleColumns.type ? <col style={{ width: getColumnShare('type') }} /> : null}
+          {visibleColumns.contractNo ? <col style={{ width: getColumnShare('contractNo') }} /> : null}
+          {visibleColumns.customer ? <col style={{ width: getColumnShare('customer') }} /> : null}
+          {visibleColumns.property ? <col style={{ width: getColumnShare('property') }} /> : null}
+          {visibleColumns.duration ? <col style={{ width: getColumnShare('duration') }} /> : null}
+          {visibleColumns.services ? <col style={{ width: getColumnShare('services') }} /> : null}
+          {visibleColumns.status ? <col style={{ width: getColumnShare('status') }} /> : null}
+          {visibleColumns.total ? <col style={{ width: getColumnShare('total') }} /> : null}
+          {visibleColumns.paid ? <col style={{ width: getColumnShare('paid') }} /> : null}
+          {visibleColumns.due ? <col style={{ width: getColumnShare('due') }} /> : null}
+          <col style={{ width: getColumnShare('actions') }} />
         </colgroup>
         <thead>
           <tr>
@@ -1760,14 +1748,14 @@ export default function ContractDashboard() {
             const rowNumber = ((safePage - 1) * CONTRACT_PAGE_SIZE) + index + 1;
             return (
               <tr key={row.id} onClick={() => setSelectedContractId(row.id)} style={selected ? shell.selectedRow : undefined}>
-                <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{rowNumber}</td>
-                {visibleColumns.type ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                <td data-label="Sr No" style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{rowNumber}</td>
+                {visibleColumns.type ? <td data-label="Invoice Date" style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formatDate(row.invoiceDate)}</div>
                 </td> : null}
-                {visibleColumns.contractNo ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.contractNo ? <td data-label="Contract" style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.contractNo}</div>
                 </td> : null}
-                {visibleColumns.customer ? <td className="contract-customer-cell" style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.customer ? <td data-label="Customer" className="contract-customer-cell" style={{ ...shell.td, ...mobileStackCellStyle, textAlign: 'left', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start', gap: '4px', width: '100%' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
                       <div
@@ -1800,26 +1788,26 @@ export default function ContractDashboard() {
                     </div>
                   </div>
                 </td> : null}
-                {visibleColumns.property ? <td className="contract-property-cell" style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.property ? <td data-label="Property" className="contract-property-cell" style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div className="contract-property-name" title={row.property || '-'} style={{ fontSize: '11px', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.property || '-'}</div>
                   <div className="contract-property-city" style={{ ...shell.subText }}>{row.city || '-'}</div>
                 </td> : null}
-                {visibleColumns.duration ? <td className="contract-period-cell" style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.duration ? <td data-label="Contract Period" className="contract-period-cell" style={{ ...shell.td, ...mobileStackCellStyle, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ fontSize: '11px', fontWeight: 700 }}>{formatDate(row.startDate)}</div>
                   <div style={{ ...shell.subText }}>{`to ${formatDate(row.endDate)}`}</div>
                 </td> : null}
-                {visibleColumns.services ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.services ? <td data-label="Services" style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
                     <span style={{ ...shell.shownPill, display: 'inline-flex', minWidth: '48px', justifyContent: 'center', textAlign: 'center', background: '#eef2f7', color: '#334155', borderColor: 'var(--color-border)' }}>{row.services}</span>
                   </div>
                 </td> : null}
-                {visibleColumns.status ? <td style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
+                {visibleColumns.status ? <td data-label="Status" style={{ ...shell.td, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>
                   <StatusBadge status={row.status}>{row.status.toUpperCase()}</StatusBadge>
                 </td> : null}
-                {visibleColumns.total ? <td style={{ ...shell.td, fontWeight: 800, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{formatWholeAmount(row.total)}</td> : null}
-                {visibleColumns.paid ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.paid > 0 ? shell.amountGreen : (selected ? shell.selectedText : {})) }}>{formatWholeAmount(row.paid)}</td> : null}
-                {visibleColumns.due ? <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.due > 0 ? shell.amountRed : (selected ? shell.selectedText : {})) }}>{formatWholeAmount(row.due)}</td> : null}
-                <td style={{ ...shell.td, ...(selected ? shell.selectedCell : {}) }}>
+                {visibleColumns.total ? <td data-label="Total" style={{ ...shell.td, fontWeight: 800, ...(selected ? { ...shell.selectedCell, ...shell.selectedText } : {}) }}>{formatWholeAmount(row.total)}</td> : null}
+                {visibleColumns.paid ? <td data-label="Paid" style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.paid > 0 ? shell.amountGreen : (selected ? shell.selectedText : {})) }}>{formatWholeAmount(row.paid)}</td> : null}
+                {visibleColumns.due ? <td data-label="Due" style={{ ...shell.td, ...(selected ? shell.selectedCell : {}), ...(row.due > 0 ? shell.amountRed : (selected ? shell.selectedText : {})) }}>{formatWholeAmount(row.due)}</td> : null}
+                <td data-label="Actions" style={{ ...shell.td, ...(selected ? shell.selectedCell : {}) }}>
                   <div style={{ position: 'relative', display: 'inline-flex' }} data-contract-row-action="true">
                     <button
                       type="button"
@@ -2081,7 +2069,7 @@ export default function ContractDashboard() {
         ) : null}
         {loading && hasLoadedContractsRef.current ? <div role="status" style={shell.loading}>Refreshing contracts...</div> : null}
         <div style={{ minWidth: 0 }}>
-        <div style={tableWrapStyle} className="crm-table-shell crm-table-shell--clipped glass-register-scroll glass-surface" tabIndex={0} role="region" aria-label="Contracts table">{renderBody()}</div>
+        <div style={tableWrapStyle} className="contract-register-viewport crm-table-shell crm-table-shell--clipped glass-register-scroll glass-surface" tabIndex={0} role="region" aria-label="Contracts table">{renderBody()}</div>
 
         <TablePagination style={footerStyle}>
           <div style={shell.footText}>{firstRecord}-{lastRecord} of {sortedContracts.length} records</div>
