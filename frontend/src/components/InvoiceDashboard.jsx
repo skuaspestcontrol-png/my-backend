@@ -13,6 +13,7 @@ import { CRMFormModal, CRMFormStep, CRMFormReview } from './ui/CRMFormWizard';
 import { CRMFormField } from './ui/CRMForm';
 import { Layers3, CalendarDays, ClipboardCheck } from 'lucide-react';
 import '../styles/crmFourWizards.css';
+import '../styles/newContractAlignment.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
@@ -3934,6 +3935,7 @@ export default function InvoiceDashboard() {
   const rowActionButtonStyle = isCompactInvoiceViewport
     ? { ...shell.rowActionButton, width: '28px', height: '28px' }
     : shell.rowActionButton;
+  const ItemDescriptionControl = !editingId && !contractViewOnly ? 'textarea' : 'input';
   const itemMetaGridStyle = isTiny
     ? { ...shell.itemMetaGrid, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' }
     : isMobile
@@ -4299,7 +4301,7 @@ export default function InvoiceDashboard() {
 
       {showModal ? createPortal(
         <div style={modalOverlayLockedStyle}>
-          <CRMFormModal className="crm-four-wizard contract-form-wizard glass-dialog" style={modalStyle}
+          <CRMFormModal className={`crm-four-wizard contract-form-wizard glass-dialog${!editingId && !contractViewOnly ? ' glass-refined-dialog new-contract-alignment' : ''}`} style={modalStyle}
  title={contractViewOnly ? 'View Contract' : editingId ? 'Edit Contract' : 'New Contract'} subtitle="Manage customer, services, pricing and service schedules." icon={FileText}
  onClose={closeInvoiceModal} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()} validateStep={validateWizardStep}
  busy={isSaving} error={saveError} trackSubmission inlineErrors associateLabels fieldsetContent readOnly={contractViewOnly}
@@ -4501,9 +4503,9 @@ export default function InvoiceDashboard() {
               ) : null}
  </CRMFormStep>
  <CRMFormStep title="Services & Pricing" description="Services, periods, taxes and totals" icon={Layers3}>
-  <div style={shell.itemSection}>
-                <div style={itemTableWrapStyle}>
-                  <table style={itemTableStyle}>
+  <div className="contract-services-section" style={shell.itemSection}>
+                <div className="contract-services-table-wrap" style={itemTableWrapStyle}>
+                  <table className="contract-services-table" style={itemTableStyle}>
                     <thead>
                       {isMobile ? (
                         <tr>
@@ -4528,7 +4530,7 @@ export default function InvoiceDashboard() {
                         return (
                           <tr key={`${index}-${line.itemId || 'line'}`}>
                             <td style={itemRowCellStyle}>
-                              <div style={itemDetailStackStyle}>
+                              <div className="contract-service-details" style={itemDetailStackStyle}>
                                 <select
                                   style={compactItemInputStyle}
                                   value={line.itemId}
@@ -4539,7 +4541,8 @@ export default function InvoiceDashboard() {
                                     <option key={item._id} value={item._id}>{item.name}</option>
                                   ))}
                                 </select>
-                                <input
+                                <ItemDescriptionControl
+                                  className="contract-service-description"
                                   style={compactItemInputStyle}
                                   placeholder="Frequency"
                                   value={line.frequency || ''}
@@ -4714,7 +4717,7 @@ export default function InvoiceDashboard() {
                             </td>
                             {!isMobile ? (
                               <>
-                                <td style={numericItemCellStyle}>
+                                <td data-pricing-label="Quantity" style={numericItemCellStyle}>
                                   <input
                                     style={{ ...compactItemMetaInputStyle, ...noNumberSpinnerStyle, WebkitAppearance: 'none', appearance: 'textfield' }}
                                     type="text"
@@ -4724,7 +4727,7 @@ export default function InvoiceDashboard() {
                                     onChange={(event) => updateLine(index, { quantity: sanitizeDecimalInput(event.target.value) })}
                                    aria-label="Quantity" />
                                 </td>
-                                <td style={numericItemCellStyle}>
+                                <td data-pricing-label="Rate" style={numericItemCellStyle}>
                                   <input
                                     style={compactItemMetaInputStyle}
                                     type="text"
@@ -4734,7 +4737,7 @@ export default function InvoiceDashboard() {
                                     onChange={(event) => updateLine(index, { rate: sanitizeDecimalInput(event.target.value) })}
                                    aria-label="Rate" />
                                 </td>
-                                <td style={numericItemCellStyle}>
+                                <td data-pricing-label="Tax" style={numericItemCellStyle}>
                                   <select
                                     style={compactItemMetaInputStyle}
                                     value={line.taxRate}
@@ -4746,7 +4749,7 @@ export default function InvoiceDashboard() {
                                     ))}
                                   </select>
                                 </td>
-                                <td style={{ ...numericItemCellStyle, fontWeight: 700, verticalAlign: 'top' }}>
+                                <td data-pricing-label="Amount" style={{ ...numericItemCellStyle, fontWeight: 700, verticalAlign: 'top' }}>
                                   <div className="crm-wizard-line-amount" style={amountActionRowStyle}>
                                     <div style={compactItemAmountBoxStyle}>
                                       <span style={compactItemAmountValueStyle}>{formatINR(amount)}</span>
@@ -4966,7 +4969,7 @@ export default function InvoiceDashboard() {
                         </table>
                       </div>
                       <div style={shell.splitPaymentRow}>
-                        <button type="button" style={shell.splitPaymentBtn} onClick={addPaymentSplit}>
+                        <button type="button" className="contract-split-payment-button" style={shell.splitPaymentBtn} onClick={addPaymentSplit}>
                           <PlusCircle size={16} />
                           Add Split Payment
                         </button>

@@ -1,0 +1,165 @@
+/* New Contract only. Keep existing controls, values and wizard behavior in their owners. */
+html[data-theme][data-branding] body .crm-modal-surface.new-contract-alignment {
+  width: min(1360px, 100%) !important;
+  height: min(880px, calc(100dvh - 40px));
+}
+.new-contract-alignment .crm-wizard-workspace { grid-template-columns: 248px minmax(0, 1fr); overflow: hidden; }
+.new-contract-alignment .crm-wizard-nav { padding: 20px 12px; }
+html[data-theme][data-branding] body .new-contract-alignment .crm-wizard-body {
+  padding: 24px !important;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.new-contract-alignment .crm-wizard-panel:not([hidden]),
+.new-contract-alignment .crm-wizard-content-fieldset { gap: 16px; }
+/* The step navigation already names Services & Pricing, matching the approved sample. */
+.new-contract-alignment .crm-wizard-panel:has(.contract-services-section) > .crm-wizard-panel-intro {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.new-contract-alignment .contract-services-section { margin: 0 !important; min-width: 0; }
+.new-contract-alignment .contract-services-table-wrap { overflow: visible !important; border: 1px solid var(--ui-border); border-radius: 10px; }
+.new-contract-alignment .contract-services-table {
+  --pricing-columns: minmax(0, 1fr) 70px 84px 84px 154px;
+  display: block;
+  border-spacing: 0;
+  border: 0;
+}
+.new-contract-alignment .contract-services-table :is(thead, tbody) { display: block; }
+.new-contract-alignment .contract-services-table tr { display: grid; grid-template-columns: var(--pricing-columns); gap: 12px; }
+.new-contract-alignment .contract-services-table thead {
+  border-radius: 9px 9px 0 0;
+  background: var(--form-header);
+}
+html[data-theme][data-branding] body .new-contract-alignment .contract-services-table th {
+  width: auto !important;
+  padding: 16px 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  font-size: 12px !important;
+  line-height: 1.4;
+}
+.new-contract-alignment .contract-services-table thead tr { padding: 0 16px; }
+.new-contract-alignment .contract-services-table tbody tr {
+  padding: 16px;
+  align-items: center;
+  background: var(--ui-elevated);
+  border-bottom: 1px solid var(--ui-border);
+}
+.new-contract-alignment .contract-services-table tbody tr:last-child { border-bottom: 0; border-radius: 0 0 9px 9px; }
+html[data-theme][data-branding] body .new-contract-alignment .contract-services-table td {
+  display: block;
+  min-width: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.new-contract-alignment .contract-service-details { gap: 10px !important; min-width: 0; }
+.new-contract-alignment .crm-wizard-line-meta { gap: 14px 16px !important; margin-top: 4px; }
+.new-contract-alignment .crm-wizard-line-meta > div { gap: 6px !important; }
+.new-contract-alignment .crm-wizard-meta-label { color: var(--ui-muted) !important; font-weight: 600 !important; }
+html[data-theme][data-branding] body .new-contract-alignment .contract-services-table :is(input, select, textarea) {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100%;
+  min-height: 42px !important;
+  height: 42px !important;
+  padding: 8px 10px !important;
+  line-height: 1.4;
+  box-sizing: border-box;
+  font-size: 13px !important;
+}
+html[data-theme][data-branding] body .new-contract-alignment textarea.contract-service-description {
+  field-sizing: content;
+  height: auto !important;
+  resize: vertical;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.new-contract-alignment .crm-wizard-line-amount { display: flex !important; align-items: center; flex-wrap: nowrap; gap: 8px !important; }
+html[data-theme][data-branding] body .new-contract-alignment .crm-wizard-line-amount > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  min-height: 42px !important;
+  height: auto !important;
+  padding: 8px 10px !important;
+  box-sizing: border-box;
+  font-size: 13px !important;
+}
+html[data-theme][data-branding] body .new-contract-alignment .crm-wizard-line-amount button {
+  flex: 0 0 42px;
+  width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  display: grid;
+  place-items: center;
+}
+.new-contract-alignment .crm-wizard-line-amount :is(span, strong) { line-height: 1.4; overflow-wrap: anywhere; }
+html[data-theme][data-branding] body .new-contract-alignment .skuas-modal-header,
+html[data-theme][data-branding] body .new-contract-alignment .skuas-modal-footer { padding: 18px 24px !important; }
+@media (max-width: 1240px) {
+  .new-contract-alignment .crm-wizard-workspace { grid-template-columns: 208px minmax(0, 1fr); }
+  .new-contract-alignment .contract-services-table { --pricing-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(140px, 1.5fr); }
+  .new-contract-alignment .contract-services-table thead tr { grid-template-columns: minmax(0, 1fr); }
+  .new-contract-alignment .contract-services-table th:not(:first-child) { display: none; }
+  .new-contract-alignment .contract-services-table tbody tr > td:first-child { grid-column: 1 / -1; }
+  .new-contract-alignment .contract-services-table td[data-pricing-label]::before {
+    content: attr(data-pricing-label);
+    display: block;
+    color: var(--ui-muted);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+}
+@media (max-width: 900px) {
+  .new-contract-alignment .contract-services-table tbody tr { grid-template-columns: minmax(0, 1fr); }
+  .new-contract-alignment .contract-service-details { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px !important; }
+  .new-contract-alignment .contract-service-details > :not(.crm-wizard-line-numbers) { grid-column: 1 / -1; }
+  .new-contract-alignment .crm-wizard-line-numbers { display: contents !important; }
+  .new-contract-alignment .crm-wizard-line-numbers > div { gap: 6px !important; }
+  .new-contract-alignment .crm-wizard-line-meta { gap: 12px !important; }
+}
+@media (max-width: 700px) {
+  html[data-theme][data-branding] body .crm-modal-surface.new-contract-alignment { height: calc(100dvh - 24px); max-height: calc(100dvh - 24px) !important; }
+  .new-contract-alignment .crm-wizard-workspace { display: flex; }
+  .new-contract-alignment .crm-wizard-nav { padding: 8px; }
+  html[data-theme][data-branding] body .new-contract-alignment .crm-wizard-nav button { min-height: 74px; padding: 6px 3px; gap: 6px; }
+  html[data-theme][data-branding] body .new-contract-alignment .crm-wizard-body { padding: 16px !important; }
+  html[data-theme][data-branding] body .new-contract-alignment .skuas-modal-header,
+  html[data-theme][data-branding] body .new-contract-alignment .skuas-modal-footer { padding: 12px 16px !important; }
+  .new-contract-alignment .contract-services-table tbody tr { padding: 12px; }
+  .new-contract-alignment .contract-services-table thead tr { padding-inline: 12px; }
+  .new-contract-alignment .crm-wizard-line-meta { grid-template-columns: minmax(0, 1fr) !important; }
+  html[data-theme][data-branding] body .new-contract-alignment .contract-services-table :is(input, select, textarea) { font-size: 16px !important; }
+}
+html[data-theme][data-branding] body .new-contract-alignment .contract-services-table select {
+  appearance: auto !important;
+  padding-right: 24px !important;
+}
+
+/* Keep the split-payment label comfortably inside its own action button. */
+html[data-theme][data-branding] body .new-contract-alignment .contract-split-payment-button {
+  flex: 0 0 auto;
+  width: max-content !important;
+  max-width: 100%;
+  min-height: 42px !important;
+  height: auto !important;
+  padding: 10px 16px !important;
+  gap: 8px !important;
+  justify-content: center;
+  white-space: nowrap;
+  line-height: 1.4;
+  box-sizing: border-box;
+}
+.new-contract-alignment .contract-split-payment-button svg { flex: 0 0 16px; }
