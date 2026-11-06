@@ -1,7 +1,9 @@
 import { formatRupees } from '../utils/currencyDisplay';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Settings2, UserRound, Building2, Landmark, Hash, Link2, Activity, FileText, ShieldCheck, MessageCircle, Mail, Image, Palette, Sun, Check } from 'lucide-react';
+import { SettingsCard, useSettingsLabels } from './settings/SettingsUI';
+import './Settings.css';
 import {
   defaultCompanyProfileSettings,
   defaultInvoiceFieldSettings,
@@ -71,6 +73,25 @@ const stateOptions = [
   'Lakshadweep',
   'Puducherry'
 ];
+
+const settingsSectionIcons = {
+  businessIdentity: UserRound, gstCompany: Building2, nonGstCompany: Building2,
+  bankAccounts: Landmark, documentPrefixes: Hash, googleIntegration: Link2,
+  dataHealth: Activity, termsConditions: FileText, security: ShieldCheck,
+  whatsappApiSettings: MessageCircle, whatsappTemplates: FileText, whatsappLogs: Activity,
+  emailApiSettings: Mail, emailTemplates: FileText, emailLogs: Activity
+};
+const settingsSectionDescriptions = {
+  businessIdentity: 'Company details, profile image and portal appearance.',
+  gstCompany: 'Registered company information and document branding.',
+  nonGstCompany: 'Non-GST company details and document branding.',
+  bankAccounts: 'Company bank details, payment accounts and balances.',
+  documentPrefixes: 'Document sequences, numbering formats and cost defaults.',
+  googleIntegration: 'Manage your connected Google account and sync status.',
+  dataHealth: 'Review attendance source counts and audit summaries.',
+  termsConditions: 'Manage the existing terms used on company documents.',
+  security: 'Update your password and Settings access PIN.'
+};
 
 const bankColumns = ['primary', 'type', 'bankName', 'accountName', 'accountNumber', 'ifsc', 'upiId', 'openingBalance', 'currentBalance', 'actions'];
 const bankColumnWidths = {
@@ -452,7 +473,6 @@ const shell = {
   },
   tabButtonActive: {
     color: '#ffffff',
-    borderColor: 'transparent',
     background: 'var(--color-primary)',
     boxShadow: 'var(--shadow-md)',
     fontWeight: 800
@@ -788,6 +808,8 @@ export default function Settings({ modalMode = false }) {
   ));
   const passwordStrength = useMemo(() => getPasswordStrength(securityForm.newPassword), [securityForm.newPassword]);
   const panelBodyRef = useRef(null);
+  const isGeneralSection = sectionGroups[0].items.some(section => section.key === activeSection);
+  useSettingsLabels(panelBodyRef, isGeneralSection);
   const brandingAccentOptions = ['#3B82F6', '#22C55E', '#EF4444', '#F59E0B'];
   const isMobile = viewportWidth <= 768;
   const isCompactLayout = isMobile || isTouchDevice || viewportWidth <= 1100;
@@ -1410,8 +1432,8 @@ export default function Settings({ modalMode = false }) {
   };
 
   const renderBrandingUploader = ({ title, fieldKey, inputRef, hint, emptyLabel = 'Image', clean = false }) => (
-    <div style={shell.field}>
-      <p style={shell.fieldLabel}>{title}</p>
+    <div className="settings-field" style={shell.field}>
+      <label className="settings-field-label">{title}</label>
       <div
         style={
           clean
@@ -1457,9 +1479,11 @@ export default function Settings({ modalMode = false }) {
 
   const renderBusinessIdentity = () => (
     <>
-      <div style={{ ...shell.twoCol, alignItems: 'start' }}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Profile Picture</p>
+      <SettingsCard title="Company Profile" description="Company details used across invoices, reports and communications." icon={Building2}>
+      <div className="settings-profile-grid">
+        <div className="settings-profile-upload">
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Profile Picture</label>
           <div style={shell.profileCard}>
             <div style={shell.profileRow}>
               <div className="settings-profile-preview" style={shell.profilePreview}>
@@ -1496,8 +1520,10 @@ export default function Settings({ modalMode = false }) {
           </div>
         </div>
 
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Website</p>
+        </div>
+        <div className="settings-company-fields">
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Website</label>
           <input
             style={shell.input}
             value={form.companyWebsite}
@@ -1505,11 +1531,9 @@ export default function Settings({ modalMode = false }) {
             placeholder="www.yourcompany.com"
           />
         </div>
-      </div>
-
-      <div style={shell.threeCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Phone</p>
+      <div className="settings-form-grid" style={shell.threeCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Phone</label>
           <input
             style={shell.input}
             autoComplete="off"
@@ -1522,8 +1546,8 @@ export default function Settings({ modalMode = false }) {
             inputMode="numeric"
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Company Name</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Company Name</label>
           <input
             style={shell.input}
             value={form.companyName}
@@ -1533,8 +1557,8 @@ export default function Settings({ modalMode = false }) {
             }}
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Email</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Email</label>
           <input
             style={shell.input}
             type="email"
@@ -1549,13 +1573,16 @@ export default function Settings({ modalMode = false }) {
         </div>
       </div>
 
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>About / Tagline</p>
+      <div className="settings-field" style={shell.field}>
+        <label className="settings-field-label">About / Tagline</label>
         <input style={shell.input} value={form.aboutTagline} onChange={(event) => updateField('aboutTagline', event.target.value)} />
       </div>
 
-      <div style={shell.divider} />
-      <h4 style={brandingSectionTitleStyle}>Branding</h4>
+        </div>
+      </div>
+      </SettingsCard>
+
+      <SettingsCard title="Company branding preview" icon={Palette}>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Choose one brand colour for portal headers, footers, primary buttons and selected states. Text contrast adjusts automatically in light and dark mode. Save changes to apply it throughout the portal.</p>
       <div style={{ ...shell.profileCard, borderStyle: 'solid' }}>
         <p style={{ ...shell.fieldLabel, margin: 0 }}>Live Preview</p>
@@ -1613,8 +1640,9 @@ export default function Settings({ modalMode = false }) {
         </div>
       </div>
 
-      <div style={shell.divider} />
-      <p style={{ ...shell.fieldLabel, margin: 0 }}>Appearance</p>
+      </SettingsCard>
+      <div className="settings-appearance-grid">
+        <SettingsCard title="Appearance settings" description="Choose the existing light or dark pane option." icon={Sun}>
       <div
         style={{
           display: 'grid',
@@ -1625,7 +1653,9 @@ export default function Settings({ modalMode = false }) {
       >
         <button
           type="button"
+          className="settings-appearance-option"
           onClick={() => updateField('brandingAppearance', 'dark')}
+          aria-pressed={form.brandingAppearance === 'dark'}
           style={{
             border: form.brandingAppearance === 'dark' ? '2px solid var(--color-primary)' : '1px solid var(--border-soft)',
             background: 'var(--surface-card-elevated)',
@@ -1643,7 +1673,9 @@ export default function Settings({ modalMode = false }) {
         </button>
         <button
           type="button"
+          className="settings-appearance-option"
           onClick={() => updateField('brandingAppearance', 'light')}
+          aria-pressed={form.brandingAppearance === 'light'}
           style={{
             border: form.brandingAppearance === 'light' ? '2px solid var(--color-primary)' : '1px solid var(--border-soft)',
             background: 'var(--surface-card-elevated)',
@@ -1661,8 +1693,8 @@ export default function Settings({ modalMode = false }) {
         </button>
       </div>
 
-      <div style={shell.divider} />
-      <p style={{ ...shell.fieldLabel, margin: 0 }}>Portal Brand Colour</p>
+        </SettingsCard>
+        <SettingsCard title="Portal brand colours" description="Select a saved colour or use the custom colour picker." icon={Palette}>
       <div
         style={{
           display: 'flex',
@@ -1678,6 +1710,9 @@ export default function Settings({ modalMode = false }) {
             key={entry}
             type="button"
             onClick={() => updateField('brandingAccentColor', entry)}
+            data-settings-swatch="true"
+            aria-label={`Brand colour ${entry}`}
+            aria-pressed={form.brandingAccentColor === entry}
             style={{
               width: isCompactLayout ? '40px' : '44px',
               minWidth: isCompactLayout ? '40px' : '44px',
@@ -1685,10 +1720,14 @@ export default function Settings({ modalMode = false }) {
               borderRadius: '12px',
               border: form.brandingAccentColor === entry ? '3px solid #1f2937' : '1px solid #d1d5db',
               background: entry,
+              '--settings-swatch-color': entry,
+              '--settings-swatch-ink': brandingTextColor(entry),
               cursor: 'pointer'
             }}
             title={entry}
-          />
+          >
+            {form.brandingAccentColor === entry ? <Check size={18} aria-hidden="true" style={{ color: brandingTextColor(entry) }} /> : null}
+          </button>
         ))}
         <label
           htmlFor="branding-custom-accent"
@@ -1735,14 +1774,17 @@ export default function Settings({ modalMode = false }) {
           />
         </label>
       </div>
+        </SettingsCard>
+      </div>
     </>
   );
 
   const renderGstCompany = () => (
     <>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>GST Company Name</p>
+      <SettingsCard title="GST Company information" description="Company registration, address and contact details." icon={Building2}>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">GST Company Name</label>
           <input
             style={shell.input}
             autoComplete="off"
@@ -1754,8 +1796,8 @@ export default function Settings({ modalMode = false }) {
             }}
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>GSTIN</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">GSTIN</label>
           <input
             style={shell.input}
             autoComplete="off"
@@ -1766,9 +1808,9 @@ export default function Settings({ modalMode = false }) {
         </div>
       </div>
 
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>PAN</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">PAN</label>
           <input
             style={shell.input}
             autoComplete="off"
@@ -1777,15 +1819,15 @@ export default function Settings({ modalMode = false }) {
             onChange={(event) => updateField('gstPanNumber', event.target.value.toUpperCase())}
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>License Number</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">License Number</label>
           <input style={shell.input} value={form.gstLicenseNumber} onChange={(event) => updateField('gstLicenseNumber', event.target.value)} />
         </div>
       </div>
 
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Billing Address</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Billing Address</label>
           <input
             style={shell.input}
             value={form.gstBillingAddress}
@@ -1798,8 +1840,8 @@ export default function Settings({ modalMode = false }) {
       </div>
 
       <div style={shell.fourCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>City</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">City</label>
           <input
             style={shell.input}
             value={form.gstCity}
@@ -1809,8 +1851,8 @@ export default function Settings({ modalMode = false }) {
             }}
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>State</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">State</label>
           <select
             style={shell.input}
             value={form.gstState}
@@ -1825,8 +1867,8 @@ export default function Settings({ modalMode = false }) {
             ))}
           </select>
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Pincode</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Pincode</label>
           <input
             style={shell.input}
             value={form.gstPincode}
@@ -1841,9 +1883,9 @@ export default function Settings({ modalMode = false }) {
         </div>
       </div>
 
-      <div style={shell.threeCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Phone</p>
+      <div className="settings-form-grid" style={shell.threeCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Phone</label>
           <input
             style={shell.input}
             autoComplete="off"
@@ -1856,12 +1898,12 @@ export default function Settings({ modalMode = false }) {
             inputMode="numeric"
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Alternate Phone</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Alternate Phone</label>
           <input style={shell.input} inputMode="numeric" value={form.gstAlternatePhone} onChange={(event) => updateField('gstAlternatePhone', event.target.value)} />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Email</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Email</label>
           <input
             style={shell.input}
             type="email"
@@ -1876,13 +1918,11 @@ export default function Settings({ modalMode = false }) {
         </div>
       </div>
 
-      <div style={shell.divider} />
-      <h4 style={brandingSectionTitleStyle}>
-        GST Company Branding
-      </h4>
+      </SettingsCard>
+      <SettingsCard title="GST Company Branding" icon={Image}>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Upload logo, signature, and stamp used on GST invoices and documents.</p>
 
-      <div style={shell.threeCol}>
+      <div className="settings-form-grid" style={shell.threeCol}>
         {renderBrandingUploader({
           title: 'GST Company Logo',
           fieldKey: 'gstCompanyLogoUrl',
@@ -1898,18 +1938,20 @@ export default function Settings({ modalMode = false }) {
           emptyLabel: 'Sign'
         })}
       </div>
+      </SettingsCard>
     </>
   );
 
   const renderNonGstCompany = () => (
     <>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Non-GST Company Name</p>
+      <SettingsCard title="Non-GST Company information" description="Company registration, address and contact details." icon={Building2}>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Non-GST Company Name</label>
           <input style={shell.input} value={form.nonGstCompanyName} onChange={(event) => updateField('nonGstCompanyName', event.target.value)} />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Billing Address</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Billing Address</label>
           <input
             style={shell.input}
             value={form.nonGstBillingAddress}
@@ -1922,12 +1964,12 @@ export default function Settings({ modalMode = false }) {
       </div>
 
       <div style={shell.fourCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>City</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">City</label>
           <input style={shell.input} value={form.nonGstCity} onChange={(event) => updateField('nonGstCity', event.target.value)} />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>State</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">State</label>
           <select style={shell.input} value={form.nonGstState} onChange={(event) => updateField('nonGstState', event.target.value)}>
             <option value="">Select State</option>
             {stateOptions.map((entry) => (
@@ -1935,34 +1977,32 @@ export default function Settings({ modalMode = false }) {
             ))}
           </select>
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Pincode</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Pincode</label>
           <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.nonGstPincode} onChange={(event) => updateField('nonGstPincode', event.target.value)} />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Phone</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Phone</label>
           <input style={shell.input} inputMode="numeric" value={form.nonGstPhone} onChange={(event) => updateField('nonGstPhone', event.target.value)} />
         </div>
       </div>
 
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Alternate Phone</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Alternate Phone</label>
           <input style={shell.input} inputMode="numeric" value={form.nonGstAlternatePhone} onChange={(event) => updateField('nonGstAlternatePhone', event.target.value)} />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Email</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Email</label>
           <input style={shell.input} type="email" value={form.nonGstEmail} onChange={(event) => updateField('nonGstEmail', event.target.value)} />
         </div>
       </div>
 
-      <div style={shell.divider} />
-      <h4 style={brandingSectionTitleStyle}>
-        Non-GST Company Branding
-      </h4>
+      </SettingsCard>
+      <SettingsCard title="Non-GST Company Branding" icon={Image}>
       <p style={{ ...shell.hint, fontSize: '14px' }}>Upload logo used on Non-GST invoices and documents.</p>
 
-      <div style={shell.twoCol}>
+      <div className="settings-form-grid" style={shell.twoCol}>
         {renderBrandingUploader({
           title: 'Non-GST Company Logo',
           fieldKey: 'nonGstCompanyLogoUrl',
@@ -1978,6 +2018,7 @@ export default function Settings({ modalMode = false }) {
           emptyLabel: 'Sign'
         })}
       </div>
+      </SettingsCard>
     </>
   );
 
@@ -1990,17 +2031,17 @@ export default function Settings({ modalMode = false }) {
 
   const renderDocumentPrefixes = () => (
     <>
-      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Invoice Numbering</p>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Invoice Number Mode</p>
+      <SettingsCard title="Invoice Numbering" icon={Hash}>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Invoice Number Mode</label>
           <select style={shell.input} value={form.invoiceNumberMode} onChange={(event) => updateField('invoiceNumberMode', event.target.value)}>
             <option value="auto">Auto Generate</option>
             <option value="manual">Manual Entry</option>
           </select>
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Number Padding</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Number Padding</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2009,13 +2050,13 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>GST Invoice Prefix</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">GST Invoice Prefix</label>
           <input style={shell.input} value={form.gstInvoicePrefix} onChange={(event) => updateField('gstInvoicePrefix', event.target.value)} />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>GST Next Number</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">GST Next Number</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2024,13 +2065,13 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>NON GST Invoice Prefix</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">NON GST Invoice Prefix</label>
           <input style={shell.input} value={form.nonGstInvoicePrefix} onChange={(event) => updateField('nonGstInvoicePrefix', event.target.value)} />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>NON GST Next Number</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">NON GST Next Number</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2041,21 +2082,21 @@ export default function Settings({ modalMode = false }) {
       </div>
       <p style={shell.hint}>Legacy invoice prefix fields are kept in sync automatically for older invoice data.</p>
 
-      <div style={shell.divider} />
-      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Quotation Numbering</p>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Quotation Prefix</p>
+      </SettingsCard>
+      <SettingsCard title="Quotation Numbering" icon={Hash}>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Quotation Prefix</label>
           <input style={shell.input} value={form.quotationPrefix} onChange={(event) => updateField('quotationPrefix', event.target.value)} placeholder="SPC/" />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Financial Year</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Financial Year</label>
           <input style={shell.input} value={form.quotationFinancialYear} onChange={(event) => updateField('quotationFinancialYear', event.target.value)} />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Next Quotation Number</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Next Quotation Number</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2063,8 +2104,8 @@ export default function Settings({ modalMode = false }) {
             onChange={(event) => updateField('quotationNextNumber', event.target.value.replace(/\D/g, ''))}
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Quotation Number Padding</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Quotation Number Padding</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2073,9 +2114,9 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Format Template</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Format Template</label>
           <input style={shell.input} value={form.quotationFormatTemplate} onChange={(event) => updateField('quotationFormatTemplate', event.target.value)} />
           <p style={shell.hint}>{'Use {{prefix}}, {{year}}, {{service_code}}, {{number}}'}</p>
         </div>
@@ -2089,15 +2130,15 @@ export default function Settings({ modalMode = false }) {
         </label>
       </div>
 
-      <div style={shell.divider} />
-      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Renewal Numbering</p>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Renewal Prefix</p>
+      </SettingsCard>
+      <SettingsCard title="Renewal Numbering" icon={Hash}>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Renewal Prefix</label>
           <input style={shell.input} value={form.renewalPrefix} onChange={(event) => updateField('renewalPrefix', event.target.value)} placeholder="SPC/REN/" />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Next Renewal Number</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Next Renewal Number</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2106,9 +2147,9 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Renewal Number Padding</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Renewal Number Padding</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2121,15 +2162,15 @@ export default function Settings({ modalMode = false }) {
         </div>
       </div>
 
-      <div style={shell.divider} />
-      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Job Numbering</p>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Job Prefix</p>
+      </SettingsCard>
+      <SettingsCard title="Job Numbering" icon={Hash}>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Job Prefix</label>
           <input style={shell.input} value={form.jobPrefix} onChange={(event) => updateField('jobPrefix', event.target.value)} placeholder="JOB-" />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Next Job Number</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Next Job Number</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2138,9 +2179,9 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Job Number Padding</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Job Number Padding</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2150,12 +2191,12 @@ export default function Settings({ modalMode = false }) {
         </div>
       </div>
 
-      <div style={shell.divider} />
-      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Profit & Cost Defaults</p>
+      </SettingsCard>
+      <SettingsCard title="Profit & Cost Defaults" icon={Hash}>
       <p style={shell.hint}>Used by job costing and customer profit summaries. GST is excluded by default.</p>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Working Days / Month</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Working Days / Month</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2163,8 +2204,8 @@ export default function Settings({ modalMode = false }) {
             onChange={(event) => updateField('profitCostDefaultWorkingDaysPerMonth', event.target.value.replace(/\D/g, ''))}
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Working Hours / Day</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Working Hours / Day</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2173,9 +2214,9 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Default Manpower Cost / Visit</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Default Manpower Cost / Visit</label>
           <input
             style={shell.input}
             inputMode="decimal"
@@ -2183,8 +2224,8 @@ export default function Settings({ modalMode = false }) {
             onChange={(event) => updateField('profitCostDefaultManpowerCostPerVisit', event.target.value)}
           />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Default Conveyance Cost / Visit</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Default Conveyance Cost / Visit</label>
           <input
             style={shell.input}
             inputMode="decimal"
@@ -2193,9 +2234,9 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Low Margin Warning %</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Low Margin Warning %</label>
           <input
             style={shell.input}
             inputMode="decimal"
@@ -2213,15 +2254,15 @@ export default function Settings({ modalMode = false }) {
         </label>
       </div>
 
-      <div style={shell.divider} />
-      <p style={{ ...shell.sectionHeading, marginTop: '2px' }}>Employee Numbering</p>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Employee Code Prefix</p>
+      </SettingsCard>
+      <SettingsCard title="Employee Numbering" icon={Hash}>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Employee Code Prefix</label>
           <input style={shell.input} value={form.employeeCodePrefix} onChange={(event) => updateField('employeeCodePrefix', event.target.value)} placeholder="EMP-" />
         </div>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Next Employee Number</p>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Next Employee Number</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2230,9 +2271,9 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
-      <div style={shell.twoCol}>
-        <div style={shell.field}>
-          <p style={shell.fieldLabel}>Employee Number Padding</p>
+      <div className="settings-form-grid" style={shell.twoCol}>
+        <div className="settings-field" style={shell.field}>
+          <label className="settings-field-label">Employee Number Padding</label>
           <input
             style={shell.input}
             inputMode="numeric"
@@ -2241,6 +2282,7 @@ export default function Settings({ modalMode = false }) {
           />
         </div>
       </div>
+      </SettingsCard>
     </>
   );
 
@@ -2405,30 +2447,36 @@ export default function Settings({ modalMode = false }) {
 
   const renderTermsConditions = () => (
     <>
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>GST Terms & Conditions</p>
+      <SettingsCard title="GST Terms & Conditions" icon={FileText}>
+      <div className="settings-field" style={shell.field}>
+        <label className="settings-field-label">GST Terms & Conditions</label>
         <textarea
           style={{ ...shell.textArea, minHeight: '165px' }}
           value={form.gstTermsAndConditions}
           onChange={(event) => updateField('gstTermsAndConditions', event.target.value)}
         />
       </div>
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>Non-GST Terms & Conditions</p>
+      </SettingsCard>
+      <SettingsCard title="Non-GST Terms & Conditions" icon={FileText}>
+      <div className="settings-field" style={shell.field}>
+        <label className="settings-field-label">Non-GST Terms & Conditions</label>
         <textarea
           style={{ ...shell.textArea, minHeight: '165px' }}
           value={form.nonGstTermsAndConditions}
           onChange={(event) => updateField('nonGstTermsAndConditions', event.target.value)}
         />
       </div>
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>Renewal Letter Terms & Conditions</p>
+      </SettingsCard>
+      <SettingsCard title="Renewal Letter Terms & Conditions" icon={FileText}>
+      <div className="settings-field" style={shell.field}>
+        <label className="settings-field-label">Renewal Letter Terms & Conditions</label>
         <textarea
           style={{ ...shell.textArea, minHeight: '165px' }}
           value={form.renewalLetterTermsAndConditions}
           onChange={(event) => updateField('renewalLetterTermsAndConditions', event.target.value)}
         />
       </div>
+      </SettingsCard>
     </>
   );
 
@@ -2512,7 +2560,7 @@ export default function Settings({ modalMode = false }) {
     };
 
     return (
-      <div style={shell.bankCard}>
+      <div className="settings-health-content">
         <div style={{ ...shell.bankHeaderRow, alignItems: 'flex-start' }}>
           <div>
             <p style={sectionLeadTitleStyle}>Attendance Source Health</p>
@@ -2538,7 +2586,7 @@ export default function Settings({ modalMode = false }) {
             <button
               type="button"
               style={{ ...shell.topButton, ...shell.topButtonPrimary, minWidth: '150px' }}
-              onClick={loadAttendanceSourceHealth}
+              className="settings-primary-action" onClick={loadAttendanceSourceHealth}
               disabled={attendanceSourceHealthLoading}
             >
               {attendanceSourceHealthLoading ? 'Checking...' : 'Refresh Counts'}
@@ -2546,24 +2594,22 @@ export default function Settings({ modalMode = false }) {
           </div>
         </div>
 
-        <div style={shell.twoCol}>
-          <div style={shell.bankCard}>
+        <div className="settings-health-grid">
+          <div className="settings-card settings-health-card" style={shell.bankCard}>
             <h4 style={shell.bankCardTitle}>Attendance Table</h4>
             <p style={shell.hint}>Total rows: {Number(attendance.totalRows || 0)}</p>
             <p style={shell.hint}>Legacy rows: {Number(attendance.legacyRows || 0)}</p>
             <p style={shell.hint}>Admin rows: {Number(attendance.adminRows || 0)}</p>
             <p style={shell.hint}>Self rows: {Number(attendance.selfRows || 0)}</p>
           </div>
-          <div style={shell.bankCard}>
+          <div className="settings-card settings-health-card" style={shell.bankCard}>
             <h4 style={shell.bankCardTitle}>Audit Log Table</h4>
             <p style={shell.hint}>Total rows: {Number(audit.totalRows || 0)}</p>
             <p style={shell.hint}>Legacy rows: {Number(audit.legacyRows || 0)}</p>
             <p style={shell.hint}>Admin rows: {Number(audit.adminRows || 0)}</p>
             <p style={shell.hint}>Self rows: {Number(audit.selfRows || 0)}</p>
           </div>
-        </div>
-
-        <div style={shell.bankCard}>
+        <div className="settings-card settings-health-card" style={shell.bankCard}>
           <h4 style={shell.bankCardTitle}>Combined Summary</h4>
           <p style={shell.hint}>Total rows checked: {totalRows}</p>
           <p style={shell.hint}>Legacy rows remaining: {totalLegacyRows}</p>
@@ -2571,6 +2617,7 @@ export default function Settings({ modalMode = false }) {
           {attendanceSourceHealthError ? (
             <p style={{ ...shell.hint, color: '#dc2626' }}>{attendanceSourceHealthError}</p>
           ) : null}
+        </div>
         </div>
       </div>
     );
@@ -2608,56 +2655,56 @@ export default function Settings({ modalMode = false }) {
 
     return (
       <>
-        <div style={shell.bankHeaderRow}>
+        <div className="settings-bank-toolbar" style={shell.bankHeaderRow}>
           <div>
             <p style={sectionLeadTitleStyle}>Bank Configuration</p>
             <p style={sectionLeadSubTitleStyle}>GST & Non-GST Company Bank Details</p>
           </div>
           <div style={shell.bankActions}>
             <button type="button" style={shell.topButton} onClick={resetBankSection}>Reset</button>
-            <button type="button" style={{ ...shell.topButton, ...shell.topButtonPrimary }} onClick={saveAll} disabled={isSaving}>
+            <button type="button" style={{ ...shell.topButton, ...shell.topButtonPrimary }} className="settings-primary-action" onClick={saveAll} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Bank Accounts'}
             </button>
           </div>
         </div>
 
-        <div style={shell.twoCol}>
-          <div style={shell.bankCard}>
+        <div className="settings-form-grid" style={shell.twoCol}>
+          <div className="settings-card settings-bank-card" style={shell.bankCard}>
             <h4 style={shell.bankCardTitle}>GST Company Bank Details</h4>
-            <div style={shell.field}>
-              <p style={shell.fieldLabel}>Account Name</p>
+            <div className="settings-field" style={shell.field}>
+              <label className="settings-field-label">Account Name</label>
               <input style={shell.input} value={form.gstBankAccountName} onChange={(event) => updateField('gstBankAccountName', event.target.value)} placeholder="e.g., Name on the account/passbook" />
               <p style={shell.hint}>Name on the account or passbook.</p>
             </div>
-            <div style={shell.field}>
-              <p style={shell.fieldLabel}>Bank Name *</p>
+            <div className="settings-field" style={shell.field}>
+              <label className="settings-field-label">Bank Name *</label>
               <input style={shell.input} value={form.gstBankName} onChange={(event) => updateField('gstBankName', event.target.value)} placeholder="e.g., HDFC Bank" />
             </div>
-            <div style={shell.field}>
-              <p style={shell.fieldLabel}>Account Number *</p>
+            <div className="settings-field" style={shell.field}>
+              <label className="settings-field-label">Account Number *</label>
               <input style={shell.input} value={form.gstBankAccountNumber} onChange={(event) => updateField('gstBankAccountNumber', event.target.value)} placeholder="Enter account number" />
             </div>
-            <div style={shell.twoCol}>
-              <div style={shell.field}>
-                <p style={shell.fieldLabel}>IFSC Code *</p>
+            <div className="settings-form-grid" style={shell.twoCol}>
+              <div className="settings-field" style={shell.field}>
+                <label className="settings-field-label">IFSC Code *</label>
                 <input style={shell.input} value={form.gstBankIfsc} onChange={(event) => updateField('gstBankIfsc', event.target.value.toUpperCase())} placeholder="e.g., HDFC0001234" />
               </div>
-              <div style={shell.field}>
-                <p style={shell.fieldLabel}>Branch</p>
+              <div className="settings-field" style={shell.field}>
+                <label className="settings-field-label">Branch</label>
                 <input style={shell.input} value={form.gstBankBranch} onChange={(event) => updateField('gstBankBranch', event.target.value)} placeholder="Branch name" />
               </div>
             </div>
-            <div style={shell.field}>
-              <p style={shell.fieldLabel}>UPI ID</p>
+            <div className="settings-field" style={shell.field}>
+              <label className="settings-field-label">UPI ID</label>
               <input style={shell.input} value={form.gstBankUpiId} onChange={(event) => updateField('gstBankUpiId', event.target.value)} placeholder="e.g., payments@hdfc" />
             </div>
-            <div style={shell.twoCol}>
-              <div style={shell.field}>
-                <p style={shell.fieldLabel}>Opening Balance</p>
+            <div className="settings-form-grid" style={shell.twoCol}>
+              <div className="settings-field" style={shell.field}>
+                <label className="settings-field-label">Opening Balance</label>
                 <input type="number" step="0.01" style={shell.input} value={form.gstBankOpeningBalance} onChange={(event) => updateField('gstBankOpeningBalance', event.target.value)} />
               </div>
-              <div style={shell.field}>
-                <p style={shell.fieldLabel}>Current Balance</p>
+              <div className="settings-field" style={shell.field}>
+                <label className="settings-field-label">Current Balance</label>
                 <input type="number" step="0.01" style={shell.input} value={form.gstBankCurrentBalance} onChange={(event) => updateField('gstBankCurrentBalance', event.target.value)} />
               </div>
             </div>
@@ -2673,42 +2720,42 @@ export default function Settings({ modalMode = false }) {
             </div>
           </div>
 
-          <div style={shell.bankCard}>
+          <div className="settings-card settings-bank-card" style={shell.bankCard}>
             <h4 style={shell.bankCardTitle}>Non-GST Company Bank Details</h4>
-            <div style={shell.field}>
-              <p style={shell.fieldLabel}>Account Name</p>
+            <div className="settings-field" style={shell.field}>
+              <label className="settings-field-label">Account Name</label>
               <input style={shell.input} value={form.nonGstBankAccountName} onChange={(event) => updateField('nonGstBankAccountName', event.target.value)} placeholder="e.g., Name on the account/passbook" />
               <p style={shell.hint}>Name on the account or passbook.</p>
             </div>
-            <div style={shell.field}>
-              <p style={shell.fieldLabel}>Bank Name *</p>
+            <div className="settings-field" style={shell.field}>
+              <label className="settings-field-label">Bank Name *</label>
               <input style={shell.input} value={form.nonGstBankName} onChange={(event) => updateField('nonGstBankName', event.target.value)} placeholder="e.g., ICICI Bank" />
             </div>
-            <div style={shell.field}>
-              <p style={shell.fieldLabel}>Account Number *</p>
+            <div className="settings-field" style={shell.field}>
+              <label className="settings-field-label">Account Number *</label>
               <input style={shell.input} value={form.nonGstBankAccountNumber} onChange={(event) => updateField('nonGstBankAccountNumber', event.target.value)} placeholder="Enter account number" />
             </div>
-            <div style={shell.twoCol}>
-              <div style={shell.field}>
-                <p style={shell.fieldLabel}>IFSC Code *</p>
+            <div className="settings-form-grid" style={shell.twoCol}>
+              <div className="settings-field" style={shell.field}>
+                <label className="settings-field-label">IFSC Code *</label>
                 <input style={shell.input} value={form.nonGstBankIfsc} onChange={(event) => updateField('nonGstBankIfsc', event.target.value.toUpperCase())} placeholder="e.g., ICIC0005678" />
               </div>
-              <div style={shell.field}>
-                <p style={shell.fieldLabel}>Branch</p>
+              <div className="settings-field" style={shell.field}>
+                <label className="settings-field-label">Branch</label>
                 <input style={shell.input} value={form.nonGstBankBranch} onChange={(event) => updateField('nonGstBankBranch', event.target.value)} placeholder="Branch name" />
               </div>
             </div>
-            <div style={shell.field}>
-              <p style={shell.fieldLabel}>UPI ID</p>
+            <div className="settings-field" style={shell.field}>
+              <label className="settings-field-label">UPI ID</label>
               <input style={shell.input} value={form.nonGstBankUpiId} onChange={(event) => updateField('nonGstBankUpiId', event.target.value)} placeholder="e.g., collections@icici" />
             </div>
-            <div style={shell.twoCol}>
-              <div style={shell.field}>
-                <p style={shell.fieldLabel}>Opening Balance</p>
+            <div className="settings-form-grid" style={shell.twoCol}>
+              <div className="settings-field" style={shell.field}>
+                <label className="settings-field-label">Opening Balance</label>
                 <input type="number" step="0.01" style={shell.input} value={form.nonGstBankOpeningBalance} onChange={(event) => updateField('nonGstBankOpeningBalance', event.target.value)} />
               </div>
-              <div style={shell.field}>
-                <p style={shell.fieldLabel}>Current Balance</p>
+              <div className="settings-field" style={shell.field}>
+                <label className="settings-field-label">Current Balance</label>
                 <input type="number" step="0.01" style={shell.input} value={form.nonGstBankCurrentBalance} onChange={(event) => updateField('nonGstBankCurrentBalance', event.target.value)} />
               </div>
             </div>
@@ -2727,9 +2774,9 @@ export default function Settings({ modalMode = false }) {
 
         <div style={shell.divider} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-          <p style={sectionLeadTitleStyle}>Saved Bank Accounts</p>
+          <p className="settings-saved-bank-heading" style={sectionLeadTitleStyle}>Saved Bank Accounts</p>
         </div>
-        <div style={shell.bankTableWrap}>
+        <div className="settings-table-scroll" tabIndex={0} role="region" aria-label="Saved bank accounts" style={shell.bankTableWrap}>
           <table style={bankTableStyle}>
             <colgroup>{bankColumns.map((key) => <col key={key} style={{ width: `${getColumnWidth(key) || bankColumnWidths[key] || 80}px` }} />)}</colgroup>
             <thead>
@@ -2749,7 +2796,7 @@ export default function Settings({ modalMode = false }) {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.key}>
-                  <td style={bankCellStyle('primary', 'center')}><input type="radio" checked={row.primary} readOnly /></td>
+                  <td style={bankCellStyle('primary', 'center')}><input type="radio" aria-label={`${row.type} primary bank account`} checked={row.primary} readOnly /></td>
                   <td style={bankCellStyle('type', 'center')}>{row.type}</td>
                   <td style={bankCellStyle('bankName')}>{row.bankName || '-'}</td>
                   <td style={bankCellStyle('accountName')}>{row.accountName || '-'}</td>
@@ -2764,6 +2811,7 @@ export default function Settings({ modalMode = false }) {
                       <button type="button" style={{ ...shell.smallActionBtn, color: '#7c3aed', borderColor: 'rgba(124,58,237,0.36)' }} onClick={() => setActiveSection('bankAccounts')}>Edit</button>
                       <button
                         type="button"
+                        className="settings-danger-action"
                         style={{ ...shell.smallActionBtn, color: '#dc2626', borderColor: 'rgba(220,38,38,0.36)' }}
                         onClick={() => {
                           if (row.key === 'gst') {
@@ -2789,8 +2837,9 @@ export default function Settings({ modalMode = false }) {
 
   const renderSecurity = () => (
     <>
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>Current Password</p>
+      <SettingsCard title="Change password" description="Use your current password to set a strong replacement." icon={ShieldCheck}>
+      <div className="settings-field" style={shell.field}>
+        <label className="settings-field-label">Current Password</label>
         <input
           type="password"
           style={shell.input}
@@ -2800,9 +2849,9 @@ export default function Settings({ modalMode = false }) {
         />
       </div>
 
-      <div style={shell.field}>
+      <div className="settings-field" style={shell.field}>
         <div style={shell.strengthRow}>
-          <p style={shell.fieldLabel}>New Password</p>
+          <label className="settings-field-label">New Password</label>
           <span style={{ ...shell.strengthBadge, borderColor: `${passwordStrength.tone}55`, color: passwordStrength.tone }}>
             {passwordStrength.label}
           </span>
@@ -2820,8 +2869,8 @@ export default function Settings({ modalMode = false }) {
         <p style={{ ...shell.hint, fontSize: '14px' }}>{passwordStrength.hint}</p>
       </div>
 
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>Confirm New Password</p>
+      <div className="settings-field" style={shell.field}>
+        <label className="settings-field-label">Confirm New Password</label>
         <input
           type="password"
           style={shell.input}
@@ -2848,8 +2897,10 @@ export default function Settings({ modalMode = false }) {
         </p>
       </div>
 
-      <div style={shell.field}>
-        <p style={shell.fieldLabel}>Settings Access PIN</p>
+      </SettingsCard>
+      <SettingsCard title="Settings access" description="Keep the existing access PIN or enter a replacement." icon={ShieldCheck}>
+      <div className="settings-field" style={shell.field}>
+        <label className="settings-field-label">Settings Access PIN</label>
         <input
           type="password"
           style={shell.input}
@@ -2859,6 +2910,7 @@ export default function Settings({ modalMode = false }) {
         />
         <p style={shell.hint}>Leave it unchanged to keep the existing PIN.</p>
       </div>
+      </SettingsCard>
     </>
   );
 
@@ -2960,10 +3012,10 @@ export default function Settings({ modalMode = false }) {
   };
 
   return (
-    <section className="settings-page crm-form-surface" style={pageStyle}>
-      <div style={shell.workspaceShell}>
-        <div style={panelStyle}>
-          <header className="crm-form-page-header" data-brand-header="true" style={panelHeaderStyle}>
+    <section className="settings-page settings-glass crm-form-surface" data-general={isGeneralSection} style={pageStyle}>
+      <div className="settings-workspace" style={shell.workspaceShell}>
+        <div className="settings-panel" style={panelStyle}>
+          <header className="crm-form-page-header settings-page-header" data-brand-header="true" style={panelHeaderStyle}>
             <div
               style={{
                 width: '100%',
@@ -2980,15 +3032,17 @@ export default function Settings({ modalMode = false }) {
               }}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', minWidth: 0 }}>
-                <span>Settings</span>
+                <Settings2 size={25} aria-hidden="true" /><span className="settings-page-heading"><strong>{isGeneralSection ? 'General Settings' : 'Settings'}</strong><small>Update your company information, branding and system preferences.</small></span>
               </span>
             </div>
           </header>
 
-          <div style={settingsContentShellStyle}>
-            <div style={tabsRowStyle}>
+          <div className="settings-content-shell" style={settingsContentShellStyle}>
+            <nav className="settings-navigation" aria-label="Settings sections" style={tabsRowStyle}>
+              <div className="settings-nav-title"><Settings2 size={22} aria-hidden="true" /><strong>Settings</strong></div>
               {isCompactLayout ? (
                 <select
+                  aria-label="Settings section"
                   value={activeSection}
                   onChange={(event) => setActiveSection(event.target.value)}
                   style={{ ...shell.input, minHeight: '44px' }}
@@ -3005,36 +3059,45 @@ export default function Settings({ modalMode = false }) {
               {isCompactLayout ? null : sectionGroups.map((group) => {
                 const isExpanded = expandedGroups[group.key];
                 return (
-                  <div key={group.key} style={shell.menuGroup}>
+                  <div key={group.key} className="settings-nav-group" style={shell.menuGroup}>
                     <button
                       type="button"
+                      className="settings-group-toggle"
+                      aria-expanded={Boolean(isExpanded)}
+                      aria-controls={`settings-group-${group.key}`}
                       style={shell.groupToggle}
                       onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.key]: !prev[group.key] }))}
                     >
-                      <span>{group.label}</span>
+                      <span>{group.key === 'general' ? <Settings2 size={16} aria-hidden="true" /> : group.key === 'whatsapp' ? <MessageCircle size={16} aria-hidden="true" /> : <Mail size={16} aria-hidden="true" />}{group.label}</span>
                       {isExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                     </button>
-                    {isExpanded ? group.items.map((section) => {
+                    <div id={`settings-group-${group.key}`} hidden={!isExpanded} className="settings-nav-items">{isExpanded ? group.items.map((section) => {
                       const isActive = section.key === activeSection;
+                      const SectionIcon = settingsSectionIcons[section.key];
                       return (
                         <button
                           key={section.key}
                           type="button"
+                          className="settings-nav-item"
+                          aria-current={isActive ? 'page' : undefined}
                           style={{ ...tabButtonStyle, ...shell.childButton, ...(isActive ? shell.tabButtonActive : {}) }}
                           onClick={() => setActiveSection(section.key)}
                         >
-                          {section.label}
+                          {SectionIcon ? <SectionIcon size={16} aria-hidden="true" /> : null}<span>{section.label}</span>
                         </button>
                       );
-                    }) : null}
+                    }) : null}</div>
                   </div>
                 );
               })}
-            </div>
+            </nav>
 
-            <div ref={panelBodyRef} style={panelBodyStyle}>{renderSectionContent()}</div>
+            <div ref={panelBodyRef} className={isGeneralSection ? 'settings-general-content' : 'settings-integration-content'} data-settings-section={activeSection} style={panelBodyStyle}>
+              {isGeneralSection ? <div className="settings-section-heading"><span>General Settings</span><h2>{flatSections.find(section => section.key === activeSection)?.label}</h2><p>{settingsSectionDescriptions[activeSection]}</p></div> : null}
+              {renderSectionContent()}
+            </div>
           </div>
-          <div className="crm-form-actions" data-brand-footer="true"
+          <div className="crm-form-actions settings-save-bar" data-brand-footer="true"
             style={{
               borderTop: '1px solid var(--border)',
               padding: isCompactLayout ? '12px' : '14px 16px',
@@ -3046,7 +3109,7 @@ export default function Settings({ modalMode = false }) {
               background: 'var(--surface)'
             }}
           >
-            <p style={{ margin: 0, fontSize: '12px', fontWeight: 700, ...statusTone }}>
+            <p role="status" aria-live="polite" style={{ margin: 0, fontSize: '12px', fontWeight: 700, ...statusTone }}>
               {status || ''}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

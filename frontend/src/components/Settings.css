@@ -1,0 +1,140 @@
+/* Phase A: Settings chrome and opt-in General content. Messaging screen internals stay untouched. */
+.settings-page.settings-glass { --settings-glass: color-mix(in srgb, var(--ui-card) 90%, transparent); --settings-border: var(--ui-glass-border, var(--ui-border)); --settings-shadow: 0 4px 18px rgb(28 37 71 / 5%); min-width: 0; width: 100%; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-panel { display: grid; grid-template-columns: 240px minmax(0,1fr); grid-template-rows: auto 1fr auto; gap: 16px 20px; min-height: 0 !important; min-width: 0; background: transparent; border: 0; border-radius: 0; overflow: visible; }
+.settings-glass .settings-content-shell { display: contents !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-page-header { grid-column: 2; grid-row: 1; margin: 0; border: 1px solid var(--settings-border) !important; border-radius: 14px !important; background: radial-gradient(ellipse at 0 10%, rgb(8 102 255 / 70%), transparent 55%), linear-gradient(115deg,#1d2547,#142b60) !important; box-shadow: var(--settings-shadow); overflow: hidden; }
+.settings-glass .settings-page-header > div { min-height: 82px !important; padding: 18px 22px !important; }
+.settings-glass .settings-page-header > div > span { display: flex !important; gap: 14px; }
+.settings-glass .settings-page-header svg { flex-shrink: 0; color: #fff !important; }
+.settings-glass .settings-page-heading { display: grid; gap: 5px; text-transform: none; letter-spacing: 0; }
+html[data-theme][data-branding] body .settings-glass .settings-page-heading strong { font-size: 21px; line-height: 1.3; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html[data-theme][data-branding] body .settings-glass .settings-page-heading small { font-size: 12px; font-weight: 400; line-height: 1.5; color: #e1eaff !important; -webkit-text-fill-color: #e1eaff !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-navigation { grid-column: 1; grid-row: 1 / 4; display: grid; gap: 12px; align-content: start; min-width: 0; padding: 16px 12px; background: linear-gradient(150deg,color-mix(in srgb,var(--ui-action-soft) 50%,var(--ui-card)),var(--settings-glass)); border: 1px solid var(--settings-border); border-radius: 16px; box-shadow: var(--settings-shadow); }
+.settings-glass .settings-nav-title { display: flex; align-items: center; gap: 10px; padding: 4px 10px 12px; color: var(--ui-text); font-size: 19px; }
+.settings-glass .settings-nav-title svg { color: var(--ui-link); }
+.settings-glass .settings-nav-group { padding: 0 !important; gap: 6px !important; min-width: 0; }
+.settings-glass .settings-nav-items:not([hidden]) { display: grid; gap: 4px; }
+.settings-glass .settings-nav-items[hidden] { display: none; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-group-toggle { min-height: 44px; padding: 10px !important; border-radius: 10px !important; background: var(--settings-glass) !important; border: 1px solid var(--settings-border) !important; color: var(--ui-text) !important; font-size: 12px !important; font-weight: 650; box-shadow: none !important; }
+.settings-glass .settings-group-toggle > span { display: flex; align-items: center; gap: 8px; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-nav-item { display: flex; align-items: center; gap: 10px; width: 100% !important; margin: 0 !important; min-height: 40px; padding: 9px 12px !important; border-radius: 9px !important; border: 1px solid transparent !important; background: transparent !important; color: var(--ui-muted) !important; font-size: 12px !important; font-weight: 600 !important; box-shadow: none !important; }
+.settings-glass .settings-nav-item svg { flex: 0 0 16px; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-nav-item[aria-current="page"] { background: #0866ff !important; color: #fff !important; border-color: #0866ff !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-nav-item[aria-current="page"] :is(svg,span) { color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-nav-item:not([aria-current]):hover { background: var(--ui-action-soft) !important; color: var(--ui-link) !important; }
+.settings-glass :is(button,a,input,textarea,select):focus-visible { outline: 2px solid var(--ui-link) !important; outline-offset: 3px; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content { grid-column: 2; grid-row: 2; display: grid; align-content: start; gap: 20px; min-width: 0; padding: 0 !important; overflow: visible !important; }
+.settings-glass .settings-integration-content { grid-column: 2; grid-row: 2; min-width: 0; }
+.settings-glass .settings-section-heading { display: grid; gap: 5px; padding: 0 2px; }
+.settings-glass .settings-section-heading > span { color: var(--ui-muted); font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em; }
+.settings-glass .settings-section-heading h2 { margin: 0; font-size: 18px; line-height: 1.35; color: var(--ui-text); }
+.settings-glass .settings-section-heading p { margin: 0; font-size: 12px; line-height: 1.5; color: var(--ui-muted); }
+html[data-theme][data-branding] body .settings-page.settings-glass[data-general="true"] .settings-card { min-width: 0; margin: 0; padding: 20px !important; border: 1px solid var(--settings-border) !important; border-radius: 14px !important; background: linear-gradient(145deg,color-mix(in srgb,var(--ui-action-soft) 24%,var(--ui-card)),var(--settings-glass)) !important; box-shadow: var(--settings-shadow) !important; }
+.settings-glass .settings-card-heading { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 18px; }
+.settings-glass .settings-card-heading > div { min-width: 0; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-card-heading h3 { margin: 0; font-size: 15px !important; font-weight: 700; line-height: 1.4; color: var(--ui-text); }
+.settings-glass .settings-card-heading p { margin: 4px 0 0; font-size: 12px; font-weight: 400; line-height: 1.5; color: var(--ui-muted); }
+.settings-glass .settings-card-icon { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; border-radius: 9px; color: var(--ui-link); background: var(--ui-action-soft); }
+.settings-glass .settings-card-content { display: grid; gap: 16px; min-width: 0; }
+.settings-glass .settings-profile-grid { display: grid; grid-template-columns: minmax(210px,.7fr) minmax(0,2fr); gap: 24px; align-items: start; }
+.settings-glass .settings-company-fields { display: grid; gap: 16px; min-width: 0; }
+.settings-glass .settings-profile-upload { min-width: 0; }
+.settings-glass .settings-profile-upload .settings-profile-preview { width: 92px !important; height: 92px !important; }
+.settings-glass .settings-profile-upload .settings-field > div { border-style: solid !important; padding: 14px !important; border-radius: 12px !important; }
+.settings-glass .settings-appearance-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; min-width: 0; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-form-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 16px 20px !important; min-width: 0; }
+.settings-glass .settings-field { min-width: 0; align-content: start; gap: 7px !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content .settings-field-label { display: block; margin: 0; color: var(--ui-text) !important; font-size: 12px !important; font-weight: 600; text-transform: none; letter-spacing: 0; line-height: 1.4; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content :is(input,select,textarea):not([type="file"],[type="color"],[type="checkbox"],[type="radio"]) { width: 100%; min-width: 0; max-width: 100%; min-height: 42px !important; padding: 10px 12px !important; border: 1px solid var(--settings-border) !important; border-radius: 9px !important; background: var(--ui-card) !important; color: var(--ui-text) !important; -webkit-text-fill-color: var(--ui-text) !important; font-size: 13px !important; font-weight: 400; line-height: 1.4; box-sizing: border-box; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content textarea { min-height: 180px !important; resize: vertical; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content :is(input,textarea)::placeholder { color: var(--ui-muted) !important; opacity: .8; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content button:not([data-settings-swatch],.settings-appearance-option) { min-height: 38px !important; height: auto; padding: 8px 12px !important; border-radius: 9px !important; border: 1px solid var(--settings-border) !important; background: var(--ui-elevated) !important; color: var(--ui-text) !important; -webkit-text-fill-color: currentColor !important; font-size: 12px !important; font-weight: 600; line-height: 1.4; white-space: normal; cursor: pointer; box-shadow: none !important; }
+.settings-glass .settings-general-content button:disabled { opacity: .55; cursor: not-allowed; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content .settings-appearance-option { min-height: 54px !important; border: 1px solid var(--settings-border) !important; border-radius: 10px !important; background: var(--ui-elevated) !important; color: var(--ui-text) !important; font-size: 12px !important; line-height: 1.4; white-space: normal !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content .settings-appearance-option[aria-pressed="true"] { border: 2px solid #0866ff !important; background: var(--ui-action-soft) !important; }
+.settings-glass .settings-general-content p { max-width: 100%; overflow-wrap: anywhere; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content :is(.settings-bank-card,.settings-health-card) > h4 { font-size: 15px !important; line-height: 1.4; }
+.settings-glass .settings-health-content { display: grid; gap: 20px; min-width: 0; }
+.settings-glass .settings-health-content > div:first-child > div:first-child > p:first-child { font-size: 15px !important; }
+.settings-glass .settings-health-content > div:first-child > div:first-child > p:last-child { font-size: 12px !important; line-height: 1.5; font-weight: 400 !important; }
+.settings-glass .settings-health-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; }
+.settings-glass .settings-health-card p { font-size: 12px !important; font-weight: 400 !important; line-height: 1.6; }
+.settings-glass .settings-table-scroll { width: 100%; max-width: 100%; min-width: 0; overflow: auto; border-radius: 12px !important; border: 1px solid var(--settings-border) !important; box-shadow: none !important; }
+.settings-glass .settings-table-scroll :is(th,td) { padding: 12px !important; font-size: 12px !important; line-height: 1.5; }
+.settings-glass .settings-table-scroll td button { white-space: nowrap !important; flex-shrink: 0; }
+.settings-glass .settings-google-card { display: grid; gap: 16px !important; }
+.settings-glass .settings-google-card h3 { display: flex; align-items: center; gap: 10px; font-size: 16px !important; }
+.settings-glass .settings-google-card > p { font-size: 13px !important; font-weight: 400; }
+.settings-glass .settings-integration-details { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px !important; padding: 16px; background: var(--ui-elevated); border: 1px solid var(--settings-border); border-radius: 10px; overflow-wrap: anywhere; }
+.settings-glass .settings-integration-details > div { font-size: 13px; line-height: 1.5; }
+.settings-glass .settings-integration-actions :is(button,a) { min-width: 0 !important; min-height: 40px !important; white-space: normal; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content .settings-primary-action,
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-save-bar button[data-modal-primary="true"] { border: 1px solid #0866ff !important; background: #0866ff !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content .settings-danger-action { color: var(--status-danger-text) !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-save-bar { grid-column: 2; grid-row: 3; position: sticky; bottom: 0; z-index: 3; min-width: 0; padding: 14px 18px !important; border: 1px solid var(--settings-border) !important; border-radius: 12px; background: var(--ui-card) !important; color: var(--ui-text); box-shadow: 0 -4px 18px rgb(28 37 71 / 4%); }
+.settings-glass .settings-save-bar > p { flex: 1 1 160px; min-width: 0; line-height: 1.5; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-save-bar button { min-height: 40px !important; padding: 9px 16px !important; border-radius: 9px !important; font-size: 12px !important; line-height: 1.4; white-space: nowrap; }
+@media (max-width: 1400px) {
+  .settings-glass .settings-profile-grid { grid-template-columns: minmax(0,1fr); gap: 18px; }
+  .settings-glass .settings-profile-upload .settings-field > div > div { flex-wrap: nowrap !important; }
+  .settings-glass .settings-appearance-grid { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 1100px) {
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-panel { grid-template-columns: minmax(0,1fr); gap: 16px; }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-navigation { grid-column: 1; grid-row: 1; padding: 12px 16px; gap: 8px; }
+  .settings-glass .settings-nav-title { padding: 0; font-size: 15px; }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-page-header { grid-column: 1; grid-row: 2; }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content,
+  .settings-glass .settings-integration-content { grid-column: 1; grid-row: 3; }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-save-bar { grid-column: 1; grid-row: 4; }
+  .settings-glass .settings-navigation > select { width: 100%; min-width: 0; max-width: 100%; border: 1px solid var(--settings-border); color: var(--ui-text); background: var(--ui-card); border-radius: 9px; padding: 10px 12px; box-sizing: border-box; }
+  .settings-glass .settings-profile-grid { grid-template-columns: minmax(200px,.7fr) minmax(0,2fr); }
+}
+@media (max-width: 768px) {
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-form-grid,
+  .settings-glass .settings-profile-grid,
+  .settings-glass .settings-appearance-grid,
+  .settings-glass .settings-health-grid,
+  .settings-glass .settings-integration-details { grid-template-columns: minmax(0,1fr) !important; }
+  html[data-theme][data-branding] body .settings-page.settings-glass[data-general="true"] .settings-card { padding: 16px !important; }
+  .settings-glass .settings-profile-upload .settings-field > div > div { flex-wrap: wrap !important; }
+  .settings-glass .settings-page-header > div { min-height: 80px !important; padding: 16px !important; }
+  .settings-glass .settings-page-heading strong { font-size: 18px !important; }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content :is(input,select,textarea):not([type="file"],[type="color"],[type="checkbox"],[type="radio"]) { font-size: 16px !important; }
+  .settings-glass .settings-health-content > div:first-child > div:last-child { width: 100%; display: grid !important; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-health-content > div:first-child button { min-width: 0 !important; width: 100%; }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-health-content > div:first-child button:last-child { grid-column: 1 / -1; }
+  .settings-glass .settings-integration-actions { display: grid !important; grid-template-columns: minmax(0,1fr); }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-save-bar { padding: 12px !important; gap: 8px !important; }
+  .settings-glass .settings-save-bar > p { flex-basis: 100%; font-size: 11px !important; }
+  .settings-glass .settings-save-bar > div { width: 100%; }
+  .settings-glass .settings-save-bar > div > button { flex: 1; min-width: 0 !important; }
+}
+/* The portal's base form rules use !important flex layouts; keep this workspace grid explicit. */
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-panel { display: grid !important; }
+.settings-glass .settings-bank-toolbar > div:first-child > p:first-child,
+.settings-glass .settings-saved-bank-heading { font-size: 16px !important; line-height: 1.4 !important; }
+.settings-glass .settings-bank-toolbar > div:first-child > p:last-child { font-size: 12px !important; font-weight: 400 !important; line-height: 1.5; }
+.settings-glass .settings-page-header svg { width: 28px !important; height: 28px !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content button.settings-primary-action,
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content a.settings-primary-action { border: 1px solid #0866ff !important; background: #0866ff !important; color: #fff !important; -webkit-text-fill-color: #fff !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content button.settings-danger-action { color: var(--status-danger-text) !important; border-color: color-mix(in srgb,var(--status-danger-text) 30%,var(--settings-border)) !important; }
+.settings-glass .settings-company-fields .settings-form-grid > .settings-field:last-child:nth-child(3) { grid-column: 1 / -1; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-panel { overflow: visible !important; background: transparent !important; border: 0 !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-navigation { background: linear-gradient(150deg,color-mix(in srgb,var(--ui-action-soft) 50%,var(--ui-card)),var(--settings-glass)) !important; }
+@media (min-width: 1101px) {
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content { max-height: calc(100dvh - 300px); overflow-y: auto !important; overflow-x: hidden !important; overscroll-behavior-y: contain; padding: 2px !important; box-sizing: border-box; }
+  html[data-theme][data-branding] body .settings-page.settings-glass .settings-navigation { align-self: start; position: sticky; top: 12px; max-height: calc(100dvh - 100px); overflow-y: auto; }
+}
+.settings-glass .settings-general-content :is(input,select,textarea,button) { scroll-margin-block: 90px; }
+@media (max-width: 700px) {
+  html[data-theme][data-branding] body .settings-page.settings-glass[data-general="true"] .settings-panel { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
+  html[data-theme][data-branding] body .settings-page.settings-glass[data-general="true"] .settings-save-bar { position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); width: auto; z-index: 50; }
+  .settings-glass .settings-general-content :is(input,select,textarea,button) { scroll-margin-bottom: 140px; }
+}
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content button[data-settings-swatch] { display: inline-grid; place-items: center; background: var(--settings-swatch-color) !important; box-shadow: none !important; }
+html[data-theme][data-branding] body .settings-page.settings-glass .settings-general-content button[data-settings-swatch][aria-pressed="true"] { outline: 2px solid var(--ui-link); outline-offset: 3px; }
+.settings-glass .settings-card-content > p { font-size: 12px !important; font-weight: 400 !important; line-height: 1.6; }
+html[data-theme][data-branding] body .settings-page.settings-glass button[data-settings-swatch] svg { color: var(--settings-swatch-ink) !important; stroke: currentColor !important; }
+.settings-glass .settings-card-icon svg { color: var(--ui-link) !important; }
+.settings-glass .settings-table-scroll:focus-visible { outline: 2px solid var(--ui-link); outline-offset: 3px; }

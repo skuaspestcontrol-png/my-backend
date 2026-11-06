@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { Link2 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -78,22 +79,23 @@ export default function GoogleIntegrationSettings() {
 
   return (
     <div style={{ display: 'grid', gap: '14px' }}>
-      <div style={card}>
-        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>Google Integration</h3>
+      <div className="settings-card settings-google-card" style={card}>
+        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}><Link2 size={20} aria-hidden="true" />Google Integration</h3>
         <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
           Connect Google Tasks to auto-sync CRM job schedules and completion status.
         </p>
 
-        <div style={{ display: 'grid', gap: '8px', fontSize: '14px', color: 'var(--text-primary)' }}>
+        <div className="settings-integration-details" style={{ display: 'grid', gap: '8px', fontSize: '14px', color: 'var(--text-primary)' }}>
           <div><strong>Connected:</strong> {integration.connected ? 'Yes' : 'No'}</div>
           <div><strong>Google Account:</strong> {integration.googleEmail || '-'}</div>
           <div><strong>Task List:</strong> {integration.tasklistId ? 'SKUAS CRM Tasks' : '-'}</div>
           <div><strong>Sync Enabled:</strong> {integration.syncEnabled ? 'Yes' : 'No'}</div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="settings-integration-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <a
             href={connectUrl}
+            className="settings-primary-action"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -111,6 +113,7 @@ export default function GoogleIntegrationSettings() {
           </a>
           <button
             type="button"
+            className="settings-danger-action"
             onClick={removeConnection}
             disabled={loading || disconnecting || !integration.connected}
             style={{
