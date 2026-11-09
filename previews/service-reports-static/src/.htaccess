@@ -1,0 +1,14 @@
+# Install only in a NEW dedicated static preview website root.
+DirectoryIndex index.html
+Options -Indexes -ExecCGI
+<IfModule mod_headers.c>
+  Header always set Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; frame-ancestors 'none'; worker-src 'none'; media-src 'none'"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "no-referrer"
+  Header always set X-Robots-Tag "noindex, nofollow, noarchive"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+</IfModule>
+<FilesMatch "(^\.|\.(php[0-9]?|phtml|phar|cgi|pl|py|sh|cjs|mjs|sql|env|key|pem|jks|keystore|log|zip|tar|gz)$)">
+  Require all denied
+</FilesMatch>
