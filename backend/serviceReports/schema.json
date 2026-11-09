@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "sections": [
+    {
+      "key": "header",
+      "title": "Client & service details",
+      "fields": [
+        ["reportDate", "Report date", "date"],
+        ["serviceDate", "Service date", "date"],
+        ["startTime", "Start time", "time"],
+        ["endTime", "Completion time", "time"],
+        ["customerName", "Customer name"],
+        ["siteName", "Property / site"],
+        ["siteAddress", "Site address", "textarea"],
+        ["contactPerson", "Contact person"],
+        ["mobile", "Customer mobile"],
+        ["email", "Customer email", "email"],
+        ["serviceType", "Service type"],
+        ["companyType", "Company identity", "select", "GST|NON_GST"]
+      ]
+    },
+    {
+      "key": "summary",
+      "title": "Executive summary",
+      "fields": [
+        ["visitPurpose", "Visit purpose", "textarea"],
+        [
+          "serviceStatus",
+          "Service status",
+          "select",
+          "Completed|Partially Completed|Inspection Only|Follow-up Required|Unable to Complete"
+        ],
+        [
+          "overallActivity",
+          "Overall pest activity",
+          "select",
+          "Not assessed|None|Low|Moderate|High"
+        ],
+        ["mainFindings", "Main findings", "textarea"],
+        ["workCompleted", "Work completed summary", "textarea"],
+        ["outstandingIssues", "Outstanding issues", "textarea"],
+        ["customerObservations", "Customer observations", "textarea"],
+        ["remarks", "Additional remarks", "textarea"]
+      ]
+    },
+    {
+      "key": "findings",
+      "title": "Pest activity & findings",
+      "repeatable": true,
+      "fields": [
+        ["pestType", "Pest type"],
+        ["species", "Species, if identified"],
+        [
+          "activityLevel",
+          "Activity level",
+          "select",
+          "Not assessed|None|Low|Moderate|High"
+        ],
+        ["area", "Location / area"],
+        ["evidence", "Evidence observed", "textarea"],
+        ["estimatedCount", "Measured count", "number"],
+        ["description", "Infestation description", "textarea"],
+        ["comparison", "Previous activity comparison", "textarea"],
+        ["remarks", "Remarks", "textarea"],
+        ["photoIds", "Linked photographs"]
+      ]
+    },
+    {
+      "key": "treatments",
+      "title": "Services, products & safety",
+      "repeatable": true,
+      "fields": [
+        ["serviceType", "Service / treatment type"],
+        ["area", "Treatment area"],
+        ["method", "Treatment method"],
+        ["workPerformed", "Work performed", "textarea"],
+        ["equipment", "Equipment used"],
+        ["monitoringDevices", "Monitoring device details", "textarea"],
+        ["startTime", "Treatment start", "time"],
+        ["endTime", "Treatment completion", "time"],
+        ["remarks", "Technician remarks", "textarea"],
+        ["treatedZone", "Treated zone (optional)"],
+        [
+          "networkInspection",
+          "Pipe / network inspection (optional)",
+          "textarea"
+        ],
+        ["junctionBoxes", "Junction box details (optional)"],
+        ["refillPoints", "Refill point details (optional)"],
+        ["observedDamage", "Observed damage (optional)", "textarea"],
+        [
+          "recommendedMonitoring",
+          "Recommended monitoring (optional)",
+          "textarea"
+        ]
+      ],
+      "productFields": [
+        ["name", "Product / chemical name"],
+        ["registration", "Registration / identification"],
+        ["dilution", "Concentration / dilution"],
+        ["quantity", "Quantity used", "number"],
+        ["unit", "Quantity unit"]
+      ],
+      "safetyFields": [
+        ["ppe", "PPE used"],
+        ["precautions", "Precautions communicated", "textarea"],
+        ["reentry", "Re-entry instructions", "textarea"],
+        ["foodWater", "Food / water protection", "textarea"],
+        ["labelReference", "Product label instructions referenced", "textarea"],
+        ["incidents", "Incident / spill notes", "textarea"]
+      ]
+    },
+    {
+      "key": "recommendations",
+      "title": "Recommendations",
+      "repeatable": true,
+      "fields": [
+        [
+          "category",
+          "Category",
+          "select",
+          "Housekeeping|Sanitation|Structural Repairs|Entry Point Sealing|Moisture Control|Waste Management|Monitoring|Follow-up Treatment|Other"
+        ],
+        ["area", "Affected area"],
+        ["observation", "Observation", "textarea"],
+        ["action", "Recommended action", "textarea"],
+        ["priority", "Priority", "select", "Low|Normal|High|Urgent"],
+        ["responsibleParty", "Responsible party"],
+        ["targetDate", "Target date", "date"],
+        [
+          "completionStatus",
+          "Completion status",
+          "select",
+          "Proposed|In Progress|Completed|Not Applicable"
+        ]
+      ]
+    },
+    {
+      "key": "photos",
+      "title": "Treatment photographs",
+      "fileKind": "photo",
+      "categories": [
+        "Before Treatment",
+        "During Treatment",
+        "After Treatment",
+        "Pest Evidence",
+        "Monitoring Devices",
+        "Treatment Area",
+        "Structural Defect",
+        "Other"
+      ]
+    },
+    {
+      "key": "siteMaps",
+      "title": "Site maps & diagrams",
+      "fileKind": "siteMap",
+      "categories": [
+        "Floor Plan",
+        "Site Photograph",
+        "Treatment Diagram",
+        "Monitoring Points",
+        "Other"
+      ]
+    },
+    {
+      "key": "acknowledgement",
+      "title": "Signatures & acknowledgement",
+      "fields": [
+        ["technicianName", "Technician signatory name"],
+        ["technicianDesignation", "Technician designation"],
+        ["customerName", "Customer / representative name"],
+        ["customerDesignation", "Customer designation"],
+        [
+          "customerResponse",
+          "Customer response",
+          "select",
+          "Pending|Signed|Unavailable|Declined"
+        ],
+        ["reason", "Unavailable / declined reason", "textarea"],
+        ["acknowledgement", "Acknowledgement", "textarea"]
+      ]
+    },
+    {
+      "key": "attachments",
+      "title": "Supporting attachments",
+      "fileKind": "attachment",
+      "categories": [
+        "Product Label",
+        "Safety Data Sheet",
+        "Service Photograph",
+        "Monitoring Record",
+        "Site Diagram",
+        "Inspection Document",
+        "Other"
+      ]
+    },
+    {
+      "key": "followup",
+      "title": "Follow-up & next visit",
+      "fields": [
+        ["required", "Follow-up required", "select", "Not recorded|Yes|No"],
+        ["nextVisitDate", "Recommended next visit", "date"],
+        ["reason", "Follow-up reason", "textarea"],
+        ["correctiveActions", "Pending corrective actions", "textarea"],
+        ["monitoring", "Monitoring requirements", "textarea"],
+        ["customerInstructions", "Customer instructions", "textarea"],
+        ["internalNotes", "Internal notes (staff only)", "textarea"]
+      ]
+    }
+  ]
+}

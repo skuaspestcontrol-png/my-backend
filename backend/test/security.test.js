@@ -278,6 +278,8 @@ const end = source.indexOf('app.get("/api/db-test"');
 function fixture() {
   const context = {
     URL, express, security, readDocumentShare: () => null, ...auth, crypto: require('crypto'),
+    createSalesReportAuth: require('../serviceReports/salesAdapterAuth').createSalesReportAuth,
+    getConnection: async () => { throw new Error('Database disabled in middleware security fixture'); },
     helmet: require('helmet'), cors: require('cors'), rateLimit: require('express-rate-limit'),
     process: { env: { NODE_ENV: 'production', PORTAL_AUTH_SECRET: secret } },
     canUseMysql: () => false, jobsFile: 'fixture',
@@ -516,4 +518,12 @@ test('public Maps config does not return server-only geocoding keys', () => {
   assert.equal(body.googleMapsApiKey, '');
   run({ GOOGLE_MAPS_BROWSER_API_KEY: 'browser-key', GOOGLE_GEOCODING_API_KEY: 'server-key' });
   assert.equal(body.googleMapsApiKey, 'browser-key');
+});
+
+test('Sales delegation cannot bypass normal portal authentication or inherit a portal administrator cookie', async () => {
+  const delegated = { 'x-skuas-service-report-delegation': 'invalid' };
+  assert.equal((await fetch(base + '/api/settings', { headers: delegated })).status, 401);
+  assert.notEqual((await fetch(base + '/api/service-reports/lookups', { headers: delegated })).status, 200);
+  const cookie = `${auth.DEFAULT_COOKIE_NAME}=${auth.createPortalSession({ user: admin, secret })}`;
+  assert.equal((await fetch(base + '/api/service-reports/lookups', { headers: { ...delegated, Cookie: cookie } })).status, 401);
 });

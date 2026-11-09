@@ -50,6 +50,7 @@ const { createEmailRouter } = require('./routes/email.routes');
 const { quotationRouter } = require('./routes/quotation.routes');
 const { salesPerformanceRoutes } = require('./routes/salesPerformanceRoutes');
 const { stockRoutes } = require('./routes/stockRoutes');
+const { createSalesReportAuth } = require('./serviceReports/salesAdapterAuth');
 const {
   PHONE_VALIDATION_ERROR,
   normalizeIndianMobileNumber,
@@ -174,7 +175,7 @@ app.use(cors({
     return callback(new Error('CORS origin denied'));
   },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-website-lead-key", "x-admin-migration-token", "x-migration-token"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "x-api-key", "x-website-lead-key", "x-admin-migration-token", "x-migration-token", "Idempotency-Key"],
   credentials: true,
   maxAge: 600
 }));
@@ -256,11 +257,19 @@ const requirePortalAuth = (req, res, next) => {
 };
 
 app.use(attachPortalUser);
+// Only verified, employee-scoped Sales report delegations enter the existing report API.
+app.use('/api/service-reports', createSalesReportAuth({
+  getConnection,
+  portalSecret: PORTAL_AUTH_SECRET,
+}));
 app.use(requirePortalAuth);
 app.use(security.csrfGuard(new Set([...allowedCorsOrigins].filter(origin => !['https://www.skuaspestcontrol.com', 'https://skuaspestcontrol.com'].includes(origin))), PORTAL_AUTH_COOKIE_NAME));
+
 app.use(async (req, res, next) => {
   if (req.documentShare) return next();
   const route = req.path.toLowerCase().replace(/\/+$/, '');
+  // This module enforces authenticated employee capabilities and record scope itself.
+  if (/^\/api\/service-reports(\/|$)/.test(route)) return next();
   const user = req.portalUser;
   const write = !['GET', 'HEAD', 'OPTIONS'].includes(req.method);
   if (/^\/api\/(admin|uploads-test)(\/|$)/.test(route) || route === '/uploads-test') return requireAdminDebugAccess(req, res, next);
@@ -3754,6 +3763,15 @@ app.post('/api/auth/revoke-sessions', (req, res) => {
   const entry = sessionRevocations?.revokeUser(target, 'admin_forced_logout');
   return res.json({ success: true, sessionVersion: entry?.sessionVersion || 1 });
 });
+
+// Service Reports owns its capability checks and never runs schema migrations at startup.
+app.use('/api/service-reports', require('./serviceReports/routes').createServiceReportRouter({
+  getConnection,
+  loadSettings: () => readSettingsFromMysql(),
+  resolveAsset: value => resolveUploadAsset(value),
+  privateRoot: process.env.SERVICE_REPORT_PRIVATE_ROOT || path.join(__dirname, '..', 'storage', 'private-service-reports'),
+  publicRoots: [uploadsRootDir, path.join(__dirname, 'public')]
+}));
 
 app.get('/api/settings', async (req, res) => {
   try {

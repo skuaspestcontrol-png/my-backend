@@ -84,6 +84,7 @@ const VendorPaymentDashboard = lazyWithRetry(() => import('./components/VendorPa
 const RenewalDashboard = lazyWithRetry(() => import('./components/RenewalDashboard'), 'renewal-dashboard');
 const ComplaintsDashboard = lazyWithRetry(() => import('./components/ComplaintsDashboard'), 'complaints-dashboard');
 const ScheduleJob = lazyWithRetry(() => import('./components/ScheduleJob'), 'schedule-job');
+const ServiceReports = lazyWithRetry(() => import('./components/service-reports/ServiceReports'), 'service-reports');
 const SalesPortal = lazyWithRetry(() => import('./components/SalesPortal'), 'sales-portal');
 const ServiceCalendar = lazyWithRetry(() => import('./components/ServiceCalendar'), 'service-calendar');
 const Settings = lazyWithRetry(() => import('./components/Settings'), 'settings');
@@ -352,6 +353,10 @@ function App() {
             <Route path="/tasks/detail/index" element={<AppRoute element={<TechnicianPortal />} />} />
             <Route path="/tasks/detail/:jobId" element={<AppRoute element={<TechnicianPortal />} />} />
             <Route path="/tasks/detail/index/:jobId" element={<AppRoute element={<TechnicianPortal />} />} />
+            <Route path="/operations/service-reports" element={<AppRoute element={<ServiceReports />} />} />
+            <Route path="/operations/service-reports/new" element={<AppRoute element={<ServiceReports createNew />} />} />
+            <Route path="/operations/service-reports/:id/edit" element={<AppRoute element={<ServiceReports editRequested />} />} />
+            <Route path="/operations/service-reports/:id" element={<AppRoute element={<ServiceReports />} />} />
             <Route path="/operations/assigned-jobs" element={<AppRoute element={<TechnicianPortal />} />} />
             <Route path="/operations/track-technicians" element={<AppRoute element={<TrackTechnicians />} />} />
             <Route path="/sales-portal" element={<AppRoute element={<SalesPortal />} />} />

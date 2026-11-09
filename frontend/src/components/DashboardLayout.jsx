@@ -1,3 +1,4 @@
+import { ServiceReportsNavLink } from './service-reports/ServiceReportsNavLink';
 import { formatPortalTime } from '../utils/portalDateTime';
 import PortalBreadcrumbs from './ui/PortalBreadcrumbs';
 import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
@@ -764,6 +765,7 @@ export default function DashboardLayout({ children }) {
               <div className="portal-nav-submenu" style={submenuWrapStyle}>
                 <Link to="/operations/assign-services" aria-current={isActive('/operations/assign-services') ? 'page' : undefined} className={isActive('/operations/assign-services') || isActive('/schedule-job') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assign-services')} onClick={closeDrawerOnMobile}>Assign Services</Link>
                 <Link to="/operations/assigned-jobs" aria-current={isActive('/operations/assigned-jobs') ? 'page' : undefined} className={isActive('/operations/assigned-jobs') || isActive('/technician-portal') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/assigned-jobs')} onClick={closeDrawerOnMobile}>Assigned Jobs</Link>
+                <ServiceReportsNavLink className={isPrefixActive('/operations/service-reports') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/service-reports')} onClick={closeDrawerOnMobile} />
                 <Link to="/operations/track-technicians" aria-current={isActive('/operations/track-technicians') ? 'page' : undefined} className={isActive('/operations/track-technicians') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/operations/track-technicians')} onClick={closeDrawerOnMobile}>Track Technicians</Link>
                 <Link to="/service-calendar" aria-current={isActive('/service-calendar') ? 'page' : undefined} className={isActive('/service-calendar') ? 'sidebar-nav-item active' : 'sidebar-nav-item'} style={subLinkStyle('/service-calendar')} onClick={closeDrawerOnMobile}>Service Calendar</Link>
               </div>

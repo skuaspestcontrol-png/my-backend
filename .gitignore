@@ -24,3 +24,6 @@ backend/data/
 storage/data/
 !.env.example
 !**/.env.example
+
+# Service Report evidence and immutable PDF artifacts are private runtime data.
+storage/private-service-reports/
