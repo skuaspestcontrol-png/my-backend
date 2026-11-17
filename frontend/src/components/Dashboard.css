@@ -268,7 +268,7 @@ html[data-theme="dark"] .dashboard-main .dashboard-summary-panels .dashboard-sum
 }
 /* Keep the year selector's arrow readable on both purple header variants. */
 html[data-theme] .dashboard-page.dashboard-main .dashboard-summary-panels .dashboard-section-head select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cbd5e1' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-image: var(--select-chevron-on-dark) !important;
 }
 
 /* Soft Analytical charts: presentation scoped to the five dashboard panels. */
