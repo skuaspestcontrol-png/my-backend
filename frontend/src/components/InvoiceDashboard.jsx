@@ -4366,9 +4366,9 @@ export default function InvoiceDashboard() {
                     <option key={source} value={source}>{source}</option>
                   ))}
                 </select></CRMFormField>
-<CRMFormField label="Invoice#*"><div style={shell.inputWithAction}>
+<CRMFormField label="Invoice#*"><div style={{ position: 'relative' }}>
                   <input
-                    style={{ ...compactContractControlStyle, ...shell.inputMainWithButton }}
+                    style={{ ...compactContractControlStyle, paddingRight: '44px' }}
                     value={form.invoiceNumber}
                     onChange={(event) => {
                       invoiceNumberManuallyEditedRef.current = true;
@@ -4377,7 +4377,7 @@ export default function InvoiceDashboard() {
                    aria-label="Invoice Number" />
                   <button
                     type="button"
-                    style={compactContractButtonStyle}
+                    style={{ ...compactContractButtonStyle, position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', width: '28px', padding: 0, border: 'none', background: 'transparent' }}
                     onClick={openInvoiceNumberPrefs}
                     title="Configure invoice number"
                   >
