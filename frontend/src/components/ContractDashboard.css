@@ -121,3 +121,50 @@ html[data-theme][data-branding] body .contract-dashboard-page .contract-register
   overflow-wrap: anywhere;
   box-sizing: border-box;
 }
+
+@media (max-width: 768px) {
+  .contract-dashboard-page .contract-register {
+    scroll-margin-top: 64px;
+  }
+
+  .contract-dashboard-page .contract-register-sort {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 4px 8px;
+    padding: 10px 12px;
+    color: var(--ui-text);
+  }
+
+  .contract-dashboard-page .contract-register-sort label {
+    grid-column: 1 / -1;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .contract-dashboard-page .contract-register-sort select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .contract-dashboard-page .contract-register-viewport.glass-register-scroll {
+    max-height: none;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead {
+    display: none !important;
+  }
+
+  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table tbody {
+    display: grid !important;
+    gap: 8px;
+  }
+
+  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-viewport .contract-register-table tbody tr {
+    box-sizing: border-box;
+    border: 1px solid var(--ui-border);
+    border-radius: 10px !important;
+    overflow: hidden;
+  }
+}

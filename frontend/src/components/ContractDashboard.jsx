@@ -646,6 +646,7 @@ export default function ContractDashboard() {
   const hasCachedDashboard = Array.isArray(cachedDashboard?.invoices)
     && Array.isArray(cachedDashboard?.customers) && Array.isArray(cachedDashboard?.serviceSchedules);
   const hasLoadedContractsRef = useRef(hasCachedDashboard);
+  const contractRegisterRef = useRef(null);
   const [reportingDay, setReportingDay] = useState(() => toInputDate(new Date()));
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [contractSort, setContractSort] = useState(() => {
@@ -1473,6 +1474,10 @@ export default function ContractDashboard() {
       direction: current.key === columnKey && current.direction === 'asc' ? 'desc' : 'asc'
     }));
   };
+  const changeContractPage = (nextPage) => {
+    setPage(nextPage);
+    if (isMobile) contractRegisterRef.current?.scrollIntoView({ block: 'start' });
+  };
   const renderResizableHeader = (columnKey, label, extraStyle = {}) => {
     const sortable = contractSortableColumns.has(columnKey);
     const active = contractSort.key === columnKey;
@@ -2061,34 +2066,58 @@ export default function ContractDashboard() {
           </div>
         ) : null}
         {loading && hasLoadedContractsRef.current ? <div role="status" style={shell.loading}>Refreshing contracts...</div> : null}
-        <div style={{ minWidth: 0 }}>
-        <div style={tableWrapStyle} className="contract-register-viewport crm-table-shell crm-table-shell--clipped glass-register-scroll glass-surface" tabIndex={0} role="region" aria-label="Contracts table">{renderBody()}</div>
+        <div className="contract-register" ref={contractRegisterRef} style={{ minWidth: 0 }}>
+          {isMobile && sortedContracts.length > 0 ? (
+            <div className="contract-register-sort">
+              <label htmlFor="contract-sort-field">Sort by</label>
+              <select
+                id="contract-sort-field"
+                style={shell.input}
+                value={contractSort.key}
+                onChange={(event) => toggleContractSort(event.target.value)}
+              >
+                {customColumns.filter(({ key }) => visibleColumns[key] || key === contractSort.key).map(({ key, label }) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+              <select
+                aria-label="Sort direction"
+                style={shell.input}
+                value={contractSort.direction}
+                onChange={(event) => setContractSort({ ...contractSort, direction: event.target.value })}
+              >
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+              </select>
+            </div>
+          ) : null}
+          <div style={tableWrapStyle} className="contract-register-viewport crm-table-shell crm-table-shell--clipped glass-register-scroll glass-surface" tabIndex={0} role="region" aria-label="Contracts table">{renderBody()}</div>
 
-        <TablePagination style={footerStyle}>
-          <div style={shell.footText}>{firstRecord}-{lastRecord} of {sortedContracts.length} records</div>
-          <div style={pagerStyle}>
-            <button
-              type="button"
-              style={shell.pageBtn}
-              disabled={safePage <= 1}
-              onClick={() => setPage((current) => Math.max(1, current - 1))}
-              aria-label="Previous page"
-              title="Previous page"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              type="button"
-              style={shell.pageBtn}
-              disabled={safePage >= totalPages}
-              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              aria-label="Next page"
-              title="Next page"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </TablePagination>
+          <TablePagination style={footerStyle}>
+            <div style={shell.footText}>{firstRecord}-{lastRecord} of {sortedContracts.length} records</div>
+            <div style={pagerStyle}>
+              <button
+                type="button"
+                style={shell.pageBtn}
+                disabled={safePage <= 1}
+                onClick={() => changeContractPage(safePage - 1)}
+                aria-label="Previous page"
+                title="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                style={shell.pageBtn}
+                disabled={safePage >= totalPages}
+                onClick={() => changeContractPage(safePage + 1)}
+                aria-label="Next page"
+                title="Next page"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </TablePagination>
         </div>
       </div>
 
