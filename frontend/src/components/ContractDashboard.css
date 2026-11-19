@@ -41,17 +41,20 @@ html[data-theme][data-branding] body .portal-design-system .main-content .contra
   line-height: 1.4 !important;
 }
 
-/* Fit the register itself instead of clipping off the last columns. */
-.contract-dashboard-page .contract-register-viewport { container-type: inline-size; }
+/* Keep one contract per row, with scrolling contained inside the register. */
+.contract-dashboard-page .contract-register-viewport.glass-register-scroll {
+  overflow: auto !important;
+  max-height: min(62dvh, 680px);
+}
 html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table {
   display: table !important;
   width: 100% !important;
-  min-width: 0 !important;
+  min-width: var(--contract-table-min-width) !important;
   table-layout: fixed !important;
 }
 html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table :is(th, td) {
   min-width: 0 !important;
-  padding: 12px 6px !important;
+  padding: 8px 8px !important;
   white-space: normal !important;
   overflow-wrap: anywhere;
 }
@@ -71,49 +74,19 @@ html[data-theme][data-branding] body .contract-dashboard-page .contract-register
   box-sizing: border-box;
 }
 .contract-dashboard-page .contract-register-table .crm-action-chip svg { flex-shrink: 0; }
-/* Keep every value and sorting action available when a twelve-column row cannot be read comfortably. */
-@container (max-width: 1050px) {
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table,
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table :is(thead, tbody) { display: block !important; }
-  .contract-dashboard-page .contract-register-table colgroup { display: none; }
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead tr {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th {
-    display: block !important;
-    width: auto !important;
-    position: static !important;
-  }
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th:first-child,
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th:last-child { display: none !important; }
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table tbody tr {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    border-bottom: 2px solid var(--ui-border);
-  }
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table tbody td {
-    display: block !important;
-    width: auto !important;
-    position: static !important;
-    text-align: left !important;
-    border: 0 !important;
-    padding: 10px 12px !important;
-  }
-  .contract-dashboard-page .contract-register-table tbody td[data-label]::before {
-    content: attr(data-label);
-    display: block;
-    color: var(--ui-muted);
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1.4;
-    margin-bottom: 6px;
-  }
+/* Keep actions available while scrolling through the columns. */
+html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table :is(th, td):last-child {
+  position: sticky !important;
+  right: 0;
+  z-index: 1;
+  box-shadow: -1px 0 var(--ui-border);
 }
+html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th {
+  position: sticky !important;
+  top: 0;
+  z-index: 2;
+}
+html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th:last-child { z-index: 3; }
 
 .contract-dashboard-page .contract-register-table td[data-label="Status"] > * {
   max-width: 100%;
@@ -146,25 +119,4 @@ html[data-theme][data-branding] body .contract-dashboard-page .contract-register
     width: 100%;
   }
 
-  .contract-dashboard-page .contract-register-viewport.glass-register-scroll {
-    max-height: none;
-    overflow: visible !important;
-    box-shadow: none !important;
-  }
-
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead {
-    display: none !important;
-  }
-
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table tbody {
-    display: grid !important;
-    gap: 8px;
-  }
-
-  html[data-theme][data-branding] body .contract-dashboard-page .contract-register-viewport .contract-register-table tbody tr {
-    box-sizing: border-box;
-    border: 1px solid var(--ui-border);
-    border-radius: 10px !important;
-    overflow: hidden;
-  }
 }

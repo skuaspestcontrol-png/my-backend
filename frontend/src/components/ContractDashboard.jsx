@@ -1463,7 +1463,7 @@ export default function ContractDashboard() {
     const baseWidth = Math.max(columnKey === 'rowNumber' ? 50 : 80, width);
     return Math.max(baseWidth, contractColumnResizeBounds[columnKey]?.min || 0);
   };
-  // Treat stored widths as proportions, so visible columns always fit the viewport.
+  // Keep column proportions and a readable minimum width inside the scrollable register.
   const contractColumnKeys = ['rowNumber', ...customColumns.filter(column => visibleColumns[column.key]).map(column => column.key), 'actions'];
   const contractColumnWeight = contractColumnKeys.reduce((sum, key) => sum + getColumnWidth(key), 0);
   const getColumnShare = (key) => `${getColumnWidth(key) / contractColumnWeight * 100}%`;
@@ -1576,20 +1576,16 @@ export default function ContractDashboard() {
   const mobileDateInputStyle = isMobile
     ? { ...shell.input, minWidth: 0, maxWidth: '100%', display: 'block', WebkitAppearance: 'none', appearance: 'none' }
     : shell.input;
-  const tableWrapStyle = isMobile
-    ? {
-      ...shell.tableWrap,
-      overflowX: 'hidden',
-      overflowY: 'hidden',
-      WebkitOverflowScrolling: 'touch',
-      overscrollBehaviorX: 'auto',
-      touchAction: 'auto'
-    }
-    : { ...shell.tableWrap, overflowX: 'hidden', touchAction: 'auto' };
+  const tableWrapStyle = {
+    ...shell.tableWrap,
+    WebkitOverflowScrolling: 'touch',
+    overscrollBehaviorX: 'contain'
+  };
   const tableStyle = {
     ...shell.table,
-    minWidth: 0,
-    '--mobile-table-min-width': '100%'
+    minWidth: contractColumnWeight,
+    '--contract-table-min-width': `${contractColumnWeight}px`,
+    '--mobile-table-min-width': `${contractColumnWeight}px`
   };
   const mobileStackCellStyle = isMobile
     ? { flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '2px' }
