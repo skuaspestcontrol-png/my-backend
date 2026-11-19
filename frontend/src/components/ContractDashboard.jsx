@@ -646,7 +646,6 @@ export default function ContractDashboard() {
   const hasCachedDashboard = Array.isArray(cachedDashboard?.invoices)
     && Array.isArray(cachedDashboard?.customers) && Array.isArray(cachedDashboard?.serviceSchedules);
   const hasLoadedContractsRef = useRef(hasCachedDashboard);
-  const contractRegisterRef = useRef(null);
   const [reportingDay, setReportingDay] = useState(() => toInputDate(new Date()));
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [contractSort, setContractSort] = useState(() => {
@@ -1476,7 +1475,6 @@ export default function ContractDashboard() {
   };
   const changeContractPage = (nextPage) => {
     setPage(nextPage);
-    if (isMobile) contractRegisterRef.current?.scrollIntoView({ block: 'start' });
   };
   const renderResizableHeader = (columnKey, label, extraStyle = {}) => {
     const sortable = contractSortableColumns.has(columnKey);
@@ -2062,7 +2060,7 @@ export default function ContractDashboard() {
           </div>
         ) : null}
         {loading && hasLoadedContractsRef.current ? <div role="status" style={shell.loading}>Refreshing contracts...</div> : null}
-        <div className="contract-register" ref={contractRegisterRef} style={{ minWidth: 0 }}>
+        <div className="contract-register" style={{ minWidth: 0 }}>
           {isMobile && sortedContracts.length > 0 ? (
             <div className="contract-register-sort">
               <label htmlFor="contract-sort-field">Sort by</label>

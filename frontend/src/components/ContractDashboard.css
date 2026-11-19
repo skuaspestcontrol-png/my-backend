@@ -41,10 +41,12 @@ html[data-theme][data-branding] body .portal-design-system .main-content .contra
   line-height: 1.4 !important;
 }
 
-/* Keep one contract per row, with scrolling contained inside the register. */
+/* Let the page scroll vertically without a viewport-sized nested scroll area. */
 .contract-dashboard-page .contract-register-viewport.glass-register-scroll {
-  overflow: auto !important;
-  max-height: min(62dvh, 680px);
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  max-height: none !important;
+  overflow-anchor: none;
 }
 html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table {
   display: table !important;
@@ -82,11 +84,15 @@ html[data-theme][data-branding] body .contract-dashboard-page .contract-register
   box-shadow: -1px 0 var(--ui-border);
 }
 html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th {
+  position: static !important;
+  top: auto;
+  z-index: auto;
+}
+html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th:last-child {
   position: sticky !important;
-  top: 0;
+  top: auto;
   z-index: 2;
 }
-html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th:last-child { z-index: 3; }
 
 .contract-dashboard-page .contract-register-table td[data-label="Status"] > * {
   max-width: 100%;
