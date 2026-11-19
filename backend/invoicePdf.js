@@ -353,6 +353,7 @@ const resolveBillTo = (invoice = {}, customer = {}) => {
   const title = clean(customer.billingAttention) || clean(invoice.customerName) || clean(customer.displayName) || clean(customer.name) || 'Customer';
   return {
     source: clean(invoice.billingAddressSource || invoice.billing_address_source || ''),
+    addressText: clean(invoice.billingAddressText),
     title,
     attention: clean(parts.attention || title),
     street1: parts.street1,
@@ -394,6 +395,7 @@ const resolveShipTo = (invoice = {}, customer = {}) => {
     || 'Customer';
   return {
     source: clean(invoice.shippingAddressSource || invoice.shipping_address_source || ''),
+    addressText: clean(invoice.shippingAddressText),
     title,
     attention: title,
     street1: parts.street1,
@@ -510,16 +512,25 @@ const appendUniqueAddressLine = (lines, value) => {
 const addressLinesForInvoiceParty = (party = {}, options = {}) => {
   const lines = [];
 
-  appendUniqueAddressLine(lines, party.street1);
-  appendUniqueAddressLine(lines, party.street2);
-  appendUniqueAddressLine(lines, party.area);
-  const city = clean(party.city);
-  const state = clean(party.state);
-  const pincode = clean(party.pincode);
-  const cityStatePincode = city
-    ? [city, state, pincode].filter(Boolean).join(', ')
-    : [state, pincode].filter(Boolean).join(' ');
-  appendUniqueAddressLine(lines, cityStatePincode);
+  if (party.addressText) {
+    // The invoice snapshot is already formatted. Commas belong to the street,
+    // and every saved line must survive instead of being parsed into a few slots.
+    const savedLines = clean(party.addressText).split(/\r\n|\r|\n/).map(clean).filter(Boolean);
+    const headingKeys = [party.title, party.attention].map(normalizeAddressLineKey).filter(Boolean);
+    while (savedLines.length && headingKeys.includes(normalizeAddressLineKey(savedLines[0]))) savedLines.shift();
+    lines.push(...savedLines);
+  } else {
+    appendUniqueAddressLine(lines, party.street1);
+    appendUniqueAddressLine(lines, party.street2);
+    appendUniqueAddressLine(lines, party.area);
+    const city = clean(party.city);
+    const state = clean(party.state);
+    const pincode = clean(party.pincode);
+    const cityStatePincode = city
+      ? [city, state, pincode].filter(Boolean).join(', ')
+      : [state, pincode].filter(Boolean).join(' ');
+    appendUniqueAddressLine(lines, cityStatePincode);
+  }
   if (options.showGstin && party.gstin) {
     appendUniqueAddressLine(lines, `GSTIN: ${party.gstin}`);
   }
@@ -786,20 +797,31 @@ const generateInvoicePdfBuffer = async ({ invoice = {}, customer = {}, settings 
     // Bill To and Ship To
     const cardGap = 6;
     const cardW = (contentW - cardGap) / 2;
-    const cardH = 78;
+    const partyTextOptions = { width: cardW - 10, lineGap: 1 };
+    const measureParty = (party, title) => {
+      const text = addressLinesForInvoiceParty(party, { showGstin: showGstNumberInPdf }).join('\n');
+      doc.font('Helvetica-Bold').fontSize(9);
+      const addressOffset = 16 + doc.heightOfString(title, partyTextOptions) + 2;
+      doc.font('Helvetica').fontSize(9);
+      const height = addressOffset + (text ? doc.heightOfString(text, partyTextOptions) : 0) + 6;
+      return { text, addressOffset, height };
+    };
+    const billLayout = measureParty(billTo, billTo.title);
+    const shipLayout = measureParty(shipTo, shipTo.attention || shipTo.title);
+    const cardH = Math.max(78, billLayout.height, shipLayout.height);
 
     drawCell(doc, 'Bill To', left + 5, y, cardW - 5, 14, { bold: true, color: company.primaryColor, size: 9.8, border: 'none', padX: 0, padY: 1 });
     drawCell(doc, '', left, y + 14, cardW, cardH - 14, { border: 'none' });
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(billTo.title, left + 5, y + 16, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
-      .text(addressLinesForInvoiceParty(billTo, { showGstin: showGstNumberInPdf }).join('\n'), left + 5, y + 28, { width: cardW - 10, lineGap: 1 });
+      .text(billLayout.text, left + 5, y + billLayout.addressOffset, partyTextOptions);
 
     const shipX = left + cardW + cardGap;
     drawCell(doc, 'Ship To', shipX + 5, y, cardW - 5, 14, { bold: true, color: company.primaryColor, size: 9.8, border: 'none', padX: 0, padY: 1 });
     drawCell(doc, '', shipX, y + 14, cardW, cardH - 14, { border: 'none' });
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.text).text(shipTo.attention || shipTo.title, shipX + 5, y + 16, { width: cardW - 10, lineGap: 1 });
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.text)
-      .text(addressLinesForInvoiceParty(shipTo, { showGstin: showGstNumberInPdf }).join('\n'), shipX + 5, y + 28, { width: cardW - 10, lineGap: 1 });
+      .text(shipLayout.text, shipX + 5, y + shipLayout.addressOffset, partyTextOptions);
 
     y += cardH + 8;
 
