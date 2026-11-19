@@ -1894,6 +1894,7 @@ export default function ContractDashboard() {
           ))}
         </SummaryCardGrid>
 
+        {!isMobile ? (
         <div className="glass-tabs" style={quickWrapStyle}>
           <span style={quickLabelStyle}>Quick Filters:</span>
           {quickFilters.map((entry) => {
@@ -1983,6 +1984,8 @@ export default function ContractDashboard() {
             </div>
           ) : null}
         </div>
+
+        ) : null}
 
         <FilterBar className="glass-surface glass-filter-panel" data-ui="filter-bar" style={shell.filtersBox}>
           <div style={filterGridStyle}>
