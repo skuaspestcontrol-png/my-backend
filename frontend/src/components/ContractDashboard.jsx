@@ -1462,7 +1462,7 @@ export default function ContractDashboard() {
     const baseWidth = Math.max(columnKey === 'rowNumber' ? 50 : 80, width);
     return Math.max(baseWidth, contractColumnResizeBounds[columnKey]?.min || 0);
   };
-  // Keep column proportions and a readable minimum width inside the scrollable register.
+  // Fit desktop columns to the register; keep mobile columns readable while swiping.
   const contractColumnKeys = ['rowNumber', ...customColumns.filter(column => visibleColumns[column.key]).map(column => column.key), 'actions'];
   const contractColumnWeight = contractColumnKeys.reduce((sum, key) => sum + getColumnWidth(key), 0);
   const getColumnShare = (key) => `${getColumnWidth(key) / contractColumnWeight * 100}%`;
@@ -1581,8 +1581,8 @@ export default function ContractDashboard() {
   };
   const tableStyle = {
     ...shell.table,
-    minWidth: contractColumnWeight,
-    '--contract-table-min-width': `${contractColumnWeight}px`,
+    minWidth: isMobile ? contractColumnWeight : 0,
+    '--contract-table-min-width': isMobile ? `${contractColumnWeight}px` : '100%',
     '--mobile-table-min-width': `${contractColumnWeight}px`
   };
   const mobileStackCellStyle = isMobile

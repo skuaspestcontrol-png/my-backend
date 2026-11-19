@@ -84,6 +84,7 @@ html[data-theme][data-branding] body .contract-dashboard-page .contract-register
   box-shadow: -1px 0 var(--ui-border);
 }
 html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th {
+  padding: 8px 6px !important;
   position: static !important;
   top: auto;
   z-index: auto;
@@ -93,6 +94,15 @@ html[data-theme][data-branding] body .contract-dashboard-page .contract-register
   top: auto;
   z-index: 2;
 }
+
+/* Keep serial numbers visible at the left edge during horizontal scrolling. */
+html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table :is(th, td):first-child {
+  position: sticky !important;
+  left: 0;
+  z-index: 1;
+  box-shadow: 1px 0 var(--ui-border);
+}
+html[data-theme][data-branding] body .contract-dashboard-page .contract-register-table thead th:first-child { z-index: 2; }
 
 .contract-dashboard-page .contract-register-table td[data-label="Status"] > * {
   max-width: 100%;
