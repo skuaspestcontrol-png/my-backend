@@ -14657,10 +14657,8 @@ const applyRenewalFilters = (rows, query = {}) => {
   let from = query.fromDate ? parseDateOnly(query.fromDate) : null;
   let to = query.toDate ? parseDateOnly(query.toDate) : null;
   if (!from && !to) {
-    if (month !== null) {
-      from = new Date(year, month - 1, 1);
-      to = new Date(year, month, 0);
-    } else if (query.range === 'thisMonth') {
+    // Relative presets own their dates; a stale month must not override Range.
+    if (query.range === 'thisMonth') {
       from = new Date(now.getFullYear(), now.getMonth(), 1);
       to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     } else if (query.range === 'nextMonth') {
@@ -14669,12 +14667,12 @@ const applyRenewalFilters = (rows, query = {}) => {
     } else if (query.range === 'threeMonths') {
       from = now;
       to = addMonthsClamped(now, 3);
-    } else if (query.range === 'custom') {
+    } else if (query.range === 'year' || (query.range === 'custom' && month === null)) {
       from = new Date(year, 0, 1);
       to = new Date(year, 11, 31);
-    } else if (query.range === 'year') {
-      from = new Date(year, 0, 1);
-      to = new Date(year, 11, 31);
+    } else if (month !== null) {
+      from = new Date(year, month - 1, 1);
+      to = new Date(year, month, 0);
     }
   }
   const search = String(query.search || '').trim().toLowerCase();
@@ -14688,15 +14686,30 @@ const applyRenewalFilters = (rows, query = {}) => {
   })[searchScope] || searchScope;
   const status = String(query.status || '').trim();
   const assigned = String(query.assignedSalesPersonId || '').trim();
+  const normalizeSalesName = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const assignedIds = new Set(assigned ? [assigned] : []);
+  try {
+    const aliases = JSON.parse(query.assignedSalesPersonIds || '[]');
+    if (Array.isArray(aliases)) aliases.filter((value) => typeof value === 'string' || typeof value === 'number').forEach((value) => assignedIds.add(String(value).trim()));
+  } catch { /* Older clients send only the selected ID or name. */ }
+  const assignedNames = new Set([assigned, query.assignedSalesPersonName].map(normalizeSalesName).filter(Boolean));
+  const normalizeFilterStatus = (value) => ({ won: 'won', renewed: 'won', done: 'won', lost: 'lost', declined: 'lost' })[String(value || '').trim().toLowerCase()] || String(value || '').trim().toLowerCase();
   const relationshipType = String(query.relationshipType || '').trim().toUpperCase();
   const serviceType = String(query.serviceType || '').trim().toLowerCase();
   const durationFilter = String(query.duration || '').trim().toLowerCase();
   return rows.filter((row) => {
-    const due = parseDateOnly(row.renewalDueDate);
+    const due = parseDateOnly(row.renewalDueDate || row.previousContractEnd);
+    if ((from || to) && !due) return false;
     if (from && due && due < from) return false;
     if (to && due && due > to) return false;
-    if (status && status !== 'All' && row.status !== status) return false;
-    if (assigned && String(row.assignedSalesPersonId || '') !== assigned && String(row.assignedSalesPersonName || '') !== assigned) return false;
+    if (status && status.toLowerCase() !== 'all' && normalizeFilterStatus(row.status) !== normalizeFilterStatus(status)) return false;
+    if (assigned) {
+      const rowId = String(row.assignedSalesPersonId || '').trim();
+      const rowName = normalizeSalesName(row.assignedSalesPersonName);
+      const idMatch = rowId && assignedIds.has(rowId);
+      const nameOnly = !rowId || normalizeSalesName(rowId) === rowName;
+      if (!idMatch && !(nameOnly && assignedNames.has(rowName))) return false;
+    }
     if (relationshipType && relationshipType !== 'ALL' && normalizeRenewalRelationshipType(row.serviceRelationshipType) !== relationshipType) return false;
     if (durationFilter) {
       const value = toNumber(row.contractDurationValue, 0);
@@ -14717,6 +14730,7 @@ const applyRenewalFilters = (rows, query = {}) => {
           row.serviceType,
           row.assignedSalesPersonName,
           row.status,
+          normalizeFilterStatus(row.status),
           row.renewalId,
           row.renewalDisplayId,
           row.contractId,
@@ -14729,7 +14743,7 @@ const applyRenewalFilters = (rows, query = {}) => {
         area: [row.areaName, row.address],
         service: [row.serviceType],
         salesperson: [row.assignedSalesPersonName],
-        status: [row.status],
+        status: [row.status, normalizeFilterStatus(row.status)],
         renewalid: [row.renewalId, row.renewalDisplayId, row.contractId, row.invoiceNumber],
         followup: [row.lastFollowupNote, row.followupDate]
       };
@@ -16302,7 +16316,6 @@ app.get('/api/renewals/letters', async (req, res) => {
           GROUP BY renewal_id
         ) latest ON latest.latest_id = rl.id
         ORDER BY conclude_date ASC, rl.generated_at ASC, rl.id ASC
-        LIMIT 200
       `);
       const normalized = (Array.isArray(rows) ? rows : []).map((row) => {
         const { letter_payload: letterPayload, ...letterRow } = row;
@@ -16316,6 +16329,7 @@ app.get('/api/renewals/letters', async (req, res) => {
         const agreedContractAmount = current?.agreedContractAmount ?? row.renewal_agreed_contract_amount ?? row.renewal_final_renewal_amount;
         const finalRenewalAmount = current?.finalRenewalAmount ?? row.renewal_final_renewal_amount;
         return {
+          ...current,
           ...letterRow,
           letterDate: parseMysqlPayloadObject(letterPayload)?.letterDate || '',
           renewalId,

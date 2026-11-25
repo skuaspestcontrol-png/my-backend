@@ -1,5 +1,6 @@
 import SalesTeamComboChart from './dashboard/SalesTeamComboChart';
 import DashboardPeriodControls from './dashboard/DashboardPeriodControls';
+import { PageHeaderTitle } from './ui/PageHeader';
 import { buildContractLeadSourceSeries } from '../utils/contractLeadSources';
 import { shouldAutoRefresh } from '../hooks/autoRefreshPolicy';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -837,12 +838,9 @@ export default function Dashboard() {
   };
   return (
     <div className="dashboard-page dashboard-main" style={shell.page}>
-      <section className="hero-section command-center">
+      <section className="hero-section command-center portal-page-toolbar portal-page-toolbar--flush">
         <div>
-          <h1 style={{ ...shell.title, color: 'var(--text-primary)' }}>{companyName}</h1>
-          <p className="dashboard-tagline" style={taglineStyle}>
-            {aboutTagline}
-          </p>
+          <PageHeaderTitle title={companyName} subtitle={aboutTagline} />
         </div>
 
           <DashboardPeriodControls month={monthlyPeriod.month} year={monthlyPeriod.year} years={monthlyYearOptions}
@@ -851,33 +849,33 @@ export default function Dashboard() {
       </section>
 
       <section className="stats-grid dashboard-grid">
-        <div className="dashboard-metric-card">
+        <div className="portal-metric-card dashboard-metric-card">
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Leads</p><span className="dashboard-icon dashboard-icon-purple"><Users size={20} /></span></div>
           <p className="dashboard-kpi-value" style={metricValueStyle}>{topCards.leadsCount}</p>
           <p className="dashboard-kpi-support" style={metricSubStyle}>Total leads</p>
         </div>
-        <div className="dashboard-metric-card">
+        <div className="portal-metric-card dashboard-metric-card">
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Customers</p><span className="dashboard-icon dashboard-icon-blue"><ContactRound size={20} /></span></div>
           <p className="dashboard-kpi-value" style={metricValueStyle}>{topCards.customersCount}</p>
           <p className="dashboard-kpi-support" style={metricSubStyle}>Active customers</p>
         </div>
-        <div className="dashboard-metric-card">
+        <div className="portal-metric-card dashboard-metric-card">
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Employees</p><span className="dashboard-icon dashboard-icon-teal"><BriefcaseBusiness size={20} /></span></div>
           <p className="dashboard-kpi-value" style={metricValueStyle}>{topCards.employeesCount}</p>
           <p className="dashboard-kpi-support" style={metricSubStyle}>Workforce</p>
         </div>
-        <div className="dashboard-metric-card">
+        <div className="portal-metric-card dashboard-metric-card">
           <div className="dashboard-metric-heading"><p style={metricLabelStyle}>Invoices Value</p><span className="dashboard-icon dashboard-icon-amber"><Receipt size={20} /></span></div>
           <p className="dashboard-kpi-value" style={metricValueStyle}>{formatCurrency(topCards.invoicesTotalAmount)}</p>
           <p className="dashboard-kpi-support" style={metricSubStyle}>{topCards.invoicesCount} invoices</p>
         </div>
-        <div className="dashboard-metric-card dashboard-finance-card">
+        <div className="portal-metric-card dashboard-metric-card dashboard-finance-card">
           <span className="dashboard-icon dashboard-icon-green" aria-hidden="true">₹</span>
           <div><p style={metricLabelStyle}>Receivables</p>
             <p className="dashboard-kpi-value" style={metricValueStyle}>{formatCurrency(analytics.totalReceivables)}</p>
             <p className="dashboard-kpi-support" style={metricSubStyle}>Pending payments</p></div>
         </div>
-        <div className="dashboard-metric-card dashboard-finance-card">
+        <div className="portal-metric-card dashboard-metric-card dashboard-finance-card">
           <span className="dashboard-icon dashboard-icon-rose"><ArrowUpRight size={20} aria-hidden="true" /></span>
           <div><p style={metricLabelStyle}>Payables</p>
             <p className="dashboard-kpi-value" style={metricValueStyle}>{formatCurrency(analytics.totalPayables)}</p>

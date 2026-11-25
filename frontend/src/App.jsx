@@ -178,6 +178,7 @@ const purchasePaymentReceivedPage = <VendorPaymentDashboard />;
 
 const whatsappPage = (
   <ModuleWorkspace
+    variant="glass"
     badge="Campaign Desk"
     title="WhatsApp Marketing Workspace"
     description="Organize campaign batches, remarketing followups, and customer communication sequences in one communication hub."
@@ -206,6 +207,7 @@ const complaintsPage = <ComplaintsDashboard />;
 
 const certificatesPage = (
   <ModuleWorkspace
+    variant="glass"
     badge="Compliance"
     title="Certificates Workspace"
     description="Manage service certificates, treatment proof, and client-facing documentation after jobs are completed."

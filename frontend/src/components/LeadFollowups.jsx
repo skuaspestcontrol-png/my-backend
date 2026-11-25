@@ -2,7 +2,9 @@ import { formatPortalDate } from '../utils/portalDateTime';
 import StatusBadge from './ui/StatusBadge';
 import '../styles/glassContent.css';
 import * as GlassIcons from 'lucide-react';
-import { SummaryCardGrid } from './ui/PortalPrimitives';
+import { SummaryCardGrid, TableViewport, TablePagination, TabBar, LoadingState } from './ui/PortalPrimitives';
+import AppCard from './ui/AppCard';
+import EmptyState from './ui/EmptyState';
 import DashboardStatCard from './ui/DashboardStatCard';
 import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -79,7 +81,7 @@ const shell = {
   th: { background: 'var(--color-primary-light)', color: 'var(--color-muted)', fontSize: '11px', fontWeight: 800, textAlign: 'left', padding: '11px 14px', borderBottom: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.03em', position: 'relative', whiteSpace: 'normal', overflow: 'visible', textOverflow: 'clip', minHeight: '38px', height: 'auto', lineHeight: 1.25 },
   leadTh: { paddingLeft: '8px', paddingRight: '8px' },
   sortBtn: { width: '100%', minWidth: 0, border: 'none', background: 'transparent', color: 'inherit', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', cursor: 'pointer' },
-  sortLabel: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal', fontSize: '11px', lineHeight: 1.2 },
+  sortLabel: { minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal', fontSize: 'inherit', lineHeight: 1.2 },
   sortIcon: { flexShrink: 0, opacity: 0.72 },
   td: { padding: '12px 14px', borderBottom: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: '13px', fontWeight: 650 },
   leadTd: { paddingLeft: '8px', paddingRight: '8px' },
@@ -411,7 +413,7 @@ export default function LeadFollowups() {
   ];
 
   return (
-    <div className="lead-followups-page glass-content glass-sales-content" style={shell.page}>
+    <div className="lead-followups-page glass-content glass-sales-content glass-refined" style={shell.page}>
       <div className="portal-page-toolbar glass-header" data-page-toolbar="true" style={shell.header}>
         <div>
           <PageHeaderTitle title="Lead Follow-ups" subtitle="Track and manage all your lead follow-up activities" icon={GlassIcons.PhoneCall} />
@@ -430,23 +432,23 @@ export default function LeadFollowups() {
       {!isMobile ? (
         <div className="glass-surface glass-filter-panel glass-filter-grid" style={filterStyle}>
           <div>
-            <label style={shell.label}>From Date</label>
-            <input type="date" style={shell.input} value={draftFilters.fromDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, fromDate: event.target.value }))} />
+            <label htmlFor="followup-fromDate" style={shell.label}>From Date</label>
+            <input id="followup-fromDate" type="date" style={shell.input} value={draftFilters.fromDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, fromDate: event.target.value }))} />
           </div>
           <div>
-            <label style={shell.label}>To Date</label>
-            <input type="date" style={shell.input} value={draftFilters.toDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, toDate: event.target.value }))} />
+            <label htmlFor="followup-toDate" style={shell.label}>To Date</label>
+            <input id="followup-toDate" type="date" style={shell.input} value={draftFilters.toDate} onChange={(event) => setDraftFilters((prev) => ({ ...prev, toDate: event.target.value }))} />
           </div>
           <div>
-            <label style={shell.label}>Assigned To</label>
-            <select style={shell.input} value={draftFilters.assignedTo} onChange={(event) => setDraftFilters((prev) => ({ ...prev, assignedTo: event.target.value }))}>
+            <label htmlFor="followup-assignedTo" style={shell.label}>Assigned To</label>
+            <select id="followup-assignedTo" style={shell.input} value={draftFilters.assignedTo} onChange={(event) => setDraftFilters((prev) => ({ ...prev, assignedTo: event.target.value }))}>
               <option value={ALL_VALUE}>All</option>
               {assignedOptions.map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
           </div>
           <div>
-            <label style={shell.label}>Urgency</label>
-            <select style={shell.input} value={draftFilters.urgency} onChange={(event) => setDraftFilters((prev) => ({ ...prev, urgency: event.target.value }))}>
+            <label htmlFor="followup-urgency" style={shell.label}>Urgency</label>
+            <select id="followup-urgency" style={shell.input} value={draftFilters.urgency} onChange={(event) => setDraftFilters((prev) => ({ ...prev, urgency: event.target.value }))}>
               <option value={ALL_VALUE}>All</option>
               {['Overdue', 'Today', 'High', 'This Week', 'Upcoming'].map((name) => <option key={name} value={name}>{name}</option>)}
             </select>
@@ -470,7 +472,7 @@ export default function LeadFollowups() {
         </div>
       ) : null}
 
-      <div className="glass-tabs" style={tabsStyle}>
+      <TabBar revealFocusedTab style={shell.tabs}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.key;
@@ -496,15 +498,11 @@ export default function LeadFollowups() {
             </button>
           );
         })}
-      </div>
+      </TabBar>
 
-        <div className="glass-surface glass-register-panel" style={shell.tableCard}>
-          <div className="glass-register-head" style={shell.tableTitle}>
-            Follow-ups
-            <span style={shell.badge}>{tabRows.length}</span>
-          </div>
-        <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell glass-register-scroll">
-          <table style={tableStyle} className="crm-compact-table crm-stack-mobile lead-followups-table portal-data-table">
+        <AppCard className="glass-surface glass-table-panel" bodyStyle={{ padding: 0 }} title={<span className="glass-panel-title">Follow-ups <small>{tabRows.length} records</small></span>}>
+        <TableViewport label="Lead follow-ups records" aria-busy={loading} className="crm-table-shell" style={shell.tableWrap}>
+          <table style={tableStyle} className="crm-compact-table portal-data-table">
             <colgroup>
               {followupColumns.map((column) => (
                 <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -519,10 +517,10 @@ export default function LeadFollowups() {
               {paginatedRows.map((lead) => (
                 <tr key={lead._id || `${lead.customerName}-${lead.followupDate}`}>
                   <td style={{ ...shell.td, ...shell.leadTd }} data-label="Lead"><span className="crm-cell-wrap">{lead._id || '-'}</span></td>
-                  <td style={shell.td} className="lead-followups-customer-cell" data-label="Customer">
-                    <div className="lead-followups-customer-stack">
-                      <span className="crm-table-primary crm-cell-wrap">{lead.customerName || lead.displayName || '-'}</span>
-                      <span className="crm-table-muted">{getLeadMobile(lead) || '-'}</span>
+                  <td style={shell.td} className="glass-record-cell" data-label="Customer">
+                    <div className="glass-record-copy">
+                      <span className="glass-record-label">{lead.customerName || lead.displayName || '-'}</span>
+                      <span className="glass-record-meta">{getLeadMobile(lead) || '-'}</span>
                     </div>
                   </td>
                   <td style={shell.td} data-label="Status"><StatusBadge status={lead.status || lead.leadStatus || 'info'}>{lead.status || lead.leadStatus || '-'}</StatusBadge></td>
@@ -545,15 +543,11 @@ export default function LeadFollowups() {
           </table>
           {paginatedRows.length === 0 ? (
             <div style={shell.empty}>
-              <div style={{ textAlign: 'center' }}>
-                <Smile size={24} />
-                <div style={{ marginTop: '8px' }}>No follow-ups found for this filter</div>
-              </div>
+              {loading ? <LoadingState message="Loading follow-ups…" /> : <EmptyState title="No follow-ups found for this filter" />}
             </div>
           ) : null}
-        </div>
-        <div style={paginationStyle}>
-          <div style={shell.paginationInfo}>{paginationText}</div>
+        </TableViewport>
+        <TablePagination variant="glass" summary={paginationText} currentPage={safePage} totalPages={totalPages} style={paginationStyle}>
           <div style={paginationActionsStyle}>
             <button
               type="button"
@@ -576,8 +570,8 @@ export default function LeadFollowups() {
               <ChevronRight size={16} />
             </button>
           </div>
-        </div>
-      </div>
+        </TablePagination>
+      </AppCard>
     </div>
   );
 }

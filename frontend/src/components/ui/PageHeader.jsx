@@ -10,8 +10,8 @@ export function PageHeaderTitle({ title, subtitle, icon, kind, titleStyle, subti
   </div>;
 }
 
-export default function PageHeader({ title, subtitle, action, titleStyle, subtitleStyle, icon, kind }) {
-  return <div className="crm-page-header portal-page-header portal-page-toolbar portal-page-toolbar--flush">
+export default function PageHeader({ title, subtitle, action, titleStyle, subtitleStyle, icon, kind, variant }) {
+  return <div className={`crm-page-header portal-page-header portal-page-toolbar ${variant === 'glass' ? 'glass-header' : 'portal-page-toolbar--flush'}`}>
     <PageHeaderTitle title={title} subtitle={subtitle} icon={icon} kind={kind} titleStyle={titleStyle} subtitleStyle={subtitleStyle} />
     {action ? <div className="crm-page-header-action">{action}</div> : null}
   </div>;

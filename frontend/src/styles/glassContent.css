@@ -176,3 +176,235 @@ html[data-theme][data-branding] body .portal-design-system .glass-sales-content 
 .glass-sales-content .portal-status-badge:is([data-status="upcoming"],[data-status="draft"],[data-status="warm"],[data-status="hot"]) { background: var(--status-pending-bg) !important; color: var(--status-pending-text) !important; -webkit-text-fill-color: currentColor !important; }
 /* Dialogs respect the overlay's available width on compact mobile screens. */
 html[data-theme][data-branding] body .crm-modal-surface.glass-dialog { box-sizing: border-box; max-width: min(100%, calc(100vw - 28px)) !important; }
+
+/* Four-page visual-acceptance pilot. Shared tokens, explicitly opted in by each page. */
+.glass-refined, .glass-refined-dialog {
+  --glass-radius: 16px;
+  --glass-radius-sm: 8px;
+  --glass-gap: 12px;
+  --glass-field-height: 38px;
+  --glass-pager-size: 32px;
+  --glass-row-height: 44px;
+  --glass-type-body: 13px;
+  --glass-type-label: 12px;
+  --glass-surface-fill: linear-gradient(120deg, color-mix(in srgb, var(--ui-action-soft) 65%, var(--ui-card)), color-mix(in srgb, var(--ui-glass) 35%, var(--ui-card)) 74%, var(--ui-card));
+  --glass-fine-border: color-mix(in srgb, var(--ui-link) 19%, var(--ui-border));
+  --glass-soft-shadow: 0 5px 18px rgb(23 62 119 / 7%);
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined {
+  gap: var(--glass-gap) !important;
+  background: radial-gradient(ellipse at 100% 0%,color-mix(in srgb,var(--ui-action-soft) 70%,transparent),transparent 65%) !important;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined :is(.glass-header,.glass-surface) {
+  border: 1px solid var(--glass-fine-border) !important;
+  border-radius: var(--glass-radius) !important;
+  background: var(--glass-surface-fill) !important;
+  box-shadow: var(--glass-soft-shadow) !important;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-header {
+  padding: 16px 18px !important;
+}
+.glass-refined .glass-header > :first-child { justify-self: start; }
+.glass-refined .glass-page-actions, .glass-refined .glass-table-toolbar { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; min-width: 0; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-page-icon {
+  border: 1px solid var(--glass-fine-border); border-radius: 12px;
+  background: linear-gradient(140deg,var(--ui-action-soft),var(--ui-card)); color: var(--ui-action);
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .crm-card-header {
+  padding: 12px 16px !important; min-height: 52px; box-sizing: border-box;
+  background: transparent !important; color: var(--ui-text) !important;
+  border-bottom: 1px solid var(--glass-fine-border) !important;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .crm-card-header h3 {
+  font-size: 15px !important; font-weight: 650; letter-spacing: -.015em; color: var(--ui-text) !important;
+}
+.glass-refined .glass-panel-title { gap: 8px; font-size: 15px; font-weight: 650; }
+.glass-refined .glass-panel-title > svg { box-sizing: content-box; padding: 7px; background: var(--ui-action-soft); border-radius: 9px; }
+.glass-refined .glass-summary-grid { gap: var(--glass-gap) !important; }
+.glass-refined .glass-summary-card .crm-card-body { padding: 14px !important; display: flex; align-items: center; height: 100%; box-sizing: border-box; }
+.glass-refined .glass-summary-layout { min-height: 58px; width: 100%; gap: 11px; }
+.glass-refined .glass-summary-icon { width: 42px; height: 46px; flex-basis: 42px; border-radius: 12px; }
+.glass-refined .glass-summary-value { font-size: clamp(21px,1.7vw,26px); font-weight: 750; font-variant-numeric: tabular-nums; }
+.glass-refined .glass-summary-label { font-size: 12px; font-weight: 550; line-height: 1.35; text-transform: none !important; letter-spacing: 0 !important; }
+.glass-refined .glass-summary-hint { font-size: 12px; line-height: 1.4; }
+html[data-theme][data-branding] body .portal-design-system .glass-refined .glass-clickable-metric {
+  background: var(--glass-surface-fill) !important; border-color: var(--glass-fine-border) !important;
+  border-radius: var(--glass-radius) !important; padding: 14px !important; box-shadow: var(--glass-soft-shadow) !important;
+}
+.glass-refined .glass-filter-panel .crm-card-body { padding: 12px 16px !important; }
+.glass-refined .glass-field-label { font-size: var(--glass-type-label); margin-bottom: 6px; font-weight: 550; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined :is(.glass-filter-panel,.glass-form-section) :is(label,[data-ui="field-label"]) {
+  color: var(--ui-muted); font-size: var(--glass-type-label); letter-spacing: .015em;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined :is(.glass-filter-panel,.glass-form-section) :is(input,select,textarea):not([type="checkbox"],[type="radio"]) {
+  min-height: var(--glass-field-height) !important; border-radius: var(--glass-radius-sm) !important; font-size: var(--glass-type-body) !important;
+  border-color: var(--glass-fine-border) !important; box-shadow: 0 1px 2px rgb(23 62 119 / 2%);
+}
+.glass-refined .glass-filter-panel .glass-search-control { min-height: var(--glass-field-height); border-radius: var(--glass-radius-sm) !important; border: 1px solid var(--glass-fine-border) !important; background: var(--ui-card) !important; box-shadow: none !important; }
+.glass-refined .glass-search-control input { border: 0 !important; box-shadow: none !important; background: transparent !important; }
+.glass-refined .glass-form-section > .crm-card-body { padding: 14px 16px !important; }
+.glass-refined .glass-form-section .crm-form-actions { margin: 0; padding: 12px 0 0 !important; border-top: 1px solid var(--glass-fine-border); }
+.glass-refined .glass-table-frame { min-width: 0; max-width: 100%; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-table-viewport {
+  width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; overflow: auto !important;
+  max-height: min(68dvh,720px); margin: 0 !important; border: 0 !important; border-radius: 0 !important;
+  scrollbar-color: color-mix(in srgb,var(--ui-link) 24%,var(--ui-border)) transparent; scrollbar-width: auto;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-table-viewport .portal-data-table {
+  border-collapse: separate !important; border-spacing: 0; margin: 0; color: var(--ui-text);
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table thead th {
+  background: linear-gradient(180deg,color-mix(in srgb,var(--ui-link) 13%,var(--ui-navy)),var(--ui-navy)) !important;
+  position: sticky !important; top: 0; z-index: 2; min-height: 40px; padding: 12px !important;
+  font-size: var(--glass-type-label) !important; font-weight: 600 !important; letter-spacing: .015em !important;
+  text-transform: none !important; border-bottom: 1px solid var(--ui-border) !important;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table tbody td {
+  height: var(--glass-row-height); box-sizing: border-box; padding: 8px 12px !important;
+  font-size: var(--glass-type-body) !important; font-weight: 450; line-height: 1.45 !important;
+  background: var(--ui-card) !important; color: var(--ui-text) !important;
+  border-bottom: 1px solid color-mix(in srgb,var(--glass-fine-border) 65%,var(--ui-card)) !important;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table tbody tr:nth-child(even) > td { background: color-mix(in srgb,var(--ui-action-soft) 20%,var(--ui-card)) !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table tbody tr:hover > td { background: var(--table-row-hover) !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table tbody tr:has(input[type="checkbox"]:checked) > td { background: var(--ui-action-soft) !important; color: var(--ui-text) !important; }
+.glass-refined .portal-data-table :is(td,th)[data-column="amount"], .glass-refined .portal-data-table :is(td,th)[data-column="balanceDue"], .glass-refined .portal-data-table [data-value-kind="numeric"], .glass-refined .portal-data-table .table-number-cell { text-align: right !important; font-variant-numeric: tabular-nums; }
+.glass-refined .portal-data-table input[type="checkbox"] { width: 16px !important; height: 16px !important; margin: 0; vertical-align: middle; accent-color: var(--ui-action); }
+.glass-refined .portal-data-table .glass-record-label, .glass-refined .portal-data-table .crm-table-primary { font-weight: 600; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table tbody button {
+  min-height: 30px; border: 1px solid var(--glass-fine-border) !important; border-radius: var(--glass-radius-sm) !important;
+  background: var(--ui-card) !important; box-shadow: none !important; font-size: var(--glass-type-label) !important;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table tbody button:not(.glass-row-action--danger) { color: var(--ui-link) !important; -webkit-text-fill-color: currentColor !important; }
+.glass-refined .portal-data-table tbody button:not(:disabled):hover { background: var(--ui-action-soft) !important; border-color: var(--ui-link) !important; }
+.glass-refined .portal-status-badge { border: 1px solid color-mix(in srgb,currentColor 12%,transparent); border-radius: 7px; min-height: 24px; padding: 0 9px; font-size: 10.5px !important; font-weight: 600; }
+.glass-refined .portal-status-badge:is([data-status="in stock"],[data-status="paid"],[data-status="won"],[data-status="done"]) { background: var(--status-active-bg) !important; color: var(--status-active-text) !important; }
+.glass-refined .portal-status-badge:is([data-status="low stock"],[data-status="upcoming"],[data-status="open"],[data-status="unpaid"]) { background: var(--status-pending-bg) !important; color: var(--status-pending-text) !important; }
+.glass-refined .portal-status-badge:is([data-status="out of stock"],[data-status="expired"],[data-status="lost"],[data-status="declined"]) { background: var(--status-danger-bg) !important; color: var(--status-danger-text) !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-table-footer {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px;
+  min-height: 56px; padding: 10px 16px !important; box-sizing: border-box;
+  border-top: 1px solid var(--glass-fine-border) !important; border-radius: 0 0 var(--glass-radius) var(--glass-radius) !important;
+  background: var(--glass-surface-fill) !important; box-shadow: none !important; color: var(--ui-muted) !important;
+}
+.glass-footer-summary { min-width: 0; font-size: 12px; font-weight: 500; line-height: 1.5; }
+.glass-footer-navigation { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 12px; min-width: 0; }
+.glass-page-position { display: inline-flex; align-items: center; gap: 6px; font-size: var(--glass-type-label); color: var(--ui-muted); white-space: nowrap; }
+.glass-page-position strong { display: inline-flex; justify-content: center; align-items: center; min-width: 28px; height: 30px; padding: 0 5px; box-sizing: border-box; border: 1px solid var(--glass-fine-border); border-radius: 7px; background: var(--ui-action-soft); color: var(--ui-link); font-weight: 650; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-table-footer button { width: var(--glass-pager-size) !important; min-width: var(--glass-pager-size) !important; height: var(--glass-pager-size) !important; min-height: var(--glass-pager-size) !important; padding: 0 !important; border: 1px solid var(--glass-fine-border) !important; border-radius: 8px !important; box-shadow: none !important; background: var(--ui-card) !important; color: var(--ui-link) !important; }
+.glass-refined .glass-table-footer button:disabled { opacity: .4; cursor: not-allowed; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-tabs {
+  background: var(--glass-surface-fill) !important; flex-wrap: nowrap !important; overflow-x: auto !important; max-width: 100%; border: 0 !important; border-bottom: 1px solid var(--glass-fine-border) !important;
+  padding: 10px 12px; border-radius: var(--glass-radius) var(--glass-radius) 0 0; gap: 7px;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-tabs > button { font-size: 12px !important; font-weight: 600; flex: 0 0 auto !important; width: auto !important; min-width: max-content !important; white-space: nowrap; min-height: 34px; border: 1px solid var(--glass-fine-border) !important; box-shadow: none !important; background: var(--ui-card) !important; color: var(--ui-muted) !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-tabs > button[aria-pressed="true"] { background: var(--ui-action) !important; border-color: var(--ui-action) !important; color: white !important; }
+.glass-refined .portal-empty-state, .glass-refined-dialog .portal-empty-state { padding: 28px 18px; text-align: center; color: var(--ui-muted); }
+.glass-refined .portal-empty-state h4 { font-size: 14px; font-weight: 600; }
+html[data-theme][data-branding] body .glass-refined-dialog :is(.skuas-form-section,.glass-detail-section,.crm-wizard-review section) { background: var(--ui-card) !important; border: 1px solid var(--glass-fine-border) !important; border-radius: 12px !important; box-shadow: none !important; }
+html[data-theme][data-branding] body .glass-refined-dialog .skuas-form-section h4 { background: transparent !important; color: var(--ui-text) !important; font-size: 14px !important; font-weight: 600; }
+html[data-theme][data-branding] body .glass-refined-dialog :is(input,select,textarea):not([type="checkbox"],[type="radio"],[type="hidden"]) { border-color: var(--glass-fine-border) !important; border-radius: var(--glass-radius-sm) !important; font-size: 13px !important; }
+.glass-refined :focus-visible, .glass-refined-dialog :focus-visible { outline: 2px solid var(--ui-link); outline-offset: 2px; }
+.glass-refined .glass-table-viewport:focus-visible { outline-offset: -2px; }
+@media (max-width: 600px) {
+  .glass-refined { --glass-gap: 12px; --glass-type-body: 13px; --glass-field-height: 40px; --glass-pager-size: 40px; }
+  .glass-refined .glass-summary-layout { min-height: 58px; gap: 8px; }
+  .glass-refined .glass-summary-icon { width: 32px; height: 36px; flex-basis: 32px; }
+  .glass-refined .glass-summary-card .crm-card-body { padding: 12px !important; }
+  .glass-refined .glass-summary-value { font-size: 20px; }
+  .glass-refined .glass-summary-label { font-size: 12px; }
+  .glass-refined .glass-summary-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; gap: 10px !important; }
+  .glass-refined .glass-page-actions { justify-content: flex-start; }
+  .glass-refined .glass-footer-navigation { justify-content: flex-end; width: 100%; }
+  .glass-refined .glass-table-footer { gap: 7px; }
+  .glass-refined .glass-tabs { gap: 6px; }
+  .glass-refined .glass-tabs > button { flex: 1 1 auto; }
+}
+@media print {
+  .glass-refined .glass-table-viewport { max-height: none !important; overflow: visible !important; }
+  .glass-refined .glass-table-viewport thead th { position: static !important; }
+}
+
+.glass-refined .portal-data-table th:is([data-column="amount"],[data-column="balanceDue"],[data-value-kind="numeric"]) > button { justify-content: flex-end !important; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table tbody .glass-row-action--danger { color: var(--status-danger-text) !important; -webkit-text-fill-color: currentColor !important; }
+.glass-refined .portal-state--error { margin: 12px 16px; padding: 10px 12px; border: 1px solid color-mix(in srgb,var(--status-danger-text) 18%,var(--ui-border)); border-radius: var(--glass-radius-sm); background: var(--status-danger-bg); color: var(--status-danger-text); font-size: 12px; }
+
+@media (max-width: 600px) {
+  html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-data-table tbody button { min-width: 36px !important; min-height: 36px !important; }
+}
+
+.glass-refined .glass-report-panel { padding: 0; overflow: hidden; }
+.glass-refined .glass-report-panel > div { padding: 14px 16px !important; }
+.glass-refined-dialog .glass-detail-tabs { padding: 10px 14px !important; border-bottom: 1px solid var(--glass-fine-border); background: var(--ui-elevated); }
+.glass-refined-dialog .glass-detail-tabs button { min-height: 34px; border-radius: var(--glass-radius-sm) !important; font-size: 12px !important; box-shadow: none !important; }
+
+/* Shared foreground treatment must also replace legacy white text-fill on light form headers. */
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .crm-card-header :is(h1,h2,h3,h4,p,span,svg) {
+  color: var(--ui-text) !important; -webkit-text-fill-color: currentColor !important; opacity: 1;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .crm-card-header {
+  background: linear-gradient(110deg,var(--ui-action-soft),var(--ui-card)) !important;
+}
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-form-section .crm-form-label {
+  color: var(--ui-text) !important; -webkit-text-fill-color: currentColor !important; font-size: 12px !important; font-weight: 550;
+}
+.glass-refined .glass-summary-value { letter-spacing: -.025em; line-height: 1.2; }
+.glass-refined .glass-summary-copy { gap: 5px; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-filter-panel :is(label,.glass-field-label) { color: var(--ui-text) !important; -webkit-text-fill-color: currentColor !important; font-weight: 550; }
+.glass-refined .glass-table-scroll-hint { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-top: 1px solid var(--glass-fine-border); background: var(--ui-elevated); color: var(--ui-muted); font-size: var(--glass-type-label); line-height: 1.45; }
+.glass-refined .glass-table-scroll-hint > span { color: var(--ui-link); font-size: 17px; line-height: 1; }
+.glass-refined .glass-table-viewport { overscroll-behavior-inline: contain; }
+@media print { .glass-table-scroll-hint { display: none !important; } }
+/* Balance five-card summaries at medium widths without leaving a lone card and empty columns. */
+@media (min-width: 601px) and (max-width: 1200px) {
+  .glass-refined .glass-summary-grid:has(> :nth-child(5):last-child) { grid-template-columns: repeat(6,minmax(0,1fr)) !important; }
+  .glass-refined .glass-summary-grid:has(> :nth-child(5):last-child) > * { grid-column: span 2; }
+  .glass-refined .glass-summary-grid:has(> :nth-child(5):last-child) > :nth-child(n+4) { grid-column: span 3; }
+}
+
+/* Compact shared inline forms: aligned labels, consistent row rhythm, no nested scroll. */
+.glass-refined .glass-form-section .crm-inline-form > div:first-child { column-gap: 14px !important; row-gap: 10px !important; align-items: start; }
+.glass-refined .glass-form-section .crm-form-row { display: flex; flex-direction: column; gap: 5px; margin: 0; min-width: 0; }
+.glass-refined .glass-form-section .crm-form-label { margin: 0 !important; line-height: 1.4; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .portal-page-heading p { font-size: 13px !important; line-height: 1.5; }
+@media (max-width: 600px) {
+  .glass-refined .glass-summary-layout { align-items: flex-start; }
+  .glass-refined .glass-form-section .crm-inline-form > div:first-child { row-gap: 12px !important; }
+  html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined :is(.glass-filter-panel,.glass-form-section) :is(input,select,textarea):not([type="checkbox"],[type="radio"]) { font-size: 16px !important; }
+  html[data-theme][data-branding] body .glass-refined-dialog :is(input,select,textarea):not([type="checkbox"],[type="radio"],[type="hidden"]) { font-size: 16px !important; }
+}
+
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-filter-panel label > span { font-size: var(--glass-type-label) !important; line-height: 1.4; color: var(--ui-text) !important; -webkit-text-fill-color: currentColor !important; }
+/* The shared viewport owns table scrolling; legacy inner wrappers must not trap sticky headers. */
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-table-viewport > div:has(> .portal-data-table) { overflow: visible !important; }
+
+/* Reusable two-line identity cells keep primary names and secondary contact details legible. */
+.glass-refined .glass-record-copy { display: grid; gap: 2px; min-width: 0; }
+.glass-refined .glass-record-copy > .glass-record-label { display: block; font-size: var(--glass-type-body) !important; white-space: normal; overflow-wrap: anywhere; }
+.glass-refined .glass-record-copy > .glass-record-meta { display: block; font-size: var(--glass-type-label) !important; line-height: 1.4; color: var(--ui-muted) !important; -webkit-text-fill-color: currentColor !important; white-space: nowrap; }
+
+/* Opt-in overview and workspace layouts reuse the approved Glass tokens. */
+.glass-refined .glass-summary-grid--overview { grid-template-columns: repeat(4,minmax(0,1fr)) !important; }
+.glass-refined .glass-overview-chart-grid { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+.glass-refined .glass-overview-chart-scroll { max-width: 100%; min-width: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-inline: contain; }
+.glass-refined .glass-overview-chart-data { margin-top: 10px; border-top: 1px solid var(--glass-fine-border); padding-top: 8px; }
+.glass-refined .glass-overview-chart-data summary { font-size: 12px; font-weight: 550; cursor: pointer; color: var(--ui-link); padding: 5px 0; }
+.glass-refined .glass-overview-chart-data table { min-width: 420px; width: 100%; }
+.glass-refined .glass-overview-chart-data caption { padding: 8px; text-align: left; font-size: 12px; color: var(--ui-muted); }
+.glass-refined .glass-overview-chart-data tbody th { background: var(--ui-card); color: var(--ui-text); text-align: left; font-size: var(--glass-type-body); padding: 8px 12px; }
+.glass-overview-tooltip { padding: 12px; background: var(--ui-card); color: var(--ui-text); border: 1px solid var(--ui-glass-border); border-radius: 10px; box-shadow: var(--ui-shadow); font-size: 13px; }
+.glass-overview-tooltip dl { display: grid; gap: 8px; margin: 8px 0 0; }.glass-overview-tooltip dl > div { display: flex; gap: 16px; justify-content: space-between; }.glass-overview-tooltip dt { color: var(--ui-muted); }.glass-overview-tooltip dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+.glass-refined .glass-workspace-focus-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--glass-gap); }
+.glass-refined .glass-workspace-focus .crm-card-body { display: grid; gap: 8px; padding: 14px !important; }.glass-workspace-focus span { color: var(--ui-muted); font-size: 12px; }.glass-workspace-focus strong { color: var(--ui-text); font-size: 20px; }
+.glass-workspace-badge,.glass-workspace-meta { display: inline-flex; align-items: center; padding: 6px 10px; border: 1px solid var(--glass-fine-border); border-radius: 8px; background: var(--ui-action-soft); color: var(--ui-link); font-size: 12px; font-weight: 550; white-space: nowrap; }
+.glass-workspace-columns { display: grid; grid-template-columns: 1.2fr 1fr; gap: var(--glass-gap); align-items: start; }
+.glass-workspace-priorities,.glass-workspace-actions { display: grid; gap: 10px; }.glass-workspace-priority { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 12px; border: 1px solid var(--glass-fine-border); border-radius: 10px; background: var(--ui-card); min-width: 0; }.glass-workspace-priority > div { min-width: 0; }.glass-workspace-priority h4,.glass-workspace-note h4 { margin: 0; font-size: 14px; font-weight: 600; color: var(--ui-text); }.glass-workspace-priority p,.glass-workspace-note p { margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--ui-muted); }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-workspace .glass-workspace-actions a { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 12px; border: 1px solid var(--glass-fine-border); border-radius: 9px; background: var(--ui-card); color: var(--ui-link) !important; -webkit-text-fill-color: currentColor !important; font-size: 13px; font-weight: 550; text-decoration: none; min-height: 40px; box-sizing: border-box; }.glass-workspace-actions a:hover { background: var(--ui-action-soft) !important; }
+.glass-refined .glass-workspace-guidance { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--glass-fine-border); font-size: 12px; }
+@media (max-width: 1100px) { .glass-refined .glass-summary-grid--overview { grid-template-columns: repeat(2,minmax(0,1fr)) !important; } }
+@media (max-width: 900px) { .glass-refined .glass-overview-chart-grid,.glass-workspace-columns { grid-template-columns: 1fr !important; } }
+@media (max-width: 600px) { .glass-refined .glass-workspace-focus-grid { grid-template-columns: 1fr; }.glass-workspace-priority { flex-direction: column; }.glass-workspace-meta { align-self: start; } }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-refined .glass-overview-chart-data tbody th { background: var(--ui-card) !important; color: var(--ui-text) !important; -webkit-text-fill-color: currentColor !important; }
+.glass-refined .glass-overview-chart-dock { margin-top: 10px; padding: 10px; border: 1px solid var(--glass-fine-border); border-radius: 9px; background: var(--ui-elevated); color: var(--ui-text); font-size: 13px; min-height: 42px; box-sizing: border-box; }.glass-overview-chart-dock p { margin: 0; color: var(--ui-muted); font-size: 12px; line-height: 1.5; }.glass-overview-chart-dock dl { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 8px 0 0; }.glass-overview-chart-dock dt { color: var(--ui-muted); font-size: 12px; }.glass-overview-chart-dock dd { margin: 3px 0 0; font-weight: 650; font-variant-numeric: tabular-nums; }
+html[data-theme][data-branding] body .portal-design-system .main-content .glass-content.glass-refined.glass-workspace .glass-header .glass-workspace-badge { color: var(--ui-link) !important; -webkit-text-fill-color: currentColor !important; }
+@media (max-width: 600px) { .glass-refined .glass-workspace-focus .crm-card-body { grid-template-columns: minmax(0,1fr) auto; align-items: center; }.glass-workspace-focus strong { font-size: 18px; } }

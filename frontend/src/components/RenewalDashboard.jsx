@@ -1,5 +1,7 @@
 import { formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
+import { GlassStatContent } from './ui/DashboardStatCard';
+import { TablePagination, TableViewport, TabBar } from './ui/PortalPrimitives';
 import StatusBadge from './ui/StatusBadge';
 import '../styles/glassContent.css';
 import * as GlassIcons from 'lucide-react';
@@ -13,6 +15,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import { groupRenewalCandidates } from '../utils/renewalCandidateGroups';
+import { buildRenewalSalesPeople, buildRenewalFilterParams, mergeRenewalSalesAssignments } from '../utils/renewalFilters';
 import useColumnResize from './table/useColumnResize';
 import PdfPreviewModal from './PdfPreviewModal';
 import WhatsAppPreviewModal from './whatsapp/WhatsAppPreviewModal';
@@ -287,8 +290,7 @@ const isReviewRow = (row) => (
   (!isJobbingRow(row) && row?.serviceRelationshipType !== 'ONE_TIME' && !row?.renewalEligible)
 );
 const isRenewalContractSummaryRow = (row) => {
-  if (isJobbingRow(row)) return false;
-  if (isLetterRow(row)) return row?.serviceRelationshipType !== 'ONE_TIME';
+  if (isJobbingRow(row) || isReviewRow(row)) return false;
   return row?.serviceRelationshipType === 'CONTRACT' && row?.renewalEligible && !isReviewRow(row);
 };
 const addMonthsClampedInput = (date, months) => {
@@ -478,6 +480,7 @@ export default function RenewalDashboard() {
     searchScope: 'all',
     search: ''
   });
+  const [knownSalesAssignments, setKnownSalesAssignments] = useState(() => mergeRenewalSalesAssignments([], [...(Array.isArray(cachedDashboard?.rows) ? cachedDashboard.rows : []), ...(Array.isArray(cachedDashboard?.letters) ? cachedDashboard.letters : [])]));
   const loadRequestRef = useRef(0);
   const latestFiltersRef = useRef(filters);
   latestFiltersRef.current = filters;
@@ -755,7 +758,7 @@ export default function RenewalDashboard() {
     loadRequestRef.current = requestId;
     try {
       if (!options.silent) setLoading(true);
-      const params = { ...overrideFilters, t: Date.now() };
+      const params = { ...buildRenewalFilterParams(overrideFilters, salesPeople), t: Date.now() };
       const [renewalRes, summaryRes, employeeRes, letterRes] = await Promise.all([
         axios.get(`${API_BASE}/api/renewals`, { params, timeout: 30000 }),
         axios.get(`${API_BASE}/api/renewals/summary`, { params, timeout: 30000 }),
@@ -766,6 +769,7 @@ export default function RenewalDashboard() {
       const renewalRows = Array.isArray(renewalRes.data) ? renewalRes.data : [];
       const letterRows = Array.isArray(letterRes.data) ? letterRes.data : [];
       const nextSummary = normalizeSummaryPayload(summaryRes.data || {});
+      setKnownSalesAssignments((previous) => mergeRenewalSalesAssignments(previous, [...renewalRows, ...letterRows]));
       setRows(renewalRows);
       setSummary(nextSummary);
       setEmployees(Array.isArray(employeeRes.data) ? employeeRes.data : []);
@@ -907,29 +911,7 @@ export default function RenewalDashboard() {
 
   useAutoRefresh(() => loadData(filters, { silent: true, autoSync: false, autoGenerateLetters: false }), { enabled: !modal.type && !busy });
 
-  const salesPeople = useMemo(() => {
-    const list = employees
-      .filter((employee) => String(employee.role || employee.roleName || '').toLowerCase().includes('sales'))
-      .map((employee) => ({
-        id: employee._id || employee.empCode || employee.id || '',
-        name: employee.fullName || [employee.firstName, employee.lastName].filter(Boolean).join(' ') || employee.name || employee.empCode || 'Sales Person'
-      }));
-    const assigned = rows
-      .filter((row) => row.assignedSalesPersonName)
-      .map((row) => ({ id: row.assignedSalesPersonId || row.assignedSalesPersonName, name: row.assignedSalesPersonName }));
-    const seenNames = new Set();
-    const seenIds = new Set();
-    return [...list, ...assigned].filter((person) => {
-      const nameKey = String(person.name || '').trim().toLowerCase();
-      const idKey = String(person.id || '').trim().toLowerCase();
-      if (!nameKey) return false;
-      if (seenNames.has(nameKey)) return false;
-      if (idKey && seenIds.has(idKey)) return false;
-      seenNames.add(nameKey);
-      if (idKey) seenIds.add(idKey);
-      return true;
-    });
-  }, [employees, rows]);
+  const salesPeople = useMemo(() => buildRenewalSalesPeople(employees, knownSalesAssignments), [employees, knownSalesAssignments]);
 
   const serviceOptions = useMemo(() => {
     const services = new Set([...rows, ...visibleLetterRows].map((row) => String(row.serviceType || '').trim()).filter(Boolean));
@@ -937,7 +919,7 @@ export default function RenewalDashboard() {
   }, [rows, visibleLetterRows]);
   const mergedVisibleRows = useMemo(() => {
     const merged = new Map();
-    [...rows, ...visibleLetterRows].forEach((row, index) => {
+    [...visibleLetterRows, ...rows].forEach((row, index) => {
       const key = String(row?.renewalId || row?.renewal_id || row?.id || `row-${index}`).trim();
       if (!key) return;
       const existing = merged.get(key);
@@ -1072,7 +1054,11 @@ export default function RenewalDashboard() {
     overflow: 'visible'
   };
 
-  const updateFilter = (key, value) => setFilters((prev) => ({ ...prev, [key]: value }));
+  const updateFilter = (key, value) => setFilters((prev) => ({
+    ...prev,
+    [key]: value,
+    ...(key === 'range' && value !== 'custom' ? { month: 'all', fromDate: '', toDate: '' } : {})
+  }));
   const openModal = (type, row) => {
     const agreementDate = todayInput();
     const durationValue = row?.contractDurationValue || 12;
@@ -1310,7 +1296,8 @@ export default function RenewalDashboard() {
   const drillDownBySalesPerson = (item) => {
     const salesPersonId = String(item?.id || item?.assignedSalesPersonId || item?.name || item?.assignedSalesPersonName || '').trim();
     if (!salesPersonId) return;
-    const next = { ...filters, assignedSalesPersonId: salesPersonId };
+    const selected = salesPeople.find((person) => person.id === salesPersonId || person.ids.includes(salesPersonId) || (person.matchName && person.matchName.trim().toLowerCase() === salesPersonId.toLowerCase()));
+    const next = { ...filters, assignedSalesPersonId: selected?.id || salesPersonId };
     setFilters(next);
     setPage(1);
     setActiveTab('Renewals');
@@ -1319,7 +1306,7 @@ export default function RenewalDashboard() {
   const resetFilters = () => {
     const next = { range: 'custom', month: 'all', year: currentYear, fromDate: '', toDate: '', status: 'All', relationshipType: 'All', duration: '', serviceType: '', assignedSalesPersonId: '', searchScope: 'all', search: '' };
     setPage(1);
-    skipNextSearchSyncRef.current = true;
+    skipNextSearchSyncRef.current = filters.search !== next.search || filters.searchScope !== next.searchScope;
     setFilters(next);
     loadData(next);
   };
@@ -1454,7 +1441,7 @@ export default function RenewalDashboard() {
 
   const clientSummary = useMemo(() => {
     const merged = new Map();
-    [...rows, ...visibleLetterRows].forEach((row, index) => {
+    [...visibleLetterRows, ...rows].forEach((row, index) => {
       const key = String(row?.renewalId || row?.renewal_id || row?.id || `row-${index}`).trim();
       if (!key) return;
       const existing = merged.get(key);
@@ -1553,18 +1540,45 @@ export default function RenewalDashboard() {
   const renderFilters = () => (
     <div className="glass-surface glass-filter-panel" style={shell.panel}>
       <div className="glass-filter-grid" style={{ ...shell.panelPad, ...shell.filters, gridTemplateColumns: isMobile ? '1fr' : 'repeat(6, minmax(118px, 1fr)) auto', padding: '10px 12px 12px' }}>
-        <label style={shell.field}><span style={shell.label}>Range</span><select style={shell.input} value={filters.range} onChange={(e) => updateFilter('range', e.target.value)}>{ranges.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Month</span><select style={shell.input} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Year</span><select style={shell.input} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Relationship Type</span><select style={shell.input} value={filters.relationshipType} onChange={(e) => updateFilter('relationshipType', e.target.value)}>{relationshipTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
-        <label style={shell.field}><span style={shell.label}>All Fields</span><select style={shell.input} value={filters.searchScope} onChange={(e) => updateFilter('searchScope', e.target.value)}>{searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Range</span><select aria-label="Range" style={shell.input} value={filters.range} onChange={(e) => updateFilter('range', e.target.value)}>{ranges.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Month</span><select aria-label="Month" style={shell.input} disabled={filters.range !== 'custom'} value={filters.month} onChange={(e) => updateFilter('month', e.target.value)}>{months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Year</span><select aria-label="Year" style={shell.input} disabled={!['custom', 'year'].includes(filters.range)} value={filters.year} onChange={(e) => updateFilter('year', e.target.value)}>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Relationship Type</span><select aria-label="Relationship Type" style={shell.input} value={filters.relationshipType} onChange={(e) => updateFilter('relationshipType', e.target.value)}>{relationshipTypes.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>Sales Person</span><select aria-label="Sales Person" style={shell.input} value={filters.assignedSalesPersonId} onChange={(e) => updateFilter('assignedSalesPersonId', e.target.value)}><option value="">All Sales</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.label || p.name}</option>)}</select></label>
+        <label style={shell.field}><span style={shell.label}>All Fields</span><select aria-label="Search field" style={shell.input} value={filters.searchScope} onChange={(e) => updateFilter('searchScope', e.target.value)}>{searchScopes.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}</select></label>
         <div style={headerSearchActionsStyle}>
           <button type="button" style={shell.primaryBtn} onClick={applyFilters}>Apply</button>
           <button type="button" style={shell.ghostBtn} onClick={resetFilters}>Reset</button>
         </div>
       </div>
     </div>
+  );
+
+  const renderPagination = () => (
+    <TablePagination variant="glass" summary={paginationText} currentPage={safePage} totalPages={totalPages}>
+      <div style={paginationActionsStyle}>
+              <button
+                type="button"
+                style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
+                disabled={safePage <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                aria-label="Previous page"
+                title="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                aria-label="Next page"
+                title="Next page"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+    </TablePagination>
   );
 
   const renderRows = () => {
@@ -1578,7 +1592,8 @@ export default function RenewalDashboard() {
     }
     if (isMobile) {
       return (
-        <div style={{ display: 'grid', gap: 8, padding: 10 }}>
+        <div className="glass-mobile-register">
+          <div style={{ display: 'grid', gap: 8, padding: 10 }}>
           {pagedRows.map((row) => (
             <div
               key={row.renewalId}
@@ -1614,12 +1629,15 @@ export default function RenewalDashboard() {
               {renderRowActions(row, true)}
             </div>
           ))}
+          </div>
+          {renderPagination()}
         </div>
       );
     }
     if (activeTab === 'Won') {
       return (
-        <div className="glass-register-scroll" style={shell.tableWrap}>
+        <div className="glass-table-frame">
+          <TableViewport label="Renewal data table">
           <table className="crm-compact-table portal-data-table renewal-dashboard-table" style={{ ...shell.letterTable, minWidth: 980 }}>
             <thead>
               <tr>
@@ -1660,19 +1678,15 @@ export default function RenewalDashboard() {
               })}
             </tbody>
           </table>
-          <div style={paginationStyle}>
-            <div style={shell.paginationInfo}>{paginationText}</div>
-            <div style={paginationActionsStyle}>
-              <button type="button" style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
-              <button type="button" style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
-            </div>
-          </div>
+          </TableViewport>
+          {renderPagination()}
         </div>
       );
     }
     if (activeTab === 'Lost') {
       return (
-        <div className="glass-register-scroll" style={shell.tableWrap}>
+        <div className="glass-table-frame">
+          <TableViewport label="Renewal data table">
           <table className="crm-compact-table portal-data-table renewal-dashboard-table" style={shell.letterTable}>
             <thead>
               <tr>
@@ -1703,18 +1717,14 @@ export default function RenewalDashboard() {
               ))}
             </tbody>
           </table>
-          <div style={paginationStyle}>
-            <div style={shell.paginationInfo}>{paginationText}</div>
-            <div style={paginationActionsStyle}>
-              <button type="button" style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
-              <button type="button" style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
-            </div>
-          </div>
+          </TableViewport>
+          {renderPagination()}
         </div>
       );
     }
     return (
-      <div className="glass-register-scroll" style={shell.tableWrap}>
+      <div className="glass-table-frame">
+        <TableViewport label="Renewal data table">
         <div style={renewalTableContentStyle}>
           <table className="crm-compact-table portal-data-table renewal-dashboard-table renewal-register-table" style={renewalTableStyle}>
             <colgroup>
@@ -1728,7 +1738,7 @@ export default function RenewalDashboard() {
                 <th style={renewalHeadCellStyle('mobile', 'center')}>Mobile</th>
                 <th style={renewalHeadCellStyle('svc')}>Service</th>
                 <th style={renewalHeadCellStyle('period', 'center')}>Period</th>
-                <th style={renewalHeadCellStyle('amount', 'center')}>Amount</th>
+                <th data-value-kind="numeric" style={renewalHeadCellStyle('amount', 'center')}>Amount</th>
                 <th style={renewalHeadCellStyle('salesPerson')}>Sales</th>
                 <th style={renewalHeadCellStyle('status', 'center')}>Status</th>
                 <th style={renewalHeadCellStyle('actions', 'center')}>Actions</th>
@@ -1747,7 +1757,7 @@ export default function RenewalDashboard() {
                   <td style={renewalBodyCellStyle('period', 'center')} title={`${formatDate(row.previousContractStart)} - ${formatDate(row.previousContractEnd)} (${contractDurationText(row)})`}>
                     {formatDate(row.previousContractStart)} – {formatDate(row.previousContractEnd)}
                   </td>
-                  <td style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(renewalAmountValue(row))}</td>
+                  <td data-value-kind="numeric" style={renewalBodyCellStyle('amount', 'center')}>{formatOptionalINR(renewalAmountValue(row))}</td>
                   <td style={renewalBodyCellStyle('salesPerson')} title={row.assignedSalesPersonName}>{row.assignedSalesPersonName || '-'}</td>
                   <td style={renewalBodyCellStyle('status', 'center')}><StatusBadge status={tabStatusLabel(row)}>{tabStatusLabel(row)}</StatusBadge></td>
                   <td style={renewalActionCellStyle}>{renderRowActions(row)}</td>
@@ -1755,38 +1765,15 @@ export default function RenewalDashboard() {
               ))}
             </tbody>
           </table>
-          <div style={paginationStyle}>
-            <div style={shell.paginationInfo}>{paginationText}</div>
-            <div style={paginationActionsStyle}>
-              <button
-                type="button"
-                style={{ ...shell.paginationBtn, ...(safePage <= 1 ? shell.paginationBtnDisabled : {}) }}
-                disabled={safePage <= 1}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-                aria-label="Previous page"
-                title="Previous page"
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                type="button"
-                style={{ ...shell.paginationBtn, ...(safePage >= totalPages ? shell.paginationBtnDisabled : {}) }}
-                disabled={safePage >= totalPages}
-                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                aria-label="Next page"
-                title="Next page"
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
         </div>
+        </TableViewport>
+        {renderPagination()}
       </div>
     );
   };
 
   const renderSummaryList = (items, labelKey, valueKey = 'count', options = {}) => (
-    <div style={shell.panel}>
+    <div className="glass-surface glass-report-panel" style={shell.panel}>
       <div style={shell.panelPad}>
         {(items || []).length === 0 ? <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: 13 }}>No records.</p> : items.map((item) => (
           <div key={item[labelKey] || item.name} style={shell.miniRow}>
@@ -1815,7 +1802,7 @@ export default function RenewalDashboard() {
   );
 
   const renderAuditPanel = () => (
-    <div style={shell.panel}>
+    <div className="glass-surface glass-report-panel" style={shell.panel}>
       <div style={{ ...shell.panelPad, display: 'grid', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
           <strong>Renewal Data Audit</strong>
@@ -1845,7 +1832,7 @@ export default function RenewalDashboard() {
               <button type="button" style={shell.dangerBtn} disabled={busy} onClick={() => runAuditAction('exclude_from_renewal', 'Exclude from Renewal')}>Exclude from Renewal</button>
             </div>
             <div className="glass-register-scroll" style={shell.tableWrap}>
-              <table style={{ ...shell.table, minWidth: 900 }}>
+              <table className="portal-data-table" style={{ ...shell.table, minWidth: 900 }}>
                 <thead>
                   <tr>
                     <th style={shell.th}>Select</th>
@@ -1899,7 +1886,7 @@ export default function RenewalDashboard() {
     const declineReasons = ['Price too high', 'Competitor selected', 'Customer no longer requires service', 'Customer dissatisfied with previous service', 'Property vacated or closed', 'Budget unavailable', 'Customer unreachable', 'Service no longer applicable', 'Other'];
     return (
       createPortal(<div style={shell.modalOverlay}>
-        <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={shell.modal}>
+        <div className="crm-modal-surface glass-dialog glass-refined-dialog" role="dialog" aria-modal="true" style={shell.modal}>
           <div className="crm-modal-surface-header glass-dialog-header" style={shell.modalHead}><strong>{titleMap[modal.type]}</strong><CRMModalCloseButton style={shell.modalCloseBtn} onClick={closeModal} title="Close" aria-label="Close" /></div>
           <div className="crm-modal-surface-body glass-dialog-body" style={shell.modalBody}>
             {modal.type === 'view' && (
@@ -1957,7 +1944,7 @@ export default function RenewalDashboard() {
                 <label style={shell.field}><span style={shell.label}>Sales Person</span><select style={shell.input} value={form.salesPersonId} onChange={(e) => {
                   const selected = salesPeople.find((p) => String(p.id || p.name) === e.target.value);
                   setForm((prev) => ({ ...prev, salesPersonId: e.target.value, salesPersonName: selected?.name || '' }));
-                }}><option value="">Select sales person</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.name}</option>)}</select></label>
+                }}><option value="">Select sales person</option>{salesPeople.map((p) => <option key={p.id || p.name} value={p.id || p.name}>{p.label || p.name}</option>)}</select></label>
                 <div className="crm-modal-surface-footer glass-dialog-footer"><button style={shell.primaryBtn} disabled={busy} onClick={() => runAction('Sales person assigned', () => axios.post(`${API_BASE}/api/renewals/${row.renewalId}/assign`, form))} data-modal-primary="true">Assign</button></div>
               </>
             )}
@@ -2136,7 +2123,7 @@ export default function RenewalDashboard() {
   };
 
   return (
-    <div className="renewals-glass-page glass-content glass-sales-content" style={shell.page}>
+    <div className="renewals-glass-page glass-content glass-sales-content glass-refined" style={shell.page}>
       <div className="portal-page-toolbar portal-page-toolbar--search glass-header" style={shell.hero}>
         <div>
           <PageHeaderTitle title="Renewals" subtitle="Manage renewal opportunities, follow-ups and letters." icon={GlassIcons.RefreshCw} />
@@ -2175,11 +2162,7 @@ export default function RenewalDashboard() {
             aria-label={`Open ${item.label}`}
             title={`Open ${item.label}`}
           >
-            <div className="glass-clickable-label" style={shell.statLabel}>{item.label}</div>
-            <div style={{ width: '100%', textAlign: 'left' }}>
-              <div className="glass-clickable-value" style={shell.statValue}>{item.count}</div>
-              <div className="glass-summary-hint" style={shell.statMeta}>{formatINR(item.value || 0)}</div>
-            </div>
+            <GlassStatContent title={item.label} value={item.count} hint={formatINR(item.value || 0)} tone={item.targetTab === 'Won' ? 'var(--status-active-text)' : item.targetTab === 'Lost' ? 'var(--status-danger-text)' : 'var(--ui-link)'} icon={item.targetTab === 'Won' ? <GlassIcons.CircleCheck size={22} /> : item.targetTab === 'Lost' ? <GlassIcons.CircleX size={22} /> : <GlassIcons.RefreshCw size={22} />} />
           </button>
         ))}
       </section>
@@ -2187,7 +2170,7 @@ export default function RenewalDashboard() {
       {renderFilters()}
 
       <section className="glass-surface glass-register-panel" style={shell.panel}>
-        <div className="glass-tabs" style={isMobile ? shell.tabsMobile : shell.tabs}>
+        <TabBar style={isMobile ? shell.tabsMobile : shell.tabs}>
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -2203,7 +2186,7 @@ export default function RenewalDashboard() {
               {tab}
             </button>
           ))}
-        </div>
+        </TabBar>
         {loading ? <div style={shell.panelPad}>Loading renewals...</div> : null}
         {!loading && renewalTableTabs.includes(activeTab) ? renderRows() : null}
         {!loading && activeTab === 'Reports' ? (

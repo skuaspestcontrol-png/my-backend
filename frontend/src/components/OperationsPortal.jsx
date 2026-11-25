@@ -4,6 +4,7 @@ import ModuleWorkspace from './ModuleWorkspace';
 export default function OperationsPortal() {
   return (
     <ModuleWorkspace
+      variant="glass"
       badge="Operations Portal"
       title="Operations Team Dashboard"
       description="Coordinate field scheduling, technician assignments, complaints, and service quality through a single operations workspace."

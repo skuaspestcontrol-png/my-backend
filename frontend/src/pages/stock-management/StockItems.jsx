@@ -1,3 +1,6 @@
+import '../../styles/glassContent.css';
+import { TableViewport, TablePagination } from '../../components/ui/PortalPrimitives';
+import StatusBadge from '../../components/ui/StatusBadge';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Edit3, Plus, RefreshCcw, Trash2 } from 'lucide-react';
 import AppButton from '../../components/ui/AppButton';
@@ -324,8 +327,9 @@ export default function StockItems() {
   };
 
   return (
-    <div className="crm-page crm-section stock-management-page" style={{ display: 'grid', gap: 16 }}>
-      <PageHeader
+    <div className="crm-page crm-section stock-management-page glass-content glass-refined" style={{ display: 'grid', gap: 16 }}>
+      <PageHeader variant="glass"
+        kind="stock"
         title="Items"
         subtitle="Manage stock items, units, rates, opening stock, and minimum levels."
         action={(
@@ -338,7 +342,7 @@ export default function StockItems() {
 
       {error ? <AppCard><EmptyState title="Stock items error" message={error} /></AppCard> : null}
 
-      <AppCard title={form.id ? 'Edit Item' : 'Add Item'} className="crm-filter-card crm-form-surface" style={{ ...panelStyle, ...formCardStyle }} bodyStyle={formBodyStyle}>
+      <AppCard title={form.id ? 'Edit Item' : 'Add Item'} className="crm-form-surface glass-surface glass-form-section" style={{ ...panelStyle, ...formCardStyle }} bodyStyle={formBodyStyle}>
         <form className="crm-inline-form" onSubmit={handleSubmit} style={{ display: 'grid', gap: 12, minWidth: 0, ...formScrollStyle }}>
           <div style={formGridStyle}>
             <AppInput label="Item Name" value={form.itemName} onChange={(e) => setForm({ ...form, itemName: e.target.value })} required style={stockControlStyle} />
@@ -399,12 +403,12 @@ export default function StockItems() {
         </form>
       </AppCard>
 
-      <AppCard title="Stock Items List" className="crm-table-card" style={panelStyle}>
+      <AppCard title="Stock Items List" className="crm-table-card glass-surface glass-table-panel" bodyStyle={{ padding: 0 }} style={panelStyle}>
         {loading ? (
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 180 }}><LoadingSpinner size={26} /></div>
         ) : items.length ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table className="table-clean stock-items-table" style={listTableStyle}>
+          <TableViewport label="Stock items data table">
+            <table className="table-clean stock-items-table portal-data-table" style={listTableStyle}>
               <colgroup>
                 {stockItemColumns.map((column) => (
                   <col key={column.key} style={{ width: `${getColumnWidth(column.key)}px` }} />
@@ -445,7 +449,7 @@ export default function StockItems() {
                       </div>
                     </td>
                     <td className="table-number-cell stock-items-left-cell" style={bodyStyle('minimum', 'left')}>{number(row.minStockLevel)}</td>
-                    <td className="table-status-cell stock-items-left-cell" style={bodyStyle('status', 'left')}><span style={badgeStyle(row.status)}>{row.status}</span></td>
+                    <td className="table-status-cell stock-items-left-cell" style={bodyStyle('status', 'left')}><StatusBadge status={row.status}>{row.status}</StatusBadge></td>
                     <td className="table-actions-cell stock-items-left-cell" style={bodyStyle('actions', 'left')}>
                       <div style={{ display: 'inline-flex', gap: 8, flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'flex-start' }}>
                         <button
@@ -460,6 +464,7 @@ export default function StockItems() {
                         <button
                           type="button"
                           style={{ ...actionIconButtonStyle, marginRight: 0 }}
+                          className="glass-row-action--danger"
                           onClick={() => handleDelete(row.id)}
                           disabled={saving}
                           title="Delete item"
@@ -473,10 +478,11 @@ export default function StockItems() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableViewport>
         ) : (
           <EmptyState title="No items yet" message="Create the first stock item to start tracking stock." />
         )}
+        {!loading ? <TablePagination variant="glass" summary={`${items.length} items shown`} /> : null}
       </AppCard>
     </div>
   );

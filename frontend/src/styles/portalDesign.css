@@ -14,6 +14,7 @@
   --ui-border: #e2e8f0;
   --ui-text: #172033;
   --ui-muted: #64748b;
+  --ui-breadcrumb-text: #475569;
   --ui-glass: rgb(255 255 255 / 88%);
   --ui-glass-border: #dce6f5;
   --ui-sidebar-text: #e6edff;
@@ -67,6 +68,7 @@ html[data-theme="dark"] {
   --ui-border: #30415d;
   --ui-text: #f8fafc;
   --ui-muted: #aab8cf;
+  --ui-breadcrumb-text: #aab8cf;
   --ui-glass: rgb(23 36 59 / 94%);
   --ui-glass-border: #30415d;
   --ui-sidebar-text: #e6edff;
@@ -204,6 +206,13 @@ html[data-theme][data-branding] body .portal-design-system .sidebar .sidebar-nav
   box-shadow: none !important;
 }
 html[data-theme][data-branding] body .portal-design-system .sidebar .sidebar-nav-item:not(.active):hover { background: rgb(255 255 255 / 10%) !important; }
+/* Keep interactive sidebar labels and icons readable on the navy navigation. */
+html[data-theme][data-branding] body .portal-design-system .sidebar .sidebar-nav-item:is(:hover, :focus-visible, .active, [aria-current="page"], [aria-expanded="true"]),
+html[data-theme][data-branding] body .portal-design-system .sidebar .sidebar-nav-item:is(:hover, :focus-visible, .active, [aria-current="page"], [aria-expanded="true"]) :is(span, svg) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
 html[data-theme][data-branding] body .portal-design-system .main-content :is(.portal-page-header, .crm-page-header) {
   display: flex;
   align-items: flex-start;
@@ -396,10 +405,10 @@ html[data-theme][data-branding] body .portal-design-system .contract-dashboard-p
   box-shadow: var(--ui-shadow);
 }
 .portal-skip-link:focus { transform: translateY(0); }
-.portal-breadcrumbs { display: flex; margin: 0 0 16px; min-width: 0; color: var(--ui-muted); font-size: 12px; line-height: 1.5; }
+.portal-breadcrumbs { display: flex; margin: 0 0 16px; min-width: 0; color: var(--ui-breadcrumb-text); font-size: 12px; line-height: 1.5; }
 .portal-breadcrumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 0; padding: 0; list-style: none; }
 .portal-breadcrumbs li { display: inline-flex; align-items: center; gap: 7px; min-width: 0; }
-.portal-breadcrumbs a { display: inline-flex; align-items: center; gap: 6px; color: var(--ui-muted); text-decoration: none; border-radius: 4px; }
+.portal-breadcrumbs a { display: inline-flex; align-items: center; gap: 6px; color: var(--ui-breadcrumb-text); text-decoration: none; border-radius: 4px; }
 .portal-breadcrumbs a:hover { color: var(--ui-link); }
 .portal-breadcrumbs [aria-current="page"] { font-weight: 650; color: var(--ui-text); overflow-wrap: anywhere; }
 .portal-page-header .crm-page-header-copy { flex: 1; min-width: 0; }

@@ -4,6 +4,7 @@ import ModuleWorkspace from './ModuleWorkspace';
 export default function SalesPortal() {
   return (
     <ModuleWorkspace
+      variant="glass"
       badge="Sales Portal"
       title="Sales Team Dashboard"
       description="Track daily leads, conversion pipeline, renewals, and collections from one focused sales control center."

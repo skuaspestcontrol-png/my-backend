@@ -1,4 +1,5 @@
 import React from 'react';
+import GlassWorkspace from './ui/GlassWorkspace';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Clock3, Sparkles } from 'lucide-react';
 
@@ -98,6 +99,7 @@ const shell = {
 };
 
 export default function ModuleWorkspace({
+  variant,
   badge = 'Workspace',
   title,
   description,
@@ -109,6 +111,7 @@ export default function ModuleWorkspace({
   sideTitle = 'Team Note',
   sideText = 'Use this module to move work forward, keep operators aligned, and surface what needs attention next.'
 }) {
+  if (variant === 'glass') return <GlassWorkspace {...{ badge, title, description, stats, queueTitle, queueItems, actionTitle, actions, sideTitle, sideText }} />;
   return (
     <div style={shell.page}>
       <section className="hero-section command-center module-workspace-hero" style={shell.hero}>

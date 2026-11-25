@@ -1,11 +1,11 @@
 import { formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
+import { TablePagination, TableViewport, TableToolbar } from './ui/PortalPrimitives';
 import AppButton from './ui/AppButton';
 import EmptyState from './ui/EmptyState';
 import { LoadingState, ErrorState } from './ui/PortalPrimitives';
 import AppCard from './ui/AppCard';
 import StatusBadge from './ui/StatusBadge';
-import RecordAvatar from './ui/RecordAvatar';
 import '../styles/glassContent.css';
 import { PageHeaderTitle } from './ui/PageHeader';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -2834,15 +2834,15 @@ export default function CustomerDashboard() {
   };
 
   return (
-    <section className="crm-page crm-section customer-dashboard-page glass-content" style={shell.page}>
+    <section className="crm-page crm-section customer-dashboard-page glass-content glass-refined" style={shell.page}>
       <div className="portal-page-toolbar glass-header" data-page-toolbar="true" style={topbarStyle}>
         <div className="portal-page-title-slot" style={shell.titleWrap}>
           <PageHeaderTitle kind="customers" title="Active Customers" subtitle="Manage customer contacts, addresses and service premises." />
         </div>
-        <div style={topActionsStyle}>
+        <div className="glass-page-actions" style={topActionsStyle}>
           <AppButton variant="outline" size="sm" aria-label="Refresh customers" iconLeft={<RefreshCw size={14} />} loading={customerLoadState === 'loading'} onClick={() => loadCustomers()}>Refresh</AppButton>
           <AppButton variant="outline" size="sm" aria-label="Export customers" iconLeft={<Download size={14} />} onClick={exportData}>Export</AppButton>
-          <button type="button" style={primaryButtonStyle} onClick={openNewForm}>
+          <button type="button" className="glass-primary-action" style={primaryButtonStyle} onClick={openNewForm}>
             <Plus size={16} />
             New Customer
           </button>
@@ -2931,7 +2931,7 @@ export default function CustomerDashboard() {
           ) : null}
         </div>
       </div>
-      <AppCard className="glass-surface glass-search-panel" bodyStyle={{ padding: 14 }} style={{ overflow: 'visible' }}>
+      <AppCard className="glass-surface glass-search-panel glass-filter-panel" bodyStyle={{ padding: 14 }} style={{ overflow: 'visible' }}>
         <ErrorState message={customerLoadState === 'error' ? 'Could not load customers. Use Refresh to retry.' : ''} />
         <label className="glass-field-label" htmlFor="customer-search">Search customers</label>
         <div style={{ width: '100%', minWidth: 0, justifySelf: isMobile ? 'stretch' : 'center' }}>
@@ -2960,7 +2960,7 @@ export default function CustomerDashboard() {
       </AppCard>
       <AppCard className="glass-surface glass-table-panel" style={{ overflow: 'visible' }} bodyStyle={{ padding: 0 }}
         title={<span className="glass-panel-title"><Users size={18} aria-hidden="true" />Customers <small>{sortedCustomers.length} records</small></span>}
-        action={<div className="glass-table-tools">          {!isMobile ? (
+        action={<TableToolbar className="glass-table-tools">          {!isMobile ? (
             <div style={{ position: 'relative' }}>
               <button
                 ref={customizeButtonRef}
@@ -3001,16 +3001,16 @@ export default function CustomerDashboard() {
               ) : null}
             </div>
           ) : null}
-</div>}>
-      <div style={shell.tableWrap} className="crm-table-shell crm-table-shell--clipped" aria-busy={customerLoadState === 'loading'}>
+</TableToolbar>}>
+      <TableViewport label="Customer data table" style={shell.tableWrap} className="crm-table-shell" aria-busy={customerLoadState === 'loading'}>
         <table style={{ ...tableStyle, '--glass-column-count': visibleColumnDefs.length }} className="crm-compact-table crm-readable-mobile-table portal-data-table">
           <thead>
             <tr>
               <th style={{ ...shell.headCell, ...shell.checkboxWrap, ...(isMobile ? { width: '56px', minWidth: '56px', maxWidth: '56px' } : {}) }}>
-                <input type="checkbox" style={shell.checkbox} checked={isAllSelected} onChange={toggleSelectAll} />
+                <input type="checkbox" aria-label="Select all customers" style={shell.checkbox} checked={isAllSelected} onChange={toggleSelectAll} />
               </th>
               {visibleColumnDefs.map((column) => (
-                <th key={column.key} style={{ ...shell.headCell, ...shell.headCellResizable, ...getColumnStyle(column.key) }}>
+                <th key={column.key} data-column={column.key} style={{ ...shell.headCell, ...shell.headCellResizable, ...getColumnStyle(column.key) }}>
                   <button
                     type="button"
                     className="crm-readable-header-button"
@@ -3046,6 +3046,7 @@ export default function CustomerDashboard() {
                   <input
                     type="checkbox"
                     style={shell.checkbox}
+                    aria-label={`Select ${handleCellValue(customer, 'name') || 'customer'}`}
                     checked={selectedIds.includes(customer._id)}
                     onChange={() => toggleSelectOne(customer._id)}
                   />
@@ -3074,7 +3075,6 @@ export default function CustomerDashboard() {
                   >
                     {column.key === 'name' ? (
                       <div className="glass-record-name">
-                        <RecordAvatar name={handleCellValue(customer, column.key)} />
                         <div className="glass-record-label">{isMobile ? (
 <div style={shell.customerNameStack}>
                         <div style={shell.customerNamePrimary}>{handleCellValue(customer, column.key)}</div>
@@ -3116,9 +3116,8 @@ export default function CustomerDashboard() {
             ))}
           </tbody>
         </table>
-      </div>
-      <div className="portal-table-pagination" style={paginationBarStyle}>
-        <div style={shell.paginationText}>{paginationText}</div>
+      </TableViewport>
+      <TablePagination variant="glass" summary={paginationText} currentPage={currentPage} totalPages={totalPages}>
         <div style={paginationActionsStyle}>
           <button
             type="button"
@@ -3141,13 +3140,13 @@ export default function CustomerDashboard() {
             <ChevronRight size={16} />
           </button>
         </div>
-      </div>
+      </TablePagination>
 
       </AppCard>
 
       {showHistory ? (
         createPortal(<div style={shell.historyOverlay}>
-          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={historyModalStyle}>
+          <div className="crm-modal-surface glass-dialog glass-refined-dialog" role="dialog" aria-modal="true" style={historyModalStyle}>
             <div className="crm-modal-surface-header glass-dialog-header" style={historyHeaderStyle}>
               <div>
                 <h3 style={historyTitleTinyStyle}>
@@ -3455,7 +3454,7 @@ export default function CustomerDashboard() {
 
       {showModal ? createPortal(
         <div className="skuas-customer-form-overlay" style={modalOverlayStyle}>
-          <CRMFormModal className="customer-modal-surface glass-dialog" style={modalStyle}
+          <CRMFormModal className="customer-modal-surface glass-dialog glass-refined-dialog" style={modalStyle}
   title={editingId ? 'Edit Customer' : 'New Customer'} icon={UserRoundPlus}
   subtitle="Manage customer contacts, addresses and service premises."
   onClose={closeModal} onSubmit={handleSubmit} validateStep={validateCustomerStep} busy={isSaving} error={saveError}
@@ -3738,7 +3737,7 @@ export default function CustomerDashboard() {
 
       {duplicateConflict ? createPortal(
         <div style={duplicateConflictOverlayStyle}>
-          <div role="dialog" aria-modal="true" className="crm-modal-surface glass-dialog" style={duplicateConflictModalStyle}>
+          <div role="dialog" aria-modal="true" className="crm-modal-surface glass-dialog glass-refined-dialog" style={duplicateConflictModalStyle}>
             <div className="crm-modal-surface-header glass-dialog-header" style={duplicateConflictHeaderStyle}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -3870,7 +3869,7 @@ export default function CustomerDashboard() {
 
       {showDuplicateReport ? createPortal(
         <div style={modalOverlayStyle}>
-          <div role="dialog" aria-modal="true" className="crm-modal-surface glass-dialog" style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
+          <div role="dialog" aria-modal="true" className="crm-modal-surface glass-dialog glass-refined-dialog" style={{ ...modalStyle, width: 'min(1180px, 100%)' }}>
             <div className="crm-modal-surface-header glass-dialog-header" style={modalHeaderStyle}>Duplicate Report & Data Health<CRMModalCloseButton type="button" onClick={() => setShowDuplicateReport(false)} /></div>
             <div className="crm-modal-surface-body glass-dialog-body" style={duplicateModalBodyStyle}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', gridColumn: '1 / -1' }}>

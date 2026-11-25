@@ -2,12 +2,12 @@ import { PageHeaderTitle } from './ui/PageHeader';
 import { Building2 } from 'lucide-react';
 import AppCard from './ui/AppCard';
 import DashboardStatCard from './ui/DashboardStatCard';
-import { SummaryCardGrid } from './ui/PortalPrimitives';
+import { SummaryCardGrid, TableViewport, TablePagination } from './ui/PortalPrimitives';
 import StatusBadge from './ui/StatusBadge';
 import EmptyState from './ui/EmptyState';
 import '../styles/glassContent.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CRMModalCloseButton } from './ui/CRMForm';
+import { CRMModal, CRMModalCloseButton } from './ui/CRMForm';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Trash2, X, Pencil, Settings } from 'lucide-react';
@@ -438,7 +438,7 @@ export default function VendorDashboard() {
   };
 
   return (
-    <section className="vendor-dashboard-page glass-content glass-finance-content" style={shell.page}>
+    <section className="vendor-dashboard-page glass-content glass-finance-content glass-refined" style={shell.page}>
       <div className="portal-page-toolbar glass-header" style={shell.topbar}>
         <PageHeaderTitle title="Vendors Dashboard" subtitle="Manage vendor details, contacts and billing addresses." icon={Building2} />
         <div className="glass-header-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -449,7 +449,7 @@ export default function VendorDashboard() {
         </div>
       </div>
 
-      <AppCard className="glass-surface glass-register-panel" style={{ overflow: 'visible' }} bodyStyle={{ padding: 0 }} title={<span className="glass-panel-title"><Building2 size={18} aria-hidden="true" />Vendors <small>{vendors.length} records</small></span>} action={<div ref={customizeWrapRef} style={shell.customizeWrap}>
+      <AppCard className="glass-surface glass-register-panel glass-table-panel" style={{ overflow: 'visible' }} bodyStyle={{ padding: 0 }} title={<span className="glass-panel-title"><Building2 size={18} aria-hidden="true" />Vendors <small>{vendors.length} records</small></span>} action={<div ref={customizeWrapRef} style={shell.customizeWrap}>
             <button
               type="button"
               className="vendor-toolbar-icon-btn glass-columns-trigger"
@@ -483,7 +483,7 @@ export default function VendorDashboard() {
               </div>
             ) : null}
           </div>}>
-      <div className="glass-register-scroll" style={shell.tableWrap}>
+      <TableViewport label="Vendor records" style={shell.tableWrap}>
         <table className="portal-data-table" style={tableStyle}>
           <colgroup>
             {visibleVendorColumns.map((column) => (
@@ -534,29 +534,30 @@ export default function VendorDashboard() {
             ) : null}
           </tbody>
         </table>
-      </div>
-
+      </TableViewport>
+      <TablePagination variant="glass" summary={`${vendors.length} vendors shown`} />
       </AppCard>
 
       {showModal ? createPortal(
         <div style={modalOverlayStyle} onClick={closeModal}>
-          <form role="dialog" aria-modal="true" className="crm-modal-surface vendor-modal-surface glass-dialog" style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
+          <CRMModal as="form" aria-labelledby="vendor-dialog-title" className="vendor-modal-surface glass-dialog glass-refined-dialog" style={modalStyle} onSubmit={saveVendor} onClick={(event) => event.stopPropagation()}>
             <div className="crm-modal-surface-header glass-dialog-header" style={modalHeaderStyle}>
-              <h3 style={shell.modalTitle}>{editingId ? 'Edit Vendor' : 'New Vendor'}</h3>
+              <h3 id="vendor-dialog-title" style={shell.modalTitle}>{editingId ? 'Edit Vendor' : 'New Vendor'}</h3>
               <CRMModalCloseButton type="button" style={shell.closeBtn} onClick={closeModal} />
             </div>
             <div className="crm-modal-surface-body glass-dialog-body" style={bodyStyle}>
               <div className="vendor-modal-card glass-detail-section" style={shell.card}>
                 <p style={shell.sectionTitle}>Vendor Details</p>
                 <div style={gridStyle}>
-                  <div style={shell.field}><label style={shell.label}>Company Name</label><input style={shell.input} placeholder="Enter company name" value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Contact Person Name</label><input style={shell.input} value={form.contactPersonName} onChange={(e) => update('contactPersonName', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Email Address</label><input style={shell.input} type="email" value={form.emailId} onChange={(e) => update('emailId', e.target.value)} /></div>
-                  <div style={shell.field}><label style={shell.label}>Mobile</label><input style={shell.input} inputMode="numeric" value={form.mobileNumber} onChange={(e) => updateMobileNumber(e.target.value)} /></div>
+                  <div style={shell.field}><label htmlFor="vendor-companyName" style={shell.label}>Company Name</label><input id="vendor-companyName" style={shell.input} placeholder="Enter company name" value={form.companyName} onChange={(e) => update('companyName', e.target.value)} /></div>
+                  <div style={shell.field}><label htmlFor="vendor-contactPersonName" style={shell.label}>Contact Person Name</label><input id="vendor-contactPersonName" style={shell.input} value={form.contactPersonName} onChange={(e) => update('contactPersonName', e.target.value)} /></div>
+                  <div style={shell.field}><label htmlFor="vendor-emailId" style={shell.label}>Email Address</label><input id="vendor-emailId" style={shell.input} type="email" value={form.emailId} onChange={(e) => update('emailId', e.target.value)} /></div>
+                  <div style={shell.field}><label htmlFor="vendor-mobileNumber" style={shell.label}>Mobile</label><input id="vendor-mobileNumber" style={shell.input} inputMode="numeric" value={form.mobileNumber} onChange={(e) => updateMobileNumber(e.target.value)} /></div>
                   <div style={shell.field}>
-                    <label style={shell.label}>WhatsApp Number</label>
+                    <label htmlFor="vendor-whatsappNumber" style={shell.label}>WhatsApp Number</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'center' }}>
                       <input
+                        id="vendor-whatsappNumber"
                         style={shell.input}
                         inputMode="numeric"
                         value={form.whatsappSameAsMobile ? form.mobileNumber : form.whatsappNumber}
@@ -579,7 +580,7 @@ export default function VendorDashboard() {
                       </label>
                     </div>
                   </div>
-                  <div style={shell.field}><label style={shell.label}>GST Number</label><input style={shell.input} inputMode="text" maxLength={15} value={form.gstNumber} onChange={(e) => update('gstNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))} /></div>
+                  <div style={shell.field}><label htmlFor="vendor-gstNumber" style={shell.label}>GST Number</label><input id="vendor-gstNumber" style={shell.input} inputMode="text" maxLength={15} value={form.gstNumber} onChange={(e) => update('gstNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))} /></div>
                 </div>
               </div>
 
@@ -589,25 +590,25 @@ export default function VendorDashboard() {
                     <h4 style={addressTitleStyle}>Billing Address</h4>
                   </div>
                   <div style={addressGridStyle}>
-                    <label style={shell.label}>Attention</label>
-                    <input style={shell.input} value={form.billingAttention} onChange={(e) => update('billingAttention', e.target.value)} />
+                    <label htmlFor="vendor-billingAttention" style={shell.label}>Attention</label>
+                    <input id="vendor-billingAttention" style={shell.input} value={form.billingAttention} onChange={(e) => update('billingAttention', e.target.value)} />
 
-                    <label style={shell.label}>Address</label>
-                    <textarea style={addressTextareaStyle} placeholder="Enter address" value={form.billingAddress} onChange={(e) => update('billingAddress', e.target.value)} />
+                    <label htmlFor="vendor-billingAddress" style={shell.label}>Address</label>
+                    <textarea id="vendor-billingAddress" style={addressTextareaStyle} placeholder="Enter address" value={form.billingAddress} onChange={(e) => update('billingAddress', e.target.value)} />
 
-                    <label style={shell.label}>Area</label>
-                    <input style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
+                    <label htmlFor="vendor-billingArea" style={shell.label}>Area</label>
+                    <input id="vendor-billingArea" style={shell.input} value={form.billingArea} onChange={(e) => update('billingArea', e.target.value)} />
 
-                    <label style={shell.label}>State</label>
-                    <select style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)}>
+                    <label htmlFor="vendor-billingState" style={shell.label}>State</label>
+                    <select id="vendor-billingState" style={shell.input} value={form.billingState} onChange={(e) => update('billingState', e.target.value)}>
                       <option value="">Select state</option>
                       {indiaStates.map((state) => (
                         <option key={state} value={state}>{state}</option>
                       ))}
                     </select>
 
-                    <label style={shell.label}>Pin Code</label>
-                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(e) => update('billingPincode', toSixDigitPincode(e.target.value))} />
+                    <label htmlFor="vendor-billingPincode" style={shell.label}>Pin Code</label>
+                    <input id="vendor-billingPincode" style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.billingPincode} onChange={(e) => update('billingPincode', toSixDigitPincode(e.target.value))} />
                   </div>
                 </div>
 
@@ -619,35 +620,35 @@ export default function VendorDashboard() {
                     </button>
                   </div>
                   <div style={addressGridStyle}>
-                    <label style={shell.label}>Attention</label>
-                    <input style={shell.input} value={form.shippingAttention} onChange={(e) => update('shippingAttention', e.target.value)} />
+                    <label htmlFor="vendor-shippingAttention" style={shell.label}>Attention</label>
+                    <input id="vendor-shippingAttention" style={shell.input} value={form.shippingAttention} onChange={(e) => update('shippingAttention', e.target.value)} />
 
-                    <label style={shell.label}>Address</label>
-                    <textarea style={addressTextareaStyle} placeholder="Enter address" value={form.shippingAddress} onChange={(e) => update('shippingAddress', e.target.value)} />
+                    <label htmlFor="vendor-shippingAddress" style={shell.label}>Address</label>
+                    <textarea id="vendor-shippingAddress" style={addressTextareaStyle} placeholder="Enter address" value={form.shippingAddress} onChange={(e) => update('shippingAddress', e.target.value)} />
 
-                    <label style={shell.label}>Area</label>
-                    <input style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} />
+                    <label htmlFor="vendor-shippingArea" style={shell.label}>Area</label>
+                    <input id="vendor-shippingArea" style={shell.input} value={form.shippingArea} onChange={(e) => update('shippingArea', e.target.value)} />
 
-                    <label style={shell.label}>State</label>
-                    <select style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)}>
+                    <label htmlFor="vendor-shippingState" style={shell.label}>State</label>
+                    <select id="vendor-shippingState" style={shell.input} value={form.shippingState} onChange={(e) => update('shippingState', e.target.value)}>
                       <option value="">Select state</option>
                       {indiaStates.map((state) => (
                         <option key={state} value={state}>{state}</option>
                       ))}
                     </select>
 
-                    <label style={shell.label}>Pin Code</label>
-                    <input style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(e) => update('shippingPincode', toSixDigitPincode(e.target.value))} />
+                    <label htmlFor="vendor-shippingPincode" style={shell.label}>Pin Code</label>
+                    <input id="vendor-shippingPincode" style={shell.input} inputMode="numeric" maxLength={6} pattern="[0-9]{6}" value={form.shippingPincode} onChange={(e) => update('shippingPincode', toSixDigitPincode(e.target.value))} />
                   </div>
                 </div>
               </div>
             </div>
             <div className="crm-modal-surface-footer glass-dialog-footer" style={shell.footer}>
-              {saveError ? <div style={{ marginRight: 'auto', color: '#dc2626', fontSize: '12px', fontWeight: 700 }}>{saveError}</div> : null}
+              {saveError ? <div role="alert" style={{ marginRight: 'auto', color: 'var(--status-danger-text)', fontSize: '12px', fontWeight: 700 }}>{saveError}</div> : null}
               <button type="button" style={shell.cancelButton} onClick={closeModal}>Cancel</button>
               <button data-modal-primary="true"   type="submit" style={shell.saveButton} disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Vendor'}</button>
             </div>
-          </form>
+          </CRMModal>
         </div>,
         document.body
       ) : null}

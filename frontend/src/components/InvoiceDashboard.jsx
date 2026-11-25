@@ -1,5 +1,6 @@
 import { formatPortalTime, formatPortalDate } from '../utils/portalDateTime';
 import { formatRupees } from '../utils/currencyDisplay';
+import { TablePagination, TableViewport, LoadingState, ErrorState } from './ui/PortalPrimitives';
 import AppCard from './ui/AppCard';
 import DashboardStatCard from './ui/DashboardStatCard';
 import { SummaryCardGrid } from './ui/PortalPrimitives';
@@ -1286,6 +1287,8 @@ export default function InvoiceDashboard() {
   );
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [invoices, setInvoices] = useState(() => cachedInvoiceState?.invoices || []);
+  const [invoiceListState, setInvoiceListState] = useState(cachedInvoiceState?.invoices ? 'ready' : 'loading');
+  const [invoiceListError, setInvoiceListError] = useState('');
   const [payments, setPayments] = useState(() => cachedInvoiceState?.payments || []);
   const [customers, setCustomers] = useState(() => cachedInvoiceState?.customers || []);
   const [renewalRows, setRenewalRows] = useState([]);
@@ -1919,6 +1922,8 @@ export default function InvoiceDashboard() {
   const loadInvoices = async (options = {}) => {
     if (invoicesLoadRef.current) return;
     invoicesLoadRef.current = true;
+    setInvoiceListState('loading');
+    setInvoiceListError('');
     try {
       const [invoicesRes, paymentsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/invoices`),
@@ -1935,8 +1940,11 @@ export default function InvoiceDashboard() {
         payments: nextPayments
       });
       setInvoicesLoadedFromApi(true);
+      setInvoiceListState('ready');
     } catch (error) {
       console.error('Failed to load invoices', error);
+      setInvoiceListState('error');
+      setInvoiceListError('Could not load invoices. Use Refresh to try again.');
     } finally {
       setInvoicesHydrated(true);
       invoicesLoadRef.current = false;
@@ -4072,7 +4080,7 @@ export default function InvoiceDashboard() {
 
   return (
     <section
-      className="crm-page crm-section invoice-dashboard-page glass-content glass-finance-content"
+      className="crm-page crm-section invoice-dashboard-page glass-content glass-finance-content glass-refined"
       style={{
         ...shell.page,
         visibility: hideInvoiceShellWhileOpeningModal ? 'hidden' : 'visible'
@@ -4156,7 +4164,8 @@ export default function InvoiceDashboard() {
               </div>
             ) : null}
           </div>}>
-      <div style={{ ...shell.tableWrap, overflowX: 'auto' }} className="crm-table-shell crm-table-shell--clipped invoice-table-shell glass-register-scroll">
+      <ErrorState message={invoiceListError} />
+      <TableViewport label="Invoice data table" aria-busy={invoiceListState === 'loading'} style={shell.tableWrap} className="crm-table-shell invoice-table-shell">
         <table style={tableStyle} className="crm-compact-table invoice-register-table portal-data-table">
           <colgroup>
             <col style={shell.checkboxWrap} />
@@ -4168,11 +4177,12 @@ export default function InvoiceDashboard() {
           <thead>
             <tr>
               <th style={{ ...shell.headCell, ...shell.checkboxWrap, textAlign: 'center' }}>
-                <input type="checkbox" style={shell.checkbox} checked={isAllSelected} onChange={toggleSelectAll} />
+                <input type="checkbox" aria-label="Select all invoices" style={shell.checkbox} checked={isAllSelected} onChange={toggleSelectAll} />
               </th>
               {visibleColumnDefs.map((column) => (
                 <th
                   key={column.key}
+                  data-column={column.key}
                   style={{
                     ...shell.headCell,
                     ...getColumnStyle(column.key),
@@ -4219,13 +4229,14 @@ export default function InvoiceDashboard() {
             </tr>
           </thead>
           <tbody>
-            {pagedInvoices.length === 0 ? <tr><td style={shell.cell} colSpan={visibleColumnDefs.length + 2}><EmptyState title="No invoices found." /></td></tr> : null}
+            {pagedInvoices.length === 0 ? <tr><td style={shell.cell} colSpan={visibleColumnDefs.length + 2}>{invoiceListState === 'loading' ? <LoadingState message="Loading invoices…" /> : invoiceListState === 'error' ? <EmptyState title="Invoice list unavailable" message="Use Refresh above to try again." /> : <EmptyState title="No invoices found." />}</td></tr> : null}
             {pagedInvoices.map((invoice) => (
               <tr key={invoice._id} style={shell.row}>
                 <td style={{ ...shell.cell, ...shell.checkboxWrap }} data-label="Select">
                   <input
                     type="checkbox"
                     style={shell.checkbox}
+                    aria-label={`Select invoice ${invoice.invoiceNumber || ''}`}
                     checked={selectedIds.includes(invoice._id)}
                     onChange={() => toggleSelectOne(invoice._id)}
                   />
@@ -4236,7 +4247,7 @@ export default function InvoiceDashboard() {
                   if (column.key === 'amount' || column.key === 'balanceDue') value = formatINR(value);
                   if (column.key === 'status') {
                     return (
-                      <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...shell.statusBadge, ...getColumnStyle(column.key), color: getStatusColor(String(invoice.status || '').toUpperCase()) }} data-label={column.label}>
+                      <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...shell.statusBadge, ...getColumnStyle(column.key), color: getStatusColor(String(invoice.status || '').toUpperCase()) }} data-column={column.key} data-label={column.label}>
                         <StatusBadge status={String(invoice.status || '').toLowerCase()}>{String(invoice.status || '').toUpperCase()}</StatusBadge>
                       </td>
                     );
@@ -4246,7 +4257,7 @@ export default function InvoiceDashboard() {
                       <td
                         key={`${invoice._id}-${column.key}`}
                         style={{ ...shell.cell, ...shell.invoiceCell, ...getColumnStyle(column.key) }}
-                        data-label={column.label}
+                        data-column={column.key} data-label={column.label}
                         onClick={() => {
                           setSelectedIds([invoice._id]);
                           setModalOpenedFromContract(false);
@@ -4260,7 +4271,7 @@ export default function InvoiceDashboard() {
                     );
                   }
                   return (
-                    <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...getColumnStyle(column.key) }} data-label={column.label}>
+                    <td key={`${invoice._id}-${column.key}`} style={{ ...shell.cell, ...getColumnStyle(column.key) }} data-column={column.key} data-label={column.label}>
                       <span className="crm-cell-wrap">{value}</span>
                     </td>
                   );
@@ -4281,20 +4292,19 @@ export default function InvoiceDashboard() {
             ))}
           </tbody>
         </table>
-      </div>
-      <div className="invoice-table-pagination portal-table-pagination" style={{ padding: '8px 12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--table-footer-bg)', color: 'var(--table-footer-text)', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, backgroundClip: 'padding-box', boxShadow: 'inset 1px 0 0 var(--brand-border-color), inset -1px 0 0 var(--brand-border-color), inset 0 -1px 0 var(--brand-border-color)' }}>
-        <div style={shell.paginationInfo}>{firstRecord}-{lastRecord} of {invoices.length} records</div>
+      </TableViewport>
+<TablePagination variant="glass" summary={!invoices.length && invoiceListState === 'loading' ? 'Loading records…' : !invoices.length && invoiceListState === 'error' ? 'Records unavailable' : `${firstRecord}-${lastRecord} of ${invoices.length} records`} currentPage={invoices.length ? safePage : undefined} totalPages={totalPages}>
         <div style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
           <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', minWidth: '34px', height: '32px', minHeight: '32px', padding: 0 }} disabled={safePage <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} aria-label="Previous page" title="Previous page"><ChevronLeft size={16} /></button>
           <button type="button" style={{ ...tinyGhostButtonStyle, width: '34px', minWidth: '34px', height: '32px', minHeight: '32px', padding: 0 }} disabled={safePage >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} aria-label="Next page" title="Next page"><ChevronRight size={16} /></button>
         </div>
-      </div>
+      </TablePagination>
 
       </AppCard>
 
       {showModal ? createPortal(
         <div style={modalOverlayLockedStyle}>
-          <CRMFormModal className={`crm-four-wizard contract-form-wizard glass-dialog${!editingId && !contractViewOnly ? ' glass-refined-dialog new-contract-alignment' : ''}`} style={modalStyle}
+          <CRMFormModal className={`crm-four-wizard contract-form-wizard glass-dialog glass-refined-dialog${!editingId && !contractViewOnly ? ' new-contract-alignment' : ''}`} style={modalStyle}
  title={contractViewOnly ? 'View Contract' : editingId ? 'Edit Contract' : 'New Contract'} subtitle="Manage customer, services, pricing and service schedules." icon={FileText}
  onClose={closeInvoiceModal} onSubmit={handleSubmit} onClick={(event) => event.stopPropagation()} validateStep={validateWizardStep}
  busy={isSaving} error={saveError} trackSubmission inlineErrors associateLabels fieldsetContent readOnly={contractViewOnly}
@@ -5005,7 +5015,7 @@ export default function InvoiceDashboard() {
 
       {showInvoiceNumberPrefs ? createPortal(
         <div style={shell.miniModalOverlay}>
-          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={shell.miniModal}>
+          <div className="crm-modal-surface glass-dialog glass-refined-dialog" role="dialog" aria-modal="true" style={shell.miniModal}>
             <div className="crm-modal-surface-header glass-dialog-header" style={shell.miniModalHead}>
               <h3 style={shell.miniModalTitle}>Configure Invoice Number Preferences</h3>
               <CRMModalCloseButton type="button" style={shell.miniCloseButton} onClick={() => setShowInvoiceNumberPrefs(false)} aria-label="Close" />
@@ -5095,7 +5105,7 @@ export default function InvoiceDashboard() {
 
       {showBillingAddressPicker ? createPortal(
         <div style={shell.addressPickerOverlay}>
-          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={{ ...shell.addressPicker, width: 'min(100%, 640px)' }}>
+          <div className="crm-modal-surface glass-dialog glass-refined-dialog" role="dialog" aria-modal="true" style={{ ...shell.addressPicker, width: 'min(100%, 640px)' }}>
             <div className="crm-modal-surface-header glass-dialog-header" style={shell.addressPickerHead}>
               <h3 style={shell.addressPickerTitle}>Billing Address</h3>
               <CRMModalCloseButton type="button" style={shell.addressPickerCloseButton} onClick={() => setShowBillingAddressPicker(false)} />
@@ -5126,7 +5136,7 @@ export default function InvoiceDashboard() {
 
       {showShippingAddressPicker ? createPortal(
         <div style={shell.addressPickerOverlay}>
-          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={shell.addressPicker}>
+          <div className="crm-modal-surface glass-dialog glass-refined-dialog" role="dialog" aria-modal="true" style={shell.addressPicker}>
             <div className="crm-modal-surface-header glass-dialog-header" style={shell.addressPickerHead}>
               <h3 style={shell.addressPickerTitle}>Shipping Address</h3>
               <CRMModalCloseButton type="button" style={shell.addressPickerCloseButton} onClick={() => {
@@ -5188,7 +5198,7 @@ export default function InvoiceDashboard() {
       , document.body) : null}
       {showShippingAddressPicker && editingShippingAddressId ? createPortal(
         <div style={shell.miniModalOverlay}>
-          <div className="crm-modal-surface glass-dialog" role="dialog" aria-modal="true" style={{ ...shell.miniModal, width: 'min(100%, 900px)' }}>
+          <div className="crm-modal-surface glass-dialog glass-refined-dialog" role="dialog" aria-modal="true" style={{ ...shell.miniModal, width: 'min(100%, 900px)' }}>
             <div className="crm-modal-surface-header glass-dialog-header" style={shell.miniModalHead}>
               <h3 style={shell.miniModalTitle}>
                 {editingShippingAddressId === 'new' || editingShippingAddressId === 'new-premise' ? 'Add New Address' : 'Edit Address'}

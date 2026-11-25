@@ -1,3 +1,5 @@
+import '../../styles/glassContent.css';
+import GlassChartCard, { GlassChartTooltip } from '../../components/ui/GlassChartCard';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, BarChart3, Clock3, Package, RefreshCcw, ShoppingCart, Truck, UserRound } from 'lucide-react';
@@ -90,8 +92,10 @@ export default function StockDashboard() {
   const isHealthyStock = (value) => Number(value || 0) > 0;
 
   return (
-    <div className="crm-page crm-section stock-management-page" style={{ display: 'grid', gap: 16 }}>
+    <div className="crm-page crm-section stock-management-page glass-content glass-refined" style={{ display: 'grid', gap: 16 }}>
       <PageHeader
+        variant="glass"
+        kind="stock"
         title="Stock Dashboard"
         subtitle="Monitor office stock, technician stock, purchase flow, and low stock items."
         action={viewportWidth > 768 ? (
@@ -111,7 +115,7 @@ export default function StockDashboard() {
       {loading ? (
         <LoadingState message="Loading stock dashboard…" />
       ) : error ? (
-        <AppCard>
+        <AppCard className="glass-surface">
           <ErrorState message={error} />
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
             <AppButton onClick={load} iconLeft={<RefreshCcw size={16} />}>Try Again</AppButton>
@@ -119,98 +123,95 @@ export default function StockDashboard() {
         </AppCard>
       ) : (
         <>
-          <SummaryCardGrid style={summaryGridStyle}>
+          <SummaryCardGrid className="glass-summary-grid glass-summary-grid--overview" style={summaryGridStyle}>
             {summaryCards.map((card) => (
               <DashboardStatCard
                 key={card.key}
+                variant="glass"
                 title={card.title}
                 value={card.key.includes('Value') || card.key.includes('Purchase') ? money(data?.summary?.[card.key] || 0) : number(data?.summary?.[card.key] || 0)}
                 icon={card.icon}
-                style={statCardStyle}
-                contentStyle={statContentStyle}
-                titleStyle={statTitleStyle}
-                valueStyle={statValueStyle}
               />
             ))}
           </SummaryCardGrid>
 
-          <div style={chartGridStyle}>
-            <AppCard title="Category Wise Stock" className="crm-chart-card">
+          <div className="glass-overview-chart-grid" style={chartGridStyle}>
+            <>
               {safeRows(data?.categoryWise).length ? (
-                <div style={chartWrap}>
+                <GlassChartCard docked={viewportWidth <= 768} title="Category Wise Stock" rows={safeRows(data?.categoryWise)} columns={[{ key: 'category', label: 'Category', format: stockCategoryDisplayLabel }, { key: 'currentStock', label: 'Current Stock', format: number }]} minWidth={Math.max(600, safeRows(data?.categoryWise).length * 110)}>
                   <ResponsiveContainer>
                     <BarChart data={safeRows(data?.categoryWise)}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="category" tickFormatter={stockCategoryDisplayLabel} />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="currentStock" radius={0}>
+                      <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="category" tickFormatter={stockCategoryDisplayLabel} interval={0} tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} angle={-18} textAnchor="end" height={66} />
+                      <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} />
+                      <Tooltip trigger={viewportWidth <= 768 ? 'click' : 'hover'} isAnimationActive={false} content={<GlassChartTooltip formatValue={number} formatLabel={stockCategoryDisplayLabel} />} />
+                      <Bar dataKey="currentStock" name="Current Stock" radius={0} isAnimationActive={false}>
                         {safeRows(data?.categoryWise).map((entry) => (
                           <Cell key={entry.category} fill={neutralColor} />
                         ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
-              ) : <EmptyState title="No stock yet" message="Add items or purchases to see category stock here." />}
-            </AppCard>
+                </GlassChartCard>
+              ) : <AppCard title="Category Wise Stock" className="glass-surface crm-chart-card"><EmptyState title="No stock yet" message="Add items or purchases to see category stock here." /></AppCard>}
+            </>
 
-            <AppCard title="Purchase vs Usage" className="crm-chart-card">
+            <>
               {safeRows(data?.monthlyTrend).length ? (
-                <div style={chartWrap}>
+                <GlassChartCard docked={viewportWidth <= 768} title="Purchase vs Usage" rows={safeRows(data?.monthlyTrend)} columns={[{ key: 'month', label: 'Month' }, { key: 'purchase', label: 'Purchase', format: number }, { key: 'usage', label: 'Usage', format: number }]} minWidth={viewportWidth <= 768 ? Math.max(600, safeRows(data?.monthlyTrend).length * 60) : 0}>
                   <ResponsiveContainer>
-                    <LineChart data={safeRows(data?.monthlyTrend)}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="purchase" stroke={neutralColor} strokeWidth={3} dot={false} />
-                      <Line type="monotone" dataKey="usage" stroke={dangerColor} strokeWidth={3} dot={false} />
+                    <LineChart data={safeRows(data?.monthlyTrend)} margin={{ top: 8, right: 24, bottom: 8, left: 0 }}>
+                      <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="month" interval={0} tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} />
+                      <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} />
+                      <Tooltip trigger={viewportWidth <= 768 ? 'click' : 'hover'} isAnimationActive={false} content={<GlassChartTooltip formatValue={number} />} />
+                      <Line isAnimationActive={false} name="Purchase" type="monotone" dataKey="purchase" stroke={neutralColor} strokeWidth={3} dot={false} />
+                      <Line isAnimationActive={false} name="Usage" type="monotone" dataKey="usage" stroke={dangerColor} strokeWidth={3} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
-                </div>
-              ) : <EmptyState title="No monthly trend yet" message="Stock purchases and usage will appear here over time." />}
-            </AppCard>
+                </GlassChartCard>
+              ) : <AppCard title="Purchase vs Usage" className="glass-surface crm-chart-card"><EmptyState title="No monthly trend yet" message="Stock purchases and usage will appear here over time." /></AppCard>}
+            </>
 
-            <AppCard title="Low Stock Items" className="crm-chart-card">
+            <>
               {safeRows(data?.lowStockItems).length ? (
-                <div style={chartWrap}>
+                <GlassChartCard docked={viewportWidth <= 768} title="Low Stock Items" rows={safeRows(data?.lowStockItems)} columns={[{ key: 'itemName', label: 'Item' }, { key: 'currentStock', label: 'Current Stock', format: number }]} minWidth={Math.max(480, safeRows(data?.lowStockItems).length * 72)}>
                   <ResponsiveContainer>
                     <BarChart data={safeRows(data?.lowStockItems)}>
-                      <CartesianGrid strokeDasharray="3 3" />
+                      <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="itemName" hide />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="currentStock" radius={0}>
+                      <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} />
+                      <Tooltip trigger={viewportWidth <= 768 ? 'click' : 'hover'} isAnimationActive={false} content={<GlassChartTooltip formatValue={number} />} />
+                      <Bar dataKey="currentStock" name="Current Stock" radius={0} isAnimationActive={false}>
                         {safeRows(data?.lowStockItems).map((entry) => (
                           <Cell key={entry.itemName} fill={dangerColor} />
                         ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
-              ) : <EmptyState title="No low stock items" message="Items at or below the minimum stock level will show here." />}
-            </AppCard>
+                </GlassChartCard>
+              ) : <AppCard title="Low Stock Items" className="glass-surface crm-chart-card"><EmptyState title="No low stock items" message="Items at or below the minimum stock level will show here." /></AppCard>}
+            </>
 
-            <AppCard title="Technician Wise Stock" className="crm-chart-card">
+            <>
               {safeRows(data?.technicianWise).length ? (
-                <div style={chartWrap}>
+                <GlassChartCard docked={viewportWidth <= 768} title="Technician Wise Stock" rows={safeRows(data?.technicianWise)} columns={[{ key: 'technicianName', label: 'Technician' }, { key: 'currentBalance', label: 'Current Balance', format: number }]} minWidth={Math.max(480, safeRows(data?.technicianWise).length * 72)}>
                   <ResponsiveContainer>
                     <BarChart data={safeRows(data?.technicianWise)}>
-                      <CartesianGrid strokeDasharray="3 3" />
+                      <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
                       <XAxis dataKey="technicianName" hide />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="currentBalance" radius={0}>
+                      <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 12 }} />
+                      <Tooltip trigger={viewportWidth <= 768 ? 'click' : 'hover'} isAnimationActive={false} content={<GlassChartTooltip formatValue={number} />} />
+                      <Bar dataKey="currentBalance" name="Current Balance" radius={0} isAnimationActive={false}>
                         {safeRows(data?.technicianWise).map((entry) => (
                           <Cell key={entry.technicianName} fill={isHealthyStock(entry.currentBalance) ? successColor : dangerColor} />
                         ))}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                </div>
-              ) : <EmptyState title="No technician balances" message="Issued stock and usage will appear here once technicians receive stock." />}
-            </AppCard>
+                </GlassChartCard>
+              ) : <AppCard title="Technician Wise Stock" className="glass-surface crm-chart-card"><EmptyState title="No technician balances" message="Issued stock and usage will appear here once technicians receive stock." /></AppCard>}
+            </>
           </div>
         </>
       )}

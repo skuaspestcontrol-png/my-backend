@@ -49,5 +49,6 @@ export function comboAxisDomain(values, percent = false) {
   const min = Math.min(0, ...finite), max = Math.max(percent ? 100 : finite.some(value => value !== 0) ? 1 : 1000, ...finite);
   return [min < 0 ? min - Math.abs(min) * 0.1 : 0, max + Math.abs(max) * 0.1];
 }
+// Round only the displayed rupee string; retain source precision for charts and calculations.
 export const exactSalesMoney = value => finiteSalesValue(value) === null ? 'Unavailable' : formatRupees(value);
 export const exactSalesPercent = value => finiteSalesValue(value) === null ? 'Unavailable' : `${Number(value).toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 20 })}%`;
