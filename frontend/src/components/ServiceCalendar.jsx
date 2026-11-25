@@ -1,43 +1,13 @@
 import { formatPortalTime, formatPortalDate } from '../utils/portalDateTime';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, Layers, RefreshCw, UserRound } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock3, FileText, Layers, Plus, RefreshCw, Search } from 'lucide-react';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { getPortalUserId, getPortalUserRole } from '../utils/portalAuth';
 import './ServiceCalendar.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
-
-const shell = {
-  page: { display: 'grid', gap: '16px' },
-  card: { background: 'rgba(255,255,255,0.62)', backdropFilter: 'blur(18px)', WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.34)', borderRadius: '16px', boxShadow: '0 14px 34px rgba(15,23,42,0.06)', overflow: 'hidden' },
-  head: { padding: '16px 18px', borderBottom: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' },
-  titleWrap: { display: 'inline-flex', alignItems: 'center', gap: '10px' },
-  title: { margin: 0, fontSize: '24px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' },
-  subtitle: { margin: '6px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' },
-  controls: { display: 'inline-flex', alignItems: 'center', gap: '8px' },
-  controlBtn: { border: '1px solid transparent', background: 'var(--surface-card)', color: 'var(--text-secondary)', borderRadius: '10px', height: '34px', minHeight: '34px', minWidth: '34px', padding: '0 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', fontWeight: 700, lineHeight: 1 },
-  monthText: { minWidth: '170px', textAlign: 'center', fontWeight: 700, color: 'var(--text-primary)' },
-  body: { padding: '14px 16px 16px', display: 'grid', gap: '12px' },
-  weekRow: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '6px' },
-  weekCell: { textAlign: 'center', fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '6px' },
-  dayBtn: { border: '1px solid rgba(255,255,255,0.26)', borderRadius: '10px', background: 'rgba(255,255,255,0.64)', minHeight: '76px', padding: '7px', textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px' },
-  dayBtnMuted: { opacity: 0.45, background: 'rgba(248,250,252,0.62)' },
-  dayBtnSelected: { borderColor: 'var(--color-primary)', boxShadow: '0 0 0 2px rgba(159,23,77,0.2)' },
-  dayNumber: { fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 },
-  dayBadge: { alignSelf: 'flex-start', fontSize: '10px', fontWeight: 800, color: 'var(--color-primary-dark)', background: 'var(--color-primary-soft)', borderRadius: '999px', padding: '2px 7px', lineHeight: 1.15 },
-  selectedCard: { border: '1px solid rgba(255,255,255,0.26)', borderRadius: '12px', background: 'rgba(255,255,255,0.64)', overflow: 'hidden' },
-  selectedHead: { padding: '10px 12px', borderBottom: '1px solid transparent', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 800, textTransform: 'uppercase' },
-  selectedBody: { padding: '10px 12px', display: 'grid', gap: '10px', background: 'rgba(255,255,255,0.18)' },
-  eventGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '10px' },
-  eventCard: { border: '1px solid rgba(255,255,255,0.24)', borderRadius: '12px', padding: '11px 11px 10px', background: 'var(--surface-card)', display: 'grid', gap: '7px', minWidth: 0 },
-  eventTitle: { fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.35 },
-  eventRow: { display: 'flex', flexWrap: 'wrap', gap: '8px 12px', alignItems: 'center' },
-  eventPill: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 8px', borderRadius: '999px', background: 'rgba(248,250,252,0.62)', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 700, lineHeight: 1.2 },
-  eventMeta: { fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.45 },
-  empty: { padding: '12px', borderRadius: '8px', border: '1px dashed var(--border-soft)', color: 'var(--text-muted)', fontSize: '13px' },
-  error: { color: '#b91c1c', fontWeight: 700, fontSize: '12px' }
-};
 
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -50,10 +20,9 @@ const formatDateInput = (date) => {
 };
 
 const parseDateOnly = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  date.setHours(0, 0, 0, 0);
-  return date;
+  // Invoice schedules contain date-only values. Keep their day in the local calendar.
+  const date = new Date(`${value}T00:00:00`);
+  return formatDateInput(date) === value ? date : null;
 };
 
 const monthLabel = (date) =>
@@ -71,42 +40,106 @@ const normalizeTime = (value, fallback = '10:00') => {
   return `${match[1]}:${match[2]}`;
 };
 
-const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
+const normalizeText = (value) => String(value || '').trim().toLowerCase();
 
 const isCompletedStatus = (value) => {
-  const status = normalizeStatus(value);
+  const status = normalizeText(value);
   return status === 'completed' || status === 'done' || status === 'closed';
 };
 
 const SERVICE_CALENDAR_CACHE_KEY = 'service_calendar_cache_v1';
 
-const readServiceCalendarCache = () => {
+const readServiceCalendarCache = (owner) => {
   try {
-    if (typeof window === 'undefined') return null;
+    if (!owner || typeof window === 'undefined') return null;
     const raw = window.sessionStorage.getItem(SERVICE_CALENDAR_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === 'object' ? parsed : null;
+    return parsed?.owner === owner && Array.isArray(parsed.events) ? parsed.events : null;
   } catch {
     return null;
   }
 };
 
-const mergeServiceCalendarCache = (patch) => {
+const writeServiceCalendarCache = (owner, events) => {
   try {
-    if (typeof window === 'undefined') return;
-    const current = readServiceCalendarCache() || {};
-    window.sessionStorage.setItem(SERVICE_CALENDAR_CACHE_KEY, JSON.stringify({ ...current, ...patch }));
+    if (!owner || typeof window === 'undefined') return;
+    window.sessionStorage.setItem(SERVICE_CALENDAR_CACHE_KEY, JSON.stringify({ owner, events }));
   } catch {
     // Cache is a best-effort performance hint.
   }
 };
 
+const MAX_DAY_ENTRIES = 3;
+
+function collectOptions(events, field) {
+  const options = new Map();
+  for (const event of events) {
+    const label = String(event?.[field] || '').trim();
+    const value = normalizeText(label);
+    if (value && !options.has(value)) options.set(value, label);
+  }
+  return [...options].sort(([, left], [, right]) => left.localeCompare(right));
+}
+
+function getStatusTone(value) {
+  if (isCompletedStatus(value)) return 'completed';
+  const status = normalizeText(value).replace(/[_-]+/g, ' ');
+  if (status === 'pending' || status === 'in progress') return 'pending';
+  if (status === 'scheduled' || status === 'upcoming') return 'upcoming';
+  if (status === 'overdue') return 'overdue';
+  return 'other';
+}
+
+function CalendarFilter({ label, options, value, onChange }) {
+  const currentLabel = options.find(([key]) => key === value)?.[1];
+  return (
+    <select
+      className="sc-select"
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    >
+      <option value="">{label} (All)</option>
+      {value && !currentLabel ? <option value={value}>{label}: {value}</option> : null}
+      {options.map(([key, name]) => <option key={key} value={key}>{label}: {name}</option>)}
+    </select>
+  );
+}
+
+function ServiceCard({ event }) {
+  const tone = getStatusTone(event.status);
+  const title = [event.customerName, event.itemName].filter(Boolean).join(' · ') || 'Service';
+  return (
+    <details className="sc-service" data-tone={tone}>
+      <summary className="sc-service-summary">
+        <span className="sc-service-top">
+          <strong>{title}</strong>
+          <ChevronDown size={17} aria-hidden="true" />
+        </span>
+        <span className="sc-service-meta">
+          <span><Clock3 size={14} aria-hidden="true" /> {formatPortalTime(event.serviceTime)}</span>
+          {event.serviceNumber > 0 ? <span>Service #{event.serviceNumber}</span> : null}
+        </span>
+        {event.status ? <span className="sc-status">{event.status}</span> : null}
+      </summary>
+      <div className="sc-service-details">
+        {event.invoiceNumber ? <div><FileText size={15} aria-hidden="true" /> {event.invoiceNumber}</div> : null}
+        <p>{event.itemDescription || 'No item description'}</p>
+      </div>
+    </details>
+  );
+}
+
 export default function ServiceCalendar() {
-  const [cachedCalendar] = useState(() => readServiceCalendarCache());
-  const [viewportWidth, setViewportWidth] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
-  const [events, setEvents] = useState(() => Array.isArray(cachedCalendar?.events) ? cachedCalendar.events : []);
-  const [loading, setLoading] = useState(false);
+  const role = normalizeText(getPortalUserRole());
+  const userId = getPortalUserId();
+  const cacheOwner = userId ? JSON.stringify([userId, role]) : '';
+  const [cachedEvents] = useState(() => readServiceCalendarCache(cacheOwner));
+  const [events, setEvents] = useState(() => cachedEvents || []);
+  const hasCachedEvents = Boolean(cachedEvents);
+  const [hasLoaded, setHasLoaded] = useState(hasCachedEvents);
+  const [loading, setLoading] = useState(!hasCachedEvents);
   const [error, setError] = useState('');
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
@@ -115,52 +148,71 @@ export default function ServiceCalendar() {
     return now;
   });
   const [selectedDate, setSelectedDate] = useState(() => formatDateInput(new Date()));
+  const [statusFilter, setStatusFilter] = useState('');
+  const [serviceFilter, setServiceFilter] = useState('');
+  const [search, setSearch] = useState('');
   const loadRequestRef = useRef(null);
+  const dailyHeadingId = useId();
 
   const loadSchedules = async (options = {}) => {
-    if (loadRequestRef.current) return loadRequestRef.current;
-    const request = (async () => {
+    const activeRequest = loadRequestRef.current;
+    if (!options.silent) {
+      setLoading(true);
+      setError('');
+    }
+    if (activeRequest) {
+      if (!options.silent) activeRequest.showFeedback = true;
+      return activeRequest.promise;
+    }
+    const request = { showFeedback: !options.silent };
+    loadRequestRef.current = request;
+    request.promise = (async () => {
       try {
-        if (!options.silent) setLoading(true);
-        setError('');
         const response = await axios.get(`${API_BASE_URL}/api/service-schedules`);
         const nextEvents = Array.isArray(response.data) ? response.data : [];
         setEvents(nextEvents);
-        mergeServiceCalendarCache({ events: nextEvents });
+        setHasLoaded(true);
+        setError('');
+        writeServiceCalendarCache(cacheOwner, nextEvents);
       } catch (loadError) {
         console.error('Failed to load service schedules', loadError);
-        if (!options.silent && !cachedCalendar) {
-          setError('Could not load service schedules right now.');
+        const accessDenied = [401, 403].includes(loadError?.response?.status);
+        if (accessDenied) {
           setEvents([]);
+          setHasLoaded(false);
+          writeServiceCalendarCache(cacheOwner, null);
+        }
+        if (accessDenied || request.showFeedback) {
+          setError('Could not load service schedules right now.');
         }
       } finally {
-        if (!options.silent) setLoading(false);
+        if (request.showFeedback) setLoading(false);
+        loadRequestRef.current = null;
       }
     })();
-    loadRequestRef.current = request;
-    try {
-      return await request;
-    } finally {
-      if (loadRequestRef.current === request) loadRequestRef.current = null;
-    }
+    return request.promise;
   };
 
   useEffect(() => {
-    loadSchedules({ silent: Boolean(cachedCalendar) });
-  }, [cachedCalendar]);
+    loadSchedules({ silent: hasCachedEvents });
+  }, [hasCachedEvents]);
 
   useAutoRefresh(() => loadSchedules({ silent: true }));
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const onResize = () => setViewportWidth(window.innerWidth);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+  const filterOptions = useMemo(() => ({
+    statuses: collectOptions(events, 'status'),
+    services: collectOptions(events, 'itemName')
+  }), [events]);
 
   const eventsByDate = useMemo(() => {
+    const query = normalizeText(search);
     const grouped = {};
     events.forEach((event, index) => {
+      const serviceName = normalizeText(event?.itemName);
+      if (statusFilter && normalizeText(event?.status) !== statusFilter) return;
+      if (serviceFilter && serviceName !== serviceFilter) return;
+      if (query && !serviceName.includes(query) && !normalizeText(event?.customerName).includes(query)) return;
+
       const date = String(event?.serviceDate || '').slice(0, 10);
       const parsedDate = parseDateOnly(date);
       if (!parsedDate) return;
@@ -185,7 +237,7 @@ export default function ServiceCalendar() {
     });
 
     return grouped;
-  }, [events]);
+  }, [events, statusFilter, serviceFilter, search]);
 
   const monthCells = useMemo(() => {
     const monthStart = new Date(currentMonth);
@@ -194,7 +246,9 @@ export default function ServiceCalendar() {
     const gridStart = new Date(monthStart);
     gridStart.setDate(monthStart.getDate() - offset);
 
-    return Array.from({ length: 42 }, (_, index) => {
+    const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0).getDate();
+    const cellCount = Math.ceil((offset + daysInMonth) / 7) * 7;
+    return Array.from({ length: cellCount }, (_, index) => {
       const date = new Date(gridStart);
       date.setDate(gridStart.getDate() + index);
       const dateKey = formatDateInput(date);
@@ -233,251 +287,152 @@ export default function ServiceCalendar() {
       total: events.length
     };
   }, [events, today]);
-  const isMobile = viewportWidth <= 768;
-  const dayBtnStyle = isMobile
-    ? { ...shell.dayBtn, minHeight: '44px', padding: '3px 4px', gap: '1px', borderRadius: '9px' }
-    : shell.dayBtn;
-  const dayNumberStyle = isMobile ? { ...shell.dayNumber, fontSize: '10px', lineHeight: 1 } : shell.dayNumber;
-  const dayBadgeStyle = isMobile
-    ? {
-        ...shell.dayBadge,
-        width: '100%',
-        minWidth: 0,
-        minHeight: '14px',
-        padding: '0 2px',
-        borderRadius: '3px',
-        fontSize: '6px',
-        lineHeight: 1,
-        alignSelf: 'stretch',
-        justifyContent: 'center',
-        textAlign: 'center',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis'
-      }
-    : shell.dayBadge;
-  const controlBtnStyle = isMobile
-    ? {
-        ...shell.controlBtn,
-        width: '34px',
-        minWidth: '34px',
-        height: '34px',
-        minHeight: '34px',
-        padding: 0,
-        borderRadius: '9px',
-        gap: 0
-      }
-    : shell.controlBtn;
-  const refreshBtnStyle = isMobile
-    ? {
-        ...shell.controlBtn,
-        minHeight: '34px',
-        height: '34px',
-        padding: '0 8px',
-        borderRadius: '10px'
-      }
-    : shell.controlBtn;
-  const eventGridStyle = isMobile
-    ? { ...shell.eventGrid, gridTemplateColumns: '1fr' }
-    : shell.eventGrid;
-  const eventCardStyle = isMobile
-    ? { ...shell.eventCard, padding: '10px 10px 9px' }
-    : shell.eventCard;
-  const summaryGridStyle = isMobile
-    ? {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-        gap: '8px'
-      }
-    : {
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-        gap: '12px'
-      };
-  const summaryCardStyle = isMobile
-    ? {
-        border: '1px solid transparent',
-        borderRadius: '12px',
-        background: 'rgba(255,255,255,0.64)',
-        padding: '10px 11px',
-        display: 'grid',
-        gap: '3px',
-        minWidth: 0,
-        boxShadow: '0 10px 24px rgba(15,23,42,0.05)'
-      }
-    : {
-        border: '1px solid transparent',
-        borderRadius: '16px',
-        background: 'rgba(255,255,255,0.64)',
-        padding: '14px 16px',
-        display: 'grid',
-        gap: '6px',
-        minWidth: 0,
-        boxShadow: '0 12px 28px rgba(15,23,42,0.05)'
-      };
+  const todayKey = formatDateInput(today);
+  const hasFilters = Boolean(statusFilter || serviceFilter || search);
+  // Assign Services uses the existing authenticated route and server-side job permissions.
+  const canSchedule = role && role !== 'employee' && role !== 'technician';
+  const waitingForData = loading && !hasLoaded;
+
+  const shiftMonth = (direction) => {
+    setCurrentMonth((previous) => {
+      const next = new Date(previous);
+      next.setMonth(next.getMonth() + direction);
+      return next;
+    });
+  };
+
+  const resetFilters = () => {
+    setStatusFilter('');
+    setServiceFilter('');
+    setSearch('');
+  };
 
   const summaryItems = [
-    { label: 'Completed Services', value: summary.completed, tone: '#16a34a', icon: CheckCircle2, kind: 'completed' },
-    { label: 'Pending Services', value: summary.pending, tone: '#f59e0b', icon: Clock3, kind: 'pending' },
-    { label: 'Upcoming Services', value: summary.upcoming, tone: '#2563eb', icon: CalendarDays, kind: 'upcoming' },
-    { label: 'Total Number of Services', value: summary.total, tone: 'var(--color-primary)', icon: Layers, kind: 'total' }
+    { label: 'Completed Services', value: summary.completed, icon: CheckCircle2, tone: 'completed' },
+    { label: 'Pending Services', value: summary.pending, icon: Clock3, tone: 'pending' },
+    { label: 'Upcoming Services', value: summary.upcoming, icon: CalendarDays, tone: 'upcoming' },
+    { label: 'Total Number of Services', value: summary.total, icon: Layers, tone: 'total' }
   ];
 
   return (
-    <section className="service-calendar-page service-calendar-modern" style={shell.page}>
-      <div className="service-calendar-card" style={shell.card}>
-        <div className="service-calendar-head" style={shell.head}>
-          <div className="service-calendar-title" style={shell.titleWrap}>
-            <span className="service-calendar-title-icon"><CalendarDays size={28} /></span>
+    <section className="service-calendar" aria-label="Service Calendar">
+      <div className="sc-page">
+        <header className="sc-header">
+          <div className="sc-title">
+            <span className="sc-title-icon"><CalendarDays size={28} aria-hidden="true" /></span>
             <div>
-              <h1 style={shell.title}>Service Calendar</h1>
-              <p style={shell.subtitle}>
-                Calendar view of scheduled services synced from invoice service plans.
-              </p>
+              <h1>Service Calendar</h1>
+              <p>Calendar view of scheduled services synced from invoice service plans.</p>
             </div>
           </div>
-          <div className="service-calendar-controls" style={shell.controls}>
-            <div className="service-calendar-month-controls">
-            <button
-              type="button"
-              style={controlBtnStyle}
-              onClick={() =>
-                setCurrentMonth((prev) => {
-                  const next = new Date(prev);
-                  next.setMonth(next.getMonth() - 1);
-                  return next;
-                })
-              }
-              title="Previous month"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <div className="service-calendar-month-label" style={shell.monthText}>{monthLabel(currentMonth)}</div>
-            <button
-              type="button"
-              style={controlBtnStyle}
-              onClick={() =>
-                setCurrentMonth((prev) => {
-                  const next = new Date(prev);
-                  next.setMonth(next.getMonth() + 1);
-                  return next;
-                })
-              }
-              title="Next month"
-            >
-              <ChevronRight size={16} />
-            </button>
+          <div className="sc-controls">
+            <div className="sc-month-controls">
+              <button type="button" className="sc-button" onClick={() => shiftMonth(-1)} aria-label="Previous month">
+                <ChevronLeft size={19} aria-hidden="true" />
+              </button>
+              <span className="sc-month-label" aria-live="polite">{monthLabel(currentMonth)}</span>
+              <button type="button" className="sc-button" onClick={() => shiftMonth(1)} aria-label="Next month">
+                <ChevronRight size={19} aria-hidden="true" />
+              </button>
             </div>
-            <button className="service-calendar-refresh" type="button" style={refreshBtnStyle} onClick={loadSchedules}>
-              <RefreshCw size={14} />
-              {loading ? 'Loading...' : 'Refresh'}
+            {canSchedule ? (
+              <Link className="sc-button sc-schedule" to="/operations/assign-services">
+                <Plus size={19} aria-hidden="true" /> Schedule Service
+              </Link>
+            ) : null}
+            <button type="button" className="sc-button" onClick={() => loadSchedules()} disabled={loading}>
+              <RefreshCw size={17} aria-hidden="true" /> {loading ? 'Loading…' : 'Refresh'}
             </button>
           </div>
+        </header>
+
+        <div className="sc-filters" role="group" aria-label="Service calendar filters">
+          <CalendarFilter label="Status" options={filterOptions.statuses} value={statusFilter} onChange={setStatusFilter} />
+          <CalendarFilter label="Service Type" options={filterOptions.services} value={serviceFilter} onChange={setServiceFilter} />
+          <div className="sc-search">
+            <Search size={17} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Search by customer or service"
+              placeholder="Search by customer or service…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+          {hasFilters ? <button type="button" className="sc-button sc-reset" onClick={resetFilters}>Reset filters</button> : null}
         </div>
 
-        <div className="service-calendar-body" style={shell.body}>
-          {error ? <div style={shell.error}>{error}</div> : null}
+        {error ? <div className="sc-error" role="alert">{error}</div> : null}
 
-          <div className="service-calendar-summary-grid" style={summaryGridStyle}>
-            {summaryItems.map((item) => (
-              <div key={item.label} className={`service-calendar-summary-card service-calendar-summary-${item.kind}`} style={summaryCardStyle}>
-                <span className="service-calendar-summary-icon"><item.icon size={26} /></span>
-                <div className="service-calendar-summary-copy">
-                <div className="service-calendar-summary-label" style={{ fontSize: isMobile ? '9px' : '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em', lineHeight: 1.15 }}>
-                  {item.label}
-                </div>
-                <div className="service-calendar-summary-value" style={{ fontSize: isMobile ? '20px' : '30px', lineHeight: 1, fontWeight: 900, color: item.tone }}>
-                  {item.value}
-                </div>
-                </div>
+        <div className="sc-metrics" role="group" aria-label="Service totals across all dates">
+          {summaryItems.map(({ label, value, icon: Icon, tone }) => (
+            <div key={label} className="sc-metric" data-tone={tone}>
+              <span className="sc-metric-icon"><Icon size={23} aria-hidden="true" /></span>
+              <div>
+                <div className="sc-metric-label">{label}</div>
+                <div className="sc-metric-value">{hasLoaded ? value.toLocaleString('en-IN') : '—'}</div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
 
-          <div className="service-calendar-workspace">
-          <div className="service-calendar-month-panel">
-          <div className="service-calendar-week-row" style={shell.weekRow}>
-            {weekDays.map((day) => (
-              <div key={day} className="service-calendar-week-cell" style={shell.weekCell}>{day}</div>
-            ))}
-          </div>
-
-          <div className="service-calendar-grid" style={shell.grid}>
-            {monthCells.map((cell) => {
-              const isSelected = selectedDate === cell.dateKey;
-              return (
-                <button
-                  key={cell.dateKey}
-                  type="button"
-                  className={`service-calendar-day${cell.inCurrentMonth ? '' : ' service-calendar-day-muted'}${isSelected ? ' service-calendar-day-selected' : ''}`}
-                  style={{
-                    ...dayBtnStyle,
-                    ...(cell.inCurrentMonth ? null : shell.dayBtnMuted),
-                    ...(isSelected ? shell.dayBtnSelected : null)
-                  }}
-                  aria-label={`${displayDate(cell.dateKey)}, ${cell.events.length} service${cell.events.length === 1 ? '' : 's'}`}
-                  aria-pressed={isSelected}
-                  onClick={() => setSelectedDate(cell.dateKey)}
-                >
-                  <span className="service-calendar-day-number" style={dayNumberStyle}>{cell.date.getDate()}</span>
-                  {cell.events.length > 0 ? (
-                    <span className="service-calendar-day-badge" style={dayBadgeStyle} title={`${cell.events.length} service${cell.events.length > 1 ? 's' : ''}`}>
-                      <span>{cell.events.length}</span><span className="service-calendar-count-unit">{isMobile ? ' svc' : ` service${cell.events.length > 1 ? 's' : ''}`}</span>
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-
-          </div>
-          <div className="service-calendar-selected-card" style={shell.selectedCard}>
-            <div className="service-calendar-selected-head" style={shell.selectedHead}>Services on {displayDate(selectedDate)}</div>
-            <div className="service-calendar-selected-body" style={shell.selectedBody}>
-              <div className="service-calendar-date-banner">
-                <span className="service-calendar-title-icon"><CalendarDays size={26} /></span>
-                <div>
-                  <strong>{parseDateOnly(selectedDate)?.getDate()}</strong>
-                  <p>{formatPortalDate(selectedDate)}</p>
-                </div>
-              </div>
-              {selectedDayEvents.length === 0 ? (
-                <div className="service-calendar-empty" style={shell.empty}><span className="service-calendar-empty-icon"><CalendarDays size={44} /></span><span>No services scheduled for this date.</span></div>
-              ) : (
-                <div className="service-calendar-event-grid" style={eventGridStyle}>
-                  {selectedDayEvents.map((event) => (
-                    <details key={event._id} className="service-calendar-event-card" style={eventCardStyle}>
-                      <summary className="service-calendar-event-summary">
-                        <span className="service-calendar-event-title" style={shell.eventTitle}>
-                          {event.itemName || 'Service Item'}
-                        </span>
-                        <ChevronDown size={16} aria-hidden="true" />
-                      </summary>
-                      <div className="service-calendar-event-details">
-                      <div className="service-calendar-event-row" style={shell.eventRow}>
-                        <span className="service-calendar-event-pill" style={shell.eventPill}>
-                          <Clock3 size={12} /> {formatPortalTime(event.serviceTime)}
-                        </span>
-                        <span className="service-calendar-event-pill" style={shell.eventPill}>
-                          <UserRound size={12} /> {event.customerName || 'Customer not linked'}
-                        </span>
-                      </div>
-                      <div className="service-calendar-event-row" style={shell.eventRow}>
-                        <span className="service-calendar-event-pill" style={shell.eventPill}>
-                          <FileText size={12} /> {event.invoiceNumber || 'Invoice not set'}
-                        </span>
-                      </div>
-                      <div className="service-calendar-event-meta" style={shell.eventMeta}>
-                        {event.itemDescription || 'No item description'}
-                      </div>
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              )}
+        <div className="sc-workspace">
+          <div className="sc-calendar" role="group" aria-label={monthLabel(currentMonth)}>
+            <div className="sc-week" aria-hidden="true">
+              {weekDays.map((day) => <span key={day}>{day}</span>)}
+            </div>
+            <div className="sc-days">
+              {monthCells.map((cell) => {
+                const isToday = cell.dateKey === todayKey;
+                const more = cell.events.length - MAX_DAY_ENTRIES;
+                const serviceCount = `${cell.events.length} service${cell.events.length === 1 ? '' : 's'}`;
+                return (
+                  <button
+                    key={cell.dateKey}
+                    type="button"
+                    className="sc-day"
+                    data-outside={!cell.inCurrentMonth || undefined}
+                    aria-label={`${displayDate(cell.dateKey)}, ${serviceCount}`}
+                    aria-current={isToday ? 'date' : undefined}
+                    aria-pressed={selectedDate === cell.dateKey}
+                    onClick={() => setSelectedDate(cell.dateKey)}
+                  >
+                    <span className="sc-day-number">{cell.date.getDate()}</span>
+                    {cell.events.length > 0 ? (
+                      <span className="sc-day-entries" aria-hidden="true">
+                        {cell.events.slice(0, MAX_DAY_ENTRIES).map((event) => (
+                          <span
+                            className="sc-day-entry"
+                            data-tone={getStatusTone(event.status)}
+                            key={event._id}
+                            title={[event.itemName, event.status].filter(Boolean).join(' · ')}
+                          >
+                            <span>{event.itemName || event.status || 'Service'}</span>
+                          </span>
+                        ))}
+                        {more > 0 ? <span className="sc-more">+{more}<span> more</span></span> : null}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           </div>
-          </div>
+          <section className="sc-daily" aria-labelledby={dailyHeadingId}>
+            <h2 id={dailyHeadingId} aria-live="polite">Services on {displayDate(selectedDate)}</h2>
+            {waitingForData ? (
+              <div className="sc-empty" role="status"><CalendarDays size={29} aria-hidden="true" /> Loading service schedules…</div>
+            ) : error && !hasLoaded ? null : selectedDayEvents.length === 0 ? (
+              <div className="sc-empty">
+                <CalendarDays size={29} aria-hidden="true" />
+                {hasFilters ? 'No matching services for this date.' : 'No services scheduled for this date.'}
+              </div>
+            ) : (
+              <div className="sc-daily-list" key={selectedDate}>
+                {selectedDayEvents.map((event) => <ServiceCard key={event._id} event={event} />)}
+              </div>
+            )}
+          </section>
         </div>
       </div>
     </section>
